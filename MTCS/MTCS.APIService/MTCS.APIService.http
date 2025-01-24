@@ -1,0 +1,6 @@
+@MTCS.APIService_HostAddress = http://localhost:5071
+
+GET {{MTCS.APIService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
