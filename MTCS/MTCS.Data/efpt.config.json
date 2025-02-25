@@ -1,0 +1,144 @@
+﻿{
+   "CodeGenerationMode": 4,
+   "ContextClassName": "mtcsContext",
+   "ContextNamespace": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": true,
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "Models",
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "MTCS.Data",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 2,
+   "SelectedToBeGenerated": 0,
+   "T4TemplatePath": null,
+   "Tables": [
+      {
+         "Name": "[dbo].[Contract]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ContractFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DeliveryReports]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DeliveryReportsFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DeliveryStatus]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Driver]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DriverDailyWorkingTime]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DriverFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[FuelReport]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[FuelReportFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[IncidentReports]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[IncidentReportsFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[InspectionLogs]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Orders]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ShippingPrices]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Token]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Tractor]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[TractorCategory]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Trailer]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[TrailerCategory]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Trips]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[TripStatusHistory]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Users]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[VehicleFile]",
+         "ObjectType": 0
+      }
+   ],
+   "UiHint": null,
+   "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": false,
+   "UseDatabaseNamesForRoutines": true,
+   "UseDateOnlyTimeOnly": true,
+   "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
+   "UseFluentApiOnly": true,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": true,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
+   "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
+   "UseSpatial": false,
+   "UseT4": false,
+   "UseT4Split": false
+}
