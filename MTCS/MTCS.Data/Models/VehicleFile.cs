@@ -21,8 +21,6 @@ public partial class VehicleFile
 
     public DateTime? FileSize { get; set; }
 
-    public byte[] FileContent { get; set; }
-
     public DateTime? UploadDate { get; set; }
 
     public string UploadBy { get; set; }
@@ -34,6 +32,12 @@ public partial class VehicleFile
     public DateTime? DeletedDate { get; set; }
 
     public string DeletedBy { get; set; }
+
+    public string FileUrl { get; set; }
+
+    public DateOnly? ModifiedDate { get; set; }
+
+    public string ModifiedBy { get; set; }
 
     public virtual Tractor Tractors { get; set; }
 

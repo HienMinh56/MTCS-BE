@@ -17,8 +17,6 @@ public partial class OrderFile
 
     public DateTime? FileSize { get; set; }
 
-    public byte[] FileContent { get; set; }
-
     public DateTime? UploadDate { get; set; }
 
     public string UploadBy { get; set; }
@@ -30,6 +28,12 @@ public partial class OrderFile
     public DateTime? DeletedDate { get; set; }
 
     public string DeletedBy { get; set; }
+
+    public string FileUrl { get; set; }
+
+    public DateOnly? ModifiedDate { get; set; }
+
+    public string ModifiedBy { get; set; }
 
     public virtual Order Order { get; set; }
 }
