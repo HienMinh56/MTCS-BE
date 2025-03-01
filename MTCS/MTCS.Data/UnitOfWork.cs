@@ -1,11 +1,12 @@
 ﻿using MTCS.Data.Models;
+using MTCS.Data.Repository;
 
 namespace MTCS.Data
 {
     public class UnitOfWork
     {
-        private mtcsContext context;
-        //    private KoiFishRepository koiFishRepository;
+        private MTCSContext context;
+        private IncidentReportsRepository incidentReportsRepository;
         //    private ConsignmentRepository consignmentRepository;
         //    private PaymentRepository paymentRepository;
         //    private VoucherRepository voucherRepository;
@@ -16,16 +17,16 @@ namespace MTCS.Data
 
         public UnitOfWork()
         {
-            context ??= new mtcsContext();
+            context ??= new MTCSContext();
         }
 
-        //    public KoiFishRepository KoiFishRepository
-        //    {
-        //        get
-        //        {
-        //            return koiFishRepository ??= new KoiFishRepository();
-        //        }
-        //    }
+        public IncidentReportsRepository IncidentReportsRepository
+        {
+            get
+            {
+                return incidentReportsRepository ??= new IncidentReportsRepository();
+            }
+        }
 
         //    public ConsignmentRepository ConsignmentRepository
         //    {

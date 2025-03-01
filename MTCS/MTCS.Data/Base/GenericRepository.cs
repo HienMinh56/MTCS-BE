@@ -6,14 +6,14 @@ namespace MTCS.Data.Base
 {
     public class GenericRepository<T> where T : class
     {
-        protected mtcsContext _context;
+        protected MTCSContext _context;
 
         public GenericRepository()
         {
-            _context ??= new mtcsContext();
+            _context ??= new MTCSContext();
         }
 
-        public GenericRepository(mtcsContext context)
+        public GenericRepository(MTCSContext context)
         {
             _context = context;
         }

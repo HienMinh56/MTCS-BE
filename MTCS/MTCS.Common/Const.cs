@@ -2,11 +2,9 @@
 {
     public class Const
     {
-        //public static string APIEndpoint = "https://localhost:7149/api/";
-        //public static string API_ENDPOINT = "https://localhost:7149/api/";
         //#region Error Codes
 
-        //public static int ERROR_EXCEPTION = -4;
+        public static int ERROR_EXCEPTION = -4;
 
         //#endregion
 
@@ -46,20 +44,10 @@
 
         #region Entity Id
 
-        public static string CONSIGNMENT = "CONSIGN";
-        public static string CONSIGNMENT_INDEX = "ConsignmentId";
+        public static string INCIDENTREPORT = "INCIDENT";
+        public static string INCIDENTREPORT_INDEX = "ReportId";
         public static string IMAGE = "IMG";
         public static string IMAGE_INDEX = "ImageId";
-        public static string KOIFISH = "KOI";
-        public static string KOIFISH_INDEX = "KoiId";
-        public static string ORDER = "ORDER";
-        public static string ORDER_INDEX = "OrderId";
-        public static string PAYMENT = "TRANS";
-        public static string PAYMENT_INDEX = "PaymentId";
-        public static string USER = "USER";
-        public static string USER_INDEX = "UserId";
-        public static string VOUCHER = "VOUCH";
-        public static string VOUCHER_INDEX = "VoucherId";
 
         #endregion
     }

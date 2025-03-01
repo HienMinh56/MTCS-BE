@@ -7,13 +7,13 @@ using Microsoft.Extensions.Configuration;
 
 namespace MTCS.Data.Models;
 
-public partial class mtcsContext : DbContext
+public partial class MTCSContext : DbContext
 {
-    public mtcsContext()
+    public MTCSContext()
     {
     }
 
-    public mtcsContext(DbContextOptions<mtcsContext> options)
+    public MTCSContext(DbContextOptions<MTCSContext> options)
         : base(options)
     {
     }
@@ -121,6 +121,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
@@ -160,6 +161,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.ReportId)
                 .IsRequired()
@@ -246,6 +248,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
@@ -291,6 +294,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.ReportId)
                 .IsRequired()
@@ -353,6 +357,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.ReportId)
                 .IsRequired()
@@ -448,6 +453,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.OrderId)
                 .IsRequired()
@@ -701,6 +707,7 @@ public partial class mtcsContext : DbContext
             entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileSize).HasColumnType("datetime");
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.TractorsId)
                 .HasMaxLength(255)
