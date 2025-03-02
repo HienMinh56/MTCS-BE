@@ -7,13 +7,7 @@ namespace MTCS.Data
     {
         private MTCSContext context;
         private IncidentReportsRepository incidentReportsRepository;
-        //    private ConsignmentRepository consignmentRepository;
-        //    private PaymentRepository paymentRepository;
-        //    private VoucherRepository voucherRepository;
-        //    private OrderRepository orderRepository;
-        //    private OrderDetailRepository orderDetailRepository;
-        //    private UserRepository userRepository;
-        //    private ImageRepository imageRepository;
+        private IncidentReportsFileRepository incidentReportsFileRepository;
 
         public UnitOfWork()
         {
@@ -27,61 +21,14 @@ namespace MTCS.Data
                 return incidentReportsRepository ??= new IncidentReportsRepository();
             }
         }
-
-        //    public ConsignmentRepository ConsignmentRepository
-        //    {
-        //        get
-        //        {
-        //            return consignmentRepository ??= new ConsignmentRepository();
-        //        }
-        //    }
-
-        //    public PaymentRepository PaymentRepository
-        //    {
-        //        get
-        //        {
-        //            return paymentRepository ??= new PaymentRepository();
-        //        }
-        //    }
-
-        //    public VoucherRepository VoucherRepository
-        //    {
-        //        get
-        //        {
-        //            return voucherRepository ??= new VoucherRepository();
-        //        }
-        //    }
-
-        //    public OrderRepository OrderRepository
-        //    {
-        //        get
-        //        {
-        //            return orderRepository ??= new OrderRepository();
-        //        }
-        //    }
-
-        //    public OrderDetailRepository OrderDetailRepository
-        //    {
-        //        get
-        //        {
-        //            return orderDetailRepository ??= new OrderDetailRepository();
-        //        }
-        //    }
-
-        //    public UserRepository UserRepository
-        //    {
-        //        get
-        //        {
-        //            return userRepository ??= new UserRepository();
-        //        }
-        //    }
-        //    public ImageRepository ImageRepository
-        //    {
-        //        get
-        //        {
-        //            return imageRepository ??= new ImageRepository();
-        //        }
-        //    }
+        
+        public IncidentReportsFileRepository IncidentReportsFileRepository
+        {
+            get
+            {
+                return incidentReportsFileRepository ??= new IncidentReportsFileRepository();
+            }
+        }
 
         //    ////TO-DO CODE HERE/////////////////
 

@@ -17,6 +17,11 @@ namespace MTCS.Data.Repository
 
         public IncidentReportsRepository(MTCSContext context) => _context = context;
 
+        /// <summary>
+        /// Get incident reports by trip id
+        /// </summary>
+        /// <author name="Đoàn Lê Hiển Minh"></author>
+        /// <returns></returns>
         public async Task<List<IncidentReport>> GetIncidentReportsByTripId(string tripId)
         {
             return await _context.IncidentReports.Where(i => i.TripId == tripId)
@@ -24,6 +29,33 @@ namespace MTCS.Data.Repository
                                                  .OrderBy(i => i.ReportId)
                                                  .AsNoTracking()
                                                  .ToListAsync();
+        }
+
+        /// <summary>
+        /// Get images by report id
+        /// </summary>
+        /// <author name="Đoàn Lê Hiển Minh"></author>
+        /// <returns></returns>
+        public async Task<IncidentReport?> GetImagesByReportId(string reportId)
+        {
+            return await _context.IncidentReports
+                                 .Where(i => i.ReportId == reportId)
+                                 .Include(i => i.IncidentReportsFiles)
+                                 .SingleOrDefaultAsync();
+        }
+
+        /// <summary>
+        /// Get incident report details by report id
+        /// </summary>
+        /// <author name="Đoàn Lê Hiển Minh"></author>
+        /// <returns></returns>
+        public async Task <IncidentReport?> GetIncidentReportDetails(string reportId)
+        {
+            return await _context.IncidentReports
+                                 .Where(i => i.ReportId == reportId)
+                                 .Include(i => i.Trip)
+                                 .Include(i => i.IncidentReportsFiles)
+                                 .SingleOrDefaultAsync();
         }
     }
 }
