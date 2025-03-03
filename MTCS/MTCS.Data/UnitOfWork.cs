@@ -12,12 +12,15 @@ namespace MTCS.Data
 
         private MTCSContext context;
         private IncidentReportsRepository incidentReportsRepository;
+        private UserRepository userRepository;
+        private DriverRepository driverRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
+        //    private ConsignmentRepository consignmentRepository;
+        //    private PaymentRepository paymentRepository;
         //    private VoucherRepository voucherRepository;
         //    private OrderRepository orderRepository;
         //    private OrderDetailRepository orderDetailRepository;
-        //    private UserRepository userRepository;
         //    private ImageRepository imageRepository;
 
         public UnitOfWork()
@@ -33,6 +36,29 @@ namespace MTCS.Data
             }
         }
 
+        public UserRepository UserRepository
+        {
+            get
+            {
+                return userRepository ??= new UserRepository();
+            }
+        }
+
+        public DriverRepository DriverRepository
+        {
+            get
+            {
+                return driverRepository ??= new DriverRepository();
+            }
+        }
+
+        //    public ConsignmentRepository ConsignmentRepository
+        //    {
+        //        get
+        //        {
+        //            return consignmentRepository ??= new ConsignmentRepository();
+        //        }
+        //    }
         public ContractRepository ContractRepository
         {
             get
@@ -40,7 +66,6 @@ namespace MTCS.Data
                 return contractRepository ??= new ContractRepository();
             }
         }
-
         public ContractFileRepository ContractFileRepository
         {
             get
@@ -73,13 +98,6 @@ namespace MTCS.Data
         //        }
         //    }
 
-        //    public UserRepository UserRepository
-        //    {
-        //        get
-        //        {
-        //            return userRepository ??= new UserRepository();
-        //        }
-        //    }
         //    public ImageRepository ImageRepository
         //    {
         //        get
