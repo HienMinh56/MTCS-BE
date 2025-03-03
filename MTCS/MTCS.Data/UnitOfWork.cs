@@ -7,12 +7,14 @@ namespace MTCS.Data
     {
         private MTCSContext context;
         private IncidentReportsRepository incidentReportsRepository;
+        private UserRepository userRepository;
+        private DriverRepository driverRepository;
+
         //    private ConsignmentRepository consignmentRepository;
         //    private PaymentRepository paymentRepository;
         //    private VoucherRepository voucherRepository;
         //    private OrderRepository orderRepository;
         //    private OrderDetailRepository orderDetailRepository;
-        //    private UserRepository userRepository;
         //    private ImageRepository imageRepository;
 
         public UnitOfWork()
@@ -25,6 +27,22 @@ namespace MTCS.Data
             get
             {
                 return incidentReportsRepository ??= new IncidentReportsRepository();
+            }
+        }
+
+        public UserRepository UserRepository
+        {
+            get
+            {
+                return userRepository ??= new UserRepository();
+            }
+        }
+
+        public DriverRepository DriverRepository
+        {
+            get
+            {
+                return driverRepository ??= new DriverRepository();
             }
         }
 
@@ -68,13 +86,6 @@ namespace MTCS.Data
         //        }
         //    }
 
-        //    public UserRepository UserRepository
-        //    {
-        //        get
-        //        {
-        //            return userRepository ??= new UserRepository();
-        //        }
-        //    }
         //    public ImageRepository ImageRepository
         //    {
         //        get
