@@ -61,10 +61,12 @@ builder.Services.AddSwaggerGen(c =>
     });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Please input 'Bearer' and your token",
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
+        Description = "Enter the JWT token obtained from the login endpoint",
+        Name = "Authorization"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -83,6 +85,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 //Registering Services
+builder.Services.AddScoped<UnitOfWork>();
+
+builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
 

@@ -1,15 +1,21 @@
-﻿using MTCS.Data.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using MTCS.Data.Models;
 using MTCS.Data.Repository;
 
 namespace MTCS.Data
 {
     public class UnitOfWork
     {
+        private readonly DbContext _context;
+        private IDbContextTransaction _transaction;
+
         private MTCSContext context;
         private IncidentReportsRepository incidentReportsRepository;
         private UserRepository userRepository;
         private DriverRepository driverRepository;
-
+        private ContractRepository contractRepository;
+        private ContractFileRepository contractFileRepository;
         //    private ConsignmentRepository consignmentRepository;
         //    private PaymentRepository paymentRepository;
         //    private VoucherRepository voucherRepository;
@@ -53,14 +59,20 @@ namespace MTCS.Data
         //            return consignmentRepository ??= new ConsignmentRepository();
         //        }
         //    }
-
-        //    public PaymentRepository PaymentRepository
-        //    {
-        //        get
-        //        {
-        //            return paymentRepository ??= new PaymentRepository();
-        //        }
-        //    }
+        public ContractRepository ContractRepository
+        {
+            get
+            {
+                return contractRepository ??= new ContractRepository();
+            }
+        }
+        public ContractFileRepository ContractFileRepository
+        {
+            get
+            {
+                return contractFileRepository ??= new ContractFileRepository();
+            }
+        }
 
         //    public VoucherRepository VoucherRepository
         //    {
@@ -157,5 +169,19 @@ namespace MTCS.Data
         //    }
 
         //    #endregion
+        public async Task BeginTransactionAsync()
+        {
+            _transaction = await context.Database.BeginTransactionAsync();
+        }
+
+        public async Task CommitTransactionAsync()
+        {
+            await _transaction.CommitAsync();
+        }
+
+        public async Task RollbackTransactionAsync()
+        {
+            await _transaction.RollbackAsync();
+        }
     }
 }
