@@ -61,10 +61,12 @@ builder.Services.AddSwaggerGen(c =>
     });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Please input 'Bearer' and your token",
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey,
+        Description = "Enter the JWT token obtained from the login endpoint",
+        Name = "Authorization"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {

@@ -7,16 +7,18 @@ using MTCS.Data.Request;
 using MTCS.Service.Base;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MTCS.Service.Service
+namespace MTCS.Service.Services
 {
     public interface IContractService
     {
-        Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, string userName);
-        Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, string userName);
+        Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, ClaimsPrincipal claims);
+        Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, ClaimsPrincipal claims);
     }
 
     public class ContractService : IContractService
@@ -30,10 +32,15 @@ namespace MTCS.Service.Service
             _firebaseService = firebaseService;
         }
 
-        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, string userName)
+        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, ClaimsPrincipal claims)
         {
             try
             {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+             ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
                 // Begin transaction
                 await _repository.BeginTransactionAsync();
 
@@ -43,7 +50,7 @@ namespace MTCS.Service.Service
                 var contract = new Contract
                 {
                     ContractId = contractId,
-                    UserId = contractRequest.UserId,
+                    UserId = userId,
                     StartDate = contractRequest.StartDate,
                     EndDate = contractRequest.EndDate,
                     Status = contractRequest.Status,
@@ -68,7 +75,7 @@ namespace MTCS.Service.Service
 
 
                 var nextFileID = await _repository.ContractFileRepository.GetNextFileNumberAsync();
-                var fileId = $"FL{nextFileID:D6}";
+                var fileId = $"FIL{nextFileID:D6}";
                 // 5. Create ContractFile entity
                 var contractFile = new ContractFile
                 {
@@ -107,10 +114,15 @@ namespace MTCS.Service.Service
         }
 
 
-        public async Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, string userName)
+        public async Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, ClaimsPrincipal claims)
         {
             try
             {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+             ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
                 // Begin transaction
                 await _repository.BeginTransactionAsync();
 
@@ -124,7 +136,7 @@ namespace MTCS.Service.Service
 
 
                 var nextFileID = await _repository.ContractFileRepository.GetNextFileNumberAsync();
-                var fileId = $"FL{nextFileID:D6}";
+                var fileId = $"FIL{nextFileID:D6}";
                 var contractFile = new ContractFile
                 {
                     FileId = fileId,
