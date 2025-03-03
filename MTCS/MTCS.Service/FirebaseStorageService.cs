@@ -20,7 +20,16 @@ namespace MTCS.Service
         Task DeleteImageAsync(string imageName);
 
         Task<string[]> UploadImagesAsync(IFormFileCollection files);
+        Task<FileMetadata> UploadFileAsync(IFormFile file, string? fileName = default);
         string ExtractImageNameFromUrl(string imageUrl);
+    }
+
+    public class FileMetadata
+    {
+        public string FileUrl { get; set; }
+        public string FileName { get; set; }
+        public string FileType { get; set; }
+        public long FileSize { get; set; }
     }
     public class FirebaseStorageService : IFirebaseStorageService
     {
@@ -81,6 +90,47 @@ namespace MTCS.Service
 
             return GetImageUrl(imageName);
 
+        }
+
+        public async Task<FileMetadata> UploadFileAsync(IFormFile file, string? fileName = default)
+        {
+            fileName ??= $"{Path.GetFileNameWithoutExtension(file.FileName)}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+            stream.Position = 0;
+
+            // Create upload options with metadata
+            var options = new UploadObjectOptions
+            {
+                PredefinedAcl = PredefinedObjectAcl.PublicRead
+            };
+
+            // Upload the file
+            var blob = await _storageClient.UploadObjectAsync(
+                _bucketName,
+                fileName,
+                file.ContentType,
+                stream,
+                options: options,
+                cancellationToken: CancellationToken.None);
+
+            if (blob is null)
+            {
+                throw new Exception("Upload file failed");
+            }
+
+            // Get metadata from the uploaded object
+            var objectMetadata = await _storageClient.GetObjectAsync(_bucketName, fileName);
+
+            // Return file metadata
+            return new FileMetadata
+            {
+                FileUrl = GetImageUrl(fileName),
+                FileName = fileName,
+                FileType = file.ContentType,
+                FileSize = (long?)objectMetadata.Size ?? file.Length
+            };
         }
 
         public async Task<string[]> UploadImagesAsync(IFormFileCollection files)

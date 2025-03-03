@@ -1,0 +1,191 @@
+﻿using Microsoft.AspNetCore.Http;
+using MTCS.Common;
+using MTCS.Data;
+using MTCS.Data.Models;
+using MTCS.Data.Repository;
+using MTCS.Data.Request;
+using MTCS.Service.Base;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MTCS.Service.Service
+{
+    public interface IContractService
+    {
+        Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, string userName);
+        Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, string userName);
+    }
+
+    public class ContractService : IContractService
+    {
+        private readonly UnitOfWork _repository;
+        private readonly IFirebaseStorageService _firebaseService;
+
+        public ContractService(UnitOfWork repository, IFirebaseStorageService firebaseService)
+        {
+            _repository = repository;
+            _firebaseService = firebaseService;
+        }
+
+        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, string userName)
+        {
+            try
+            {
+                // Begin transaction
+                await _repository.BeginTransactionAsync();
+
+                var nextContractId = await _repository.ContractRepository.GetNextContractNumberAsync();
+                var contractId = $"CTR{nextContractId:D6}";
+                // 1. Create Contract entity
+                var contract = new Contract
+                {
+                    ContractId = contractId,
+                    UserId = contractRequest.UserId,
+                    StartDate = contractRequest.StartDate,
+                    EndDate = contractRequest.EndDate,
+                    Status = contractRequest.Status,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = userName
+                    // Set other contract properties as needed
+                };
+
+                // 2. Add contract to database
+                await _repository.ContractRepository.CreateAsync(contract);
+
+                // 3. Upload file to Firebase and get URL
+                var fileUrl = await _firebaseService.UploadImageAsync(file);
+
+                // 4. Extract file information
+                var fileName = Path.GetFileName(file.FileName);
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+                // Determine file type based on extension
+                string fileType = GetFileTypeFromExtension(fileExtension);
+
+
+
+                var nextFileID = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+                var fileId = $"FL{nextFileID:D6}";
+                // 5. Create ContractFile entity
+                var contractFile = new ContractFile
+                {
+                    FileId = fileId, 
+                    ContractId = contractId,
+                    FileName = fileName,
+                    FileType = fileType,
+                    UploadDate = DateTime.UtcNow,
+                    UploadBy = userName,
+                    Description = contractRequest.FileDescription,
+                    Note = contractRequest.FileNote, 
+                    FileUrl = fileUrl,
+                    ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow), 
+                    ModifiedBy = userName
+                };
+
+                // 6. Add contract file to database
+                await _repository.ContractFileRepository.CreateAsync(contractFile);
+
+
+                // 7. Commit transaction
+                await _repository.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, new
+                {
+                    ContractId = contractId,
+                    FileId = fileId
+                });
+            }
+            catch (Exception ex)
+            {
+                // Rollback transaction on error
+                await _repository.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+
+        public async Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, string userName)
+        {
+            try
+            {
+                // Begin transaction
+                await _repository.BeginTransactionAsync();
+
+                var fileUrl = await _firebaseService.UploadImageAsync(file);
+
+                var fileName = Path.GetFileName(file.FileName);
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+                string fileType = GetFileTypeFromExtension(fileExtension);
+
+
+
+                var nextFileID = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+                var fileId = $"FL{nextFileID:D6}";
+                var contractFile = new ContractFile
+                {
+                    FileId = fileId,
+                    ContractId = contractId,
+                    FileName = fileName,
+                    FileType = fileType,
+                    UploadDate = DateTime.UtcNow,
+                    UploadBy = userName,
+                    Description = description,
+                    Note = note,
+                    FileUrl = fileUrl,
+                    ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    ModifiedBy = userName
+                };
+
+                // 6. Add contract file to database
+                var result = await _repository.ContractFileRepository.CreateAsync(contractFile);
+
+                // 7. Commit transaction
+                await _repository.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
+                
+            }
+            catch (Exception ex)
+            {
+                // Rollback transaction on error
+                await _repository.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        // Helper method to determine file type from extension
+        private string GetFileTypeFromExtension(string extension)
+        {
+            switch (extension.ToLowerInvariant())
+            {
+                case ".pdf":
+                    return "PDF Document";
+                case ".doc":
+                case ".docx":
+                    return "Word Document";
+                case ".xls":
+                case ".xlsx":
+                    return "Excel Spreadsheet";
+                case ".ppt":
+                case ".pptx":
+                    return "PowerPoint Presentation";
+                case ".jpg":
+                case ".jpeg":
+                case ".png":
+                case ".gif":
+                    return "Image";
+                case ".txt":
+                    return "Text Document";
+                case ".zip":
+                case ".rar":
+                    return "Archive";
+                default:
+                    return "Unknown";
+            }
+        }
+    }
+}

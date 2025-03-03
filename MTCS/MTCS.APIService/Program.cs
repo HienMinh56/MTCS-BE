@@ -3,7 +3,9 @@ using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MTCS.Data;
 using MTCS.Service;
+using MTCS.Service.Service;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +69,9 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 //Registering Services
+builder.Services.AddScoped<UnitOfWork>();
+
+builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
 var app = builder.Build();
