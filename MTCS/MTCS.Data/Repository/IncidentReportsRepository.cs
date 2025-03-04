@@ -17,6 +17,14 @@ namespace MTCS.Data.Repository
 
         public IncidentReportsRepository(MTCSContext context) => _context = context;
 
+        public async Task<List<IncidentReport>> GetIncidentReportsByDriverId(string driverId)
+        {
+            return await _context.IncidentReports.Where(i => i.ReportId == driverId)
+                                                 .Include(i => i.IncidentReportsFiles)
+                                                 .AsNoTracking()
+                                                 .ToListAsync();
+        }
+
         /// <summary>
         /// Get incident reports by trip id
         /// </summary>

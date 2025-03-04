@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
-using MTCS.Service.Service;
-using static MTCS.Service.Service.IncidentReportsService;
+using MTCS.Service.Services;
+using static MTCS.Service.Services.IncidentReportsService;
 
 namespace MTCS.APIService.Controllers
 {
@@ -17,7 +17,7 @@ namespace MTCS.APIService.Controllers
             _incidentReportsService = incidentReportsService;
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{tripId}")]
         public async Task<IBusinessResult> GetIncidentReportsByTripId(string tripId)
         {
             var result = await _incidentReportsService.GetIncidentReportsByTripId(tripId);

@@ -7,6 +7,8 @@ namespace MTCS.Data
 {
     public class UnitOfWork
     {
+        private IDbContextTransaction _transaction;
+
         private MTCSContext context;
         private IncidentReportsRepository incidentReportsRepository;
         private IncidentReportsFileRepository incidentReportsFileRepository;
