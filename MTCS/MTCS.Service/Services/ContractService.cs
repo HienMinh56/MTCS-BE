@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
@@ -7,6 +9,7 @@ using MTCS.Data.Request;
 using MTCS.Service.Base;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -17,8 +20,13 @@ namespace MTCS.Service.Services
 {
     public interface IContractService
     {
-        Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, ClaimsPrincipal claims);
-        Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, ClaimsPrincipal claims);
+        Task<BusinessResult> GetContractFiles(string contractId);
+        Task<BusinessResult> GetContract();
+        Task<BusinessResult> GetContract(string contractId);
+        Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, ClaimsPrincipal claims);
+        Task<BusinessResult> SendSignedContract(string contractId, string description, string note, List<IFormFile> files, ClaimsPrincipal claims);
+        Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims);
+        Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims);
     }
 
     public class ContractService : IContractService
@@ -32,22 +40,24 @@ namespace MTCS.Service.Services
             _firebaseService = firebaseService;
         }
 
-        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, IFormFile file, ClaimsPrincipal claims)
+
+
+
+        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
             {
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-             ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
+                    ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-                // Begin transaction
+                // Bắt đầu transaction
                 await _repository.BeginTransactionAsync();
 
-                var nextContractId = await _repository.ContractRepository.GetNextContractNumberAsync();
-                var contractId = $"CTR{nextContractId:D6}";
-                // 1. Create Contract entity
-                var contract = new Contract
+                var contractId = await _repository.ContractRepository.GetNextContractIdAsync();
+
+                // Tạo Contract
+                var contract = new Data.Models.Contract
                 {
                     ContractId = contractId,
                     UserId = userId,
@@ -56,118 +66,244 @@ namespace MTCS.Service.Services
                     Status = contractRequest.Status,
                     CreatedDate = DateTime.UtcNow,
                     CreatedBy = userName
-                    // Set other contract properties as needed
                 };
 
-                // 2. Add contract to database
                 await _repository.ContractRepository.CreateAsync(contract);
 
-                // 3. Upload file to Firebase and get URL
-                var fileUrl = await _firebaseService.UploadImageAsync(file);
+                var savedFiles = new List<ContractFile>();
 
-                // 4. Extract file information
-                var fileName = Path.GetFileName(file.FileName);
-                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-                // Determine file type based on extension
-                string fileType = GetFileTypeFromExtension(fileExtension);
-
-
-
-                var nextFileID = await _repository.ContractFileRepository.GetNextFileNumberAsync();
-                var fileId = $"FIL{nextFileID:D6}";
-                // 5. Create ContractFile entity
-                var contractFile = new ContractFile
+                foreach (var file in files)
                 {
-                    FileId = fileId, 
-                    ContractId = contractId,
-                    FileName = fileName,
-                    FileType = fileType,
-                    UploadDate = DateTime.UtcNow,
-                    UploadBy = userName,
-                    Description = contractRequest.FileDescription,
-                    Note = contractRequest.FileNote, 
-                    FileUrl = fileUrl,
-                    ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow), 
-                    ModifiedBy = userName
-                };
+                    var fileUrl = await _firebaseService.UploadImageAsync(file);
 
-                // 6. Add contract file to database
-                await _repository.ContractFileRepository.CreateAsync(contractFile);
+                    var fileName = Path.GetFileName(file.FileName);
+                    var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    string fileType = GetFileTypeFromExtension(fileExtension);
 
+                    var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
 
-                // 7. Commit transaction
-                await _repository.CommitTransactionAsync();
+                    var contractFile = new ContractFile
+                    {
+                        FileId = fileId,
+                        ContractId = contractId,
+                        FileName = fileName,
+                        FileType = fileType,
+                        UploadDate = DateTime.UtcNow,
+                        UploadBy = userName,
+                        Description = contractRequest.FileDescription,
+                        Note = contractRequest.FileNote,
+                        FileUrl = fileUrl,
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedBy = userName,
+                    };
+
+                    await _repository.ContractFileRepository.CreateAsync(contractFile);
+                }
+
+                //await _repository.CommitTransactionAsync();
 
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, new
                 {
                     ContractId = contractId,
-                    FileId = fileId
+                    Files = savedFiles
                 });
             }
             catch (Exception ex)
             {
-                // Rollback transaction on error
                 await _repository.RollbackTransactionAsync();
                 throw;
             }
         }
 
 
-        public async Task<BusinessResult> SendSignedContract(string contractId, string description, string note, IFormFile file, ClaimsPrincipal claims)
+        public async Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var existingContract = _repository.ContractRepository.GetById(contractId);
+                if (existingContract == null)
+                {
+                    new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG, null);
+                }
+                existingContract.Status = 2;
+                var result = await _repository.ContractRepository.UpdateAsync(existingContract);
+                return new BusinessResult(Const.SUCCESS_DELETE_CODE, Const.SUCCESS_DELETE_MSG);
+            }
+            catch
+            {
+                return new BusinessResult(Const.SUCCESS_DELETE_CODE, Const.SUCCESS_DELETE_MSG);
+            }
+
+
+        }
+
+        public async Task<BusinessResult> GetContract()
+        {
+            try
+            {
+                var contracts = await _repository.ContractRepository.GetAllAsync();
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contracts);
+            }
+            catch
+            {
+                return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+            }
+        }
+
+        public Task<BusinessResult> GetContract(string contractId)
+        {
+            try
+            {
+                var contract = _repository.ContractRepository.GetById(contractId);
+                return Task.FromResult(new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contract));
+            }
+            catch
+            {
+                return Task.FromResult(new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG));
+            }
+        }
+        public async Task<BusinessResult> GetContractFiles(string contractId)
+        {
+            try
+            {
+                var contractFiles = _repository.ContractFileRepository.GetList(x => x.ContractId == contractId);
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contractFiles);
+            }
+            catch
+            {
+                return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+            }
+        }
+
+        public async Task<BusinessResult> SendSignedContract(string contractId, string description, string note, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
             {
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-             ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
+                    ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-                // Begin transaction
+                // Bắt đầu transaction
                 await _repository.BeginTransactionAsync();
 
-                var fileUrl = await _firebaseService.UploadImageAsync(file);
+                var savedFiles = new List<ContractFile>();
 
-                var fileName = Path.GetFileName(file.FileName);
-                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-                string fileType = GetFileTypeFromExtension(fileExtension);
-
-
-
-                var nextFileID = await _repository.ContractFileRepository.GetNextFileNumberAsync();
-                var fileId = $"FIL{nextFileID:D6}";
-                var contractFile = new ContractFile
+                foreach (var file in files)
                 {
-                    FileId = fileId,
-                    ContractId = contractId,
-                    FileName = fileName,
-                    FileType = fileType,
-                    UploadDate = DateTime.UtcNow,
-                    UploadBy = userName,
-                    Description = description,
-                    Note = note,
-                    FileUrl = fileUrl,
-                    ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                    ModifiedBy = userName
-                };
+                    var fileUrl = await _firebaseService.UploadImageAsync(file);
 
-                // 6. Add contract file to database
-                var result = await _repository.ContractFileRepository.CreateAsync(contractFile);
+                    var fileName = Path.GetFileName(file.FileName);
+                    var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    string fileType = GetFileTypeFromExtension(fileExtension);
 
-                // 7. Commit transaction
-                await _repository.CommitTransactionAsync();
+                    var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
 
-                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
-                
+                    var contractFile = new ContractFile
+                    {
+                        FileId = fileId,
+                        ContractId = contractId,
+                        FileName = fileName,
+                        FileType = fileType,
+                        UploadDate = DateTime.UtcNow,
+                        UploadBy = userName,
+                        Description = description,
+                        Note = note,
+                        FileUrl = fileUrl,
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedBy = userName
+                    };
+
+                    // Lưu vào database
+                    await _repository.ContractFileRepository.CreateAsync(contractFile);
+                }
+
+                // Commit transaction
+                //await _repository.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, savedFiles);
             }
             catch (Exception ex)
             {
-                // Rollback transaction on error
                 await _repository.RollbackTransactionAsync();
-                throw;
+                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG);
             }
         }
+
+
+        public async Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                    ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                await _repository.BeginTransactionAsync();
+
+                var contract = await _repository.ContractRepository.GetContractAsync(model.ContractId);
+
+                if (contract == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+
+                // Cập nhật thông tin hợp đồng
+                contract.StartDate = model.StartDate ?? contract.StartDate;
+                contract.EndDate = model.EndDate ?? contract.EndDate;
+
+                // Xóa file hợp đồng
+                if (model.FileIdsToRemove?.Any() == true)
+                {
+                    foreach (var fileId in model.FileIdsToRemove)
+                    {
+                        var file = contract.ContractFiles.FirstOrDefault(f => f.FileId == fileId);
+                        if (file != null)
+                        {
+                            //await _firebaseService.DeleteImageAsync(file.FileUrl);
+                            await _repository.ContractFileRepository.RemoveAsync(file);
+                        }
+                    }
+                }
+
+                // Thêm file mới
+                if (model.AddedFiles?.Any() == true)
+                {
+                    foreach (var file in model.AddedFiles)
+                    {
+                        var fileUrl = await _firebaseService.UploadImageAsync(file);
+
+                        var fileName = Path.GetFileName(file.FileName);
+                        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                        string fileType = GetFileTypeFromExtension(fileExtension);
+                        var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+                        contract.ContractFiles.Add(new ContractFile
+                        {
+                            FileId = fileId,
+                            ContractId = contract.ContractId,
+                            FileName = fileName,
+                            FileType = fileType,
+                            FileUrl = fileUrl,
+                            Description = model.Description,
+                            Note = model.Note,
+                            UploadDate = DateTime.UtcNow,
+                            UploadBy = userName,
+                            ModifiedBy = userName,
+                            ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        });
+                    }
+                }
+                
+                 await _repository.ContractRepository.UpdateAsync(contract);
+                //await _repository.CommitTransactionAsync();
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
+            }
+            catch
+            {
+                await _repository.RollbackTransactionAsync();
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
+            }
+            
+        }
+
+
+
 
         // Helper method to determine file type from extension
         private string GetFileTypeFromExtension(string extension)
