@@ -7,33 +7,17 @@ namespace MTCS.Data
 {
     public class UnitOfWork
     {
-        private readonly DbContext _context;
-        private IDbContextTransaction _transaction;
-
         private MTCSContext context;
         private IncidentReportsRepository incidentReportsRepository;
+        private IncidentReportsFileRepository incidentReportsFileRepository;
         private UserRepository userRepository;
         private DriverRepository driverRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
-        //    private ConsignmentRepository consignmentRepository;
-        //    private PaymentRepository paymentRepository;
-        //    private VoucherRepository voucherRepository;
-        //    private OrderRepository orderRepository;
-        //    private OrderDetailRepository orderDetailRepository;
-        //    private ImageRepository imageRepository;
 
         public UnitOfWork()
         {
             context ??= new MTCSContext();
-        }
-
-        public IncidentReportsRepository IncidentReportsRepository
-        {
-            get
-            {
-                return incidentReportsRepository ??= new IncidentReportsRepository();
-            }
         }
 
         public UserRepository UserRepository
@@ -52,20 +36,30 @@ namespace MTCS.Data
             }
         }
 
-        //    public ConsignmentRepository ConsignmentRepository
-        //    {
-        //        get
-        //        {
-        //            return consignmentRepository ??= new ConsignmentRepository();
-        //        }
-        //    }
-        public ContractRepository ContractRepository
+        public IncidentReportsRepository IncidentReportsRepository
+        {
+            get
+            {
+                return incidentReportsRepository ??= new IncidentReportsRepository();
+            }
+        }
+        
+        public IncidentReportsFileRepository IncidentReportsFileRepository
+        {
+            get
+            {
+                return incidentReportsFileRepository ??= new IncidentReportsFileRepository();
+            }
+        }
+
+public ContractRepository ContractRepository
         {
             get
             {
                 return contractRepository ??= new ContractRepository();
             }
         }
+
         public ContractFileRepository ContractFileRepository
         {
             get
@@ -73,38 +67,6 @@ namespace MTCS.Data
                 return contractFileRepository ??= new ContractFileRepository();
             }
         }
-
-        //    public VoucherRepository VoucherRepository
-        //    {
-        //        get
-        //        {
-        //            return voucherRepository ??= new VoucherRepository();
-        //        }
-        //    }
-
-        //    public OrderRepository OrderRepository
-        //    {
-        //        get
-        //        {
-        //            return orderRepository ??= new OrderRepository();
-        //        }
-        //    }
-
-        //    public OrderDetailRepository OrderDetailRepository
-        //    {
-        //        get
-        //        {
-        //            return orderDetailRepository ??= new OrderDetailRepository();
-        //        }
-        //    }
-
-        //    public ImageRepository ImageRepository
-        //    {
-        //        get
-        //        {
-        //            return imageRepository ??= new ImageRepository();
-        //        }
-        //    }
 
         //    ////TO-DO CODE HERE/////////////////
 
