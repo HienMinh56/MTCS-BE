@@ -24,18 +24,18 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
-        [HttpPost]
-        public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
-        {
-            var result = await _incidentReportsService.CreateIncidentReport(request);
-            return result;
-        }
+        //[HttpPost]
+        //public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
+        //{
+        //    var result = await _incidentReportsService.CreateIncidentReport(request);
+        //    return result;
+        //}
 
-        [HttpPut]
-        public async Task<IBusinessResult> UpdateIncidentReport([FromForm] UpdateIncidentReportRequest request)
-        {
-            var result = await _incidentReportsService.UpdateIncidentReport(request);
-            return result;
-        }
+        //[HttpPut]
+        //public async Task<IBusinessResult> UpdateIncidentReport([FromForm] UpdateIncidentReportRequest request)
+        //{
+        //    var result = await _incidentReportsService.UpdateIncidentReport(request);
+        //    return result;
+        //}
     }
 }

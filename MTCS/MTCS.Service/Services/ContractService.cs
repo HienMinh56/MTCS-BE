@@ -23,8 +23,8 @@ namespace MTCS.Service.Services
         Task<BusinessResult> GetContractFiles(string contractId);
         Task<BusinessResult> GetContract();
         Task<BusinessResult> GetContract(string contractId);
-        Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, ClaimsPrincipal claims);
-        Task<BusinessResult> SendSignedContract(string contractId, string description, string note, List<IFormFile> files, ClaimsPrincipal claims);
+        Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, List<string> descriptions, List<string> notes, ClaimsPrincipal claims);
+        Task<BusinessResult> SendSignedContract(string contractId, List<string> descriptions, List<string> notes, List<IFormFile> files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims);
     }
@@ -43,7 +43,7 @@ namespace MTCS.Service.Services
 
 
 
-        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, ClaimsPrincipal claims)
+        public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, List<string> descriptions, List<string> notes, ClaimsPrincipal claims)
         {
             try
             {
@@ -51,12 +51,9 @@ namespace MTCS.Service.Services
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-                // Bắt đầu transaction
                 await _repository.BeginTransactionAsync();
-
                 var contractId = await _repository.ContractRepository.GetNextContractIdAsync();
 
-                // Tạo Contract
                 var contract = new Data.Models.Contract
                 {
                     ContractId = contractId,
@@ -69,17 +66,15 @@ namespace MTCS.Service.Services
                 };
 
                 await _repository.ContractRepository.CreateAsync(contract);
-
                 var savedFiles = new List<ContractFile>();
 
-                foreach (var file in files)
+                for (int i = 0; i < files.Count; i++)
                 {
+                    var file = files[i];
                     var fileUrl = await _firebaseService.UploadImageAsync(file);
-
                     var fileName = Path.GetFileName(file.FileName);
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
-
                     var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
 
                     var contractFile = new ContractFile
@@ -90,17 +85,16 @@ namespace MTCS.Service.Services
                         FileType = fileType,
                         UploadDate = DateTime.UtcNow,
                         UploadBy = userName,
-                        Description = contractRequest.FileDescription,
-                        Note = contractRequest.FileNote,
+                        Description = descriptions[i], // Lấy từ danh sách descriptions
+                        Note = notes[i],               // Lấy từ danh sách notes
                         FileUrl = fileUrl,
                         ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
                         ModifiedBy = userName,
                     };
 
                     await _repository.ContractFileRepository.CreateAsync(contractFile);
+                    savedFiles.Add(contractFile);
                 }
-
-                //await _repository.CommitTransactionAsync();
 
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, new
                 {
@@ -114,6 +108,7 @@ namespace MTCS.Service.Services
                 throw;
             }
         }
+
 
 
         public async Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims)
@@ -175,7 +170,7 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<BusinessResult> SendSignedContract(string contractId, string description, string note, List<IFormFile> files, ClaimsPrincipal claims)
+        public async Task<BusinessResult> SendSignedContract(string contractId,List<string> descriptions,List<string> notes,List<IFormFile> files,ClaimsPrincipal claims)
         {
             try
             {
@@ -183,13 +178,19 @@ namespace MTCS.Service.Services
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
+                // Kiểm tra số lượng descriptions, notes và files có khớp nhau không
+                if (files.Count != descriptions.Count || files.Count != notes.Count)
+                {
+                    return new BusinessResult(Const.FAIL_CREATE_CODE, "Số lượng files, descriptions và notes phải bằng nhau.");
+                }
+
                 // Bắt đầu transaction
                 await _repository.BeginTransactionAsync();
-
                 var savedFiles = new List<ContractFile>();
 
-                foreach (var file in files)
+                for (int i = 0; i < files.Count; i++)
                 {
+                    var file = files[i];
                     var fileUrl = await _firebaseService.UploadImageAsync(file);
 
                     var fileName = Path.GetFileName(file.FileName);
@@ -206,8 +207,8 @@ namespace MTCS.Service.Services
                         FileType = fileType,
                         UploadDate = DateTime.UtcNow,
                         UploadBy = userName,
-                        Description = description,
-                        Note = note,
+                        Description = descriptions[i], // Gán mô tả tương ứng
+                        Note = notes[i],               // Gán ghi chú tương ứng
                         FileUrl = fileUrl,
                         ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
                         ModifiedBy = userName
@@ -215,6 +216,7 @@ namespace MTCS.Service.Services
 
                     // Lưu vào database
                     await _repository.ContractFileRepository.CreateAsync(contractFile);
+                    savedFiles.Add(contractFile);
                 }
 
                 // Commit transaction
@@ -228,6 +230,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG);
             }
         }
+
 
 
         public async Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims)

@@ -42,20 +42,35 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateContractWithFile([FromForm] ContractRequest contractRequest, List<IFormFile> files)
+        public async Task<IActionResult> CreateContractWithFile([FromForm] ContractRequest contractRequest,[FromForm] List<string> descriptions,[FromForm] List<string> notes,[FromForm] List<IFormFile> files)
         {
             var currentUser = HttpContext.User;
-            var result = await _contractService.CreateContract(contractRequest, files, currentUser);
+
+            if (files.Count != descriptions.Count || files.Count != notes.Count)
+            {
+                return BadRequest("Số lượng files, descriptions và notes phải bằng nhau.");
+            }
+
+            var result = await _contractService.CreateContract(contractRequest, files, descriptions, notes, currentUser);
             return Ok(result);
         }
 
-        [HttpPost("{contractId}")]
-        public async Task<IActionResult> SendSignedContract(string contractId, string description, string note, List<IFormFile> files)
+
+
+        [HttpPost("sendContract")]
+        public async Task<IActionResult> SendSignedContract([FromForm] string contractId,[FromForm] List<string> descriptions,[FromForm] List<string> notes,[FromForm] List<IFormFile> files)
         {
             var currentUser = HttpContext.User;
-            var result = await _contractService.SendSignedContract(contractId, description, note, files, currentUser);
+
+            if (files.Count != descriptions.Count || files.Count != notes.Count)
+            {
+                return BadRequest("Số lượng files, descriptions và notes phải bằng nhau.");
+            }
+
+            var result = await _contractService.SendSignedContract(contractId, descriptions, notes, files, currentUser);
             return Ok(result);
         }
+
 
         [HttpPut("update")]
         public async Task<IActionResult> UpdateContract([FromForm] UpdateContractRequest model)
