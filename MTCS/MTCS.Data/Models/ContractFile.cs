@@ -15,8 +15,6 @@ public partial class ContractFile
 
     public string FileType { get; set; }
 
-    public DateTime? FileSize { get; set; }
-
     public DateTime? UploadDate { get; set; }
 
     public string UploadBy { get; set; }
