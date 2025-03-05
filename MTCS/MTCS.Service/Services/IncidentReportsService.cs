@@ -5,7 +5,9 @@ using MTCS.Data.Request;
 using MTCS.Service.Base;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
@@ -15,8 +17,8 @@ namespace MTCS.Service.Services
     public interface IIncidentReportsService
     {
         Task<IBusinessResult> GetIncidentReportsByTripId(string tripId);
-        Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request);
-        Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request);
+        Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
+        Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
     }
 
@@ -57,8 +59,12 @@ namespace MTCS.Service.Services
         /// </summary>
         /// <author name="Đoàn Lê Hiển Minh"></author>
         /// <returns></returns>
-        public async Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request)
+        public async Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims)
         {
+            var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
             var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByTripId(request.TripId);
             var Id = incidents.Count + 1;
             if (_unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == $"{Const.INCIDENTREPORT}{Id.ToString("D4")}") is not null)
@@ -71,7 +77,7 @@ namespace MTCS.Service.Services
             {
                 ReportId = reportId,
                 TripId = request.TripId,
-                ReportedBy = "Admin", // Fix sau
+                ReportedBy = userName,
                 IncidentType = request.IncidentType,
                 Description = request.Description,
                 IncidentTime = request.IncidentTime,
@@ -102,11 +108,11 @@ namespace MTCS.Service.Services
                         {
                             FileId = FileId,
                             ReportId = reportId,
-                            FileName = image.FileName,
-                            FileType = Path.GetExtension(image.FileName).TrimStart('.'),
+                            FileName = Path.GetFileName(image.FileName),
+                            FileType = Path.GetExtension(image.FileName).ToLowerInvariant().TrimStart('.'),
                             FileUrl = await _firebaseStorageService.UploadImageAsync(image),
                             UploadDate = DateTime.Now,
-                            UploadBy = "Admin" // FIx later
+                            UploadBy = userName
                         });
                     }
                 }
@@ -139,8 +145,12 @@ namespace MTCS.Service.Services
         /// </summary>
         /// <author name="Đoàn Lê Hiển Minh"></author>
         /// <returns></returns>
-        public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request)
+        public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
         {
+            var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
             var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(request.ReportId);
             if (incident is null)
             {
@@ -150,7 +160,7 @@ namespace MTCS.Service.Services
             {
                 incident.ReportId = request.ReportId is null ? incident.ReportId : request.ReportId;
                 incident.TripId = request.TripId is null ? incident.TripId : request.TripId;
-                incident.ReportedBy = request.ReportedBy is null ? incident.ReportedBy : request.ReportedBy; // FIx sau
+                incident.ReportedBy = userName is null ? incident.ReportedBy : userName;
                 incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
                 incident.Description = request.Description is null ? incident.Description : request.Description;
                 incident.IncidentTime = request.IncidentTime != default ? request.IncidentTime : incident.IncidentTime;
@@ -193,11 +203,11 @@ namespace MTCS.Service.Services
                     {
                         FileId = FileId,
                         ReportId = incident.ReportId,
-                        FileName = image.FileName,
-                        FileType = Path.GetExtension(image.FileName).TrimStart('.'),
+                        FileName = Path.GetFileName(image.FileName),
+                        FileType = Path.GetExtension(image.FileName).ToLowerInvariant().TrimStart('.'),
                         FileUrl = await _firebaseStorageService.UploadImageAsync(image),
                         UploadDate = DateTime.Now,
-                        UploadBy = "Admin" // FIx later
+                        UploadBy = userName
                     });
                 }
             }

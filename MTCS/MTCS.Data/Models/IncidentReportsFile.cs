@@ -15,8 +15,6 @@ public partial class IncidentReportsFile
 
     public string FileType { get; set; }
 
-    public DateTime? FileSize { get; set; }
-
     public DateTime? UploadDate { get; set; }
 
     public string UploadBy { get; set; }
@@ -34,6 +32,8 @@ public partial class IncidentReportsFile
     public DateOnly? ModifiedDate { get; set; }
 
     public string ModifiedBy { get; set; }
+
+    public int Type { get; set; }
 
     public virtual IncidentReport Report { get; set; }
 }
