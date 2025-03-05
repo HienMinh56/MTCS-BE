@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.IdentityModel.Tokens;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
@@ -170,7 +171,7 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<BusinessResult> SendSignedContract(string contractId,List<string> descriptions,List<string> notes,List<IFormFile> files,ClaimsPrincipal claims)
+        public async Task<BusinessResult> SendSignedContract(string contractId, List<string> descriptions, List<string> notes, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
             {
@@ -240,42 +241,46 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
                 await _repository.BeginTransactionAsync();
 
                 var contract = await _repository.ContractRepository.GetContractAsync(model.ContractId);
-
                 if (contract == null)
                     return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
 
-                // Cập nhật thông tin hợp đồng
+
                 contract.StartDate = model.StartDate ?? contract.StartDate;
                 contract.EndDate = model.EndDate ?? contract.EndDate;
+                contract.Status = model.Status ?? contract.Status;
 
-                // Xóa file hợp đồng
                 if (model.FileIdsToRemove?.Any() == true)
                 {
                     foreach (var fileId in model.FileIdsToRemove)
                     {
-                        var file = contract.ContractFiles.FirstOrDefault(f => f.FileId == fileId);
+                        var file = _repository.ContractFileRepository.GetById(fileId);
                         if (file != null)
                         {
-                            //await _firebaseService.DeleteImageAsync(file.FileUrl);
                             await _repository.ContractFileRepository.RemoveAsync(file);
                         }
                     }
                 }
 
-                // Thêm file mới
-                if (model.AddedFiles?.Any() == true)
+                if (!model.AddedFiles.IsNullOrEmpty() || model.Descriptions.Count != 0 || model.Notes.Count != 0)
                 {
-                    foreach (var file in model.AddedFiles)
+                    if (model.AddedFiles.Count != model.Descriptions.Count || model.AddedFiles.Count != model.Notes.Count)
                     {
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Số lượng files, descriptions và notes phải bằng nhau.");
+                    }
+                    for (int i = 0; i < model.AddedFiles.Count; i++)
+                    {
+                        var file = model.AddedFiles[i];
                         var fileUrl = await _firebaseService.UploadImageAsync(file);
 
                         var fileName = Path.GetFileName(file.FileName);
                         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                         string fileType = GetFileTypeFromExtension(fileExtension);
                         var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+
                         contract.ContractFiles.Add(new ContractFile
                         {
                             FileId = fileId,
@@ -283,17 +288,21 @@ namespace MTCS.Service.Services
                             FileName = fileName,
                             FileType = fileType,
                             FileUrl = fileUrl,
-                            Description = model.Description,
-                            Note = model.Note,
+                            Description = model.Descriptions[i],
+                            Note = model.Notes[i],
                             UploadDate = DateTime.UtcNow,
                             UploadBy = userName,
                             ModifiedBy = userName,
                             ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
                         });
                     }
+
+                    await _repository.ContractRepository.UpdateAsync(contract);
                 }
-                
-                 await _repository.ContractRepository.UpdateAsync(contract);
+
+
+
+
                 //await _repository.CommitTransactionAsync();
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
             }
@@ -302,8 +311,8 @@ namespace MTCS.Service.Services
                 await _repository.RollbackTransactionAsync();
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
             }
-            
         }
+
 
 
 

@@ -62,22 +62,19 @@ namespace MTCS.APIService.Controllers
         {
             var currentUser = HttpContext.User;
 
-            if (files.Count != descriptions.Count || files.Count != notes.Count)
-            {
-                return BadRequest("Số lượng files, descriptions và notes phải bằng nhau.");
-            }
-
+            
             var result = await _contractService.SendSignedContract(contractId, descriptions, notes, files, currentUser);
             return Ok(result);
         }
 
 
-        [HttpPut("update")]
+        [HttpPut]
         public async Task<IActionResult> UpdateContract([FromForm] UpdateContractRequest model)
         {
             var currentUser = HttpContext.User;
-            var result = await _contractService.UpdateContractAsync(model, currentUser);
 
+            
+            var result = await _contractService.UpdateContractAsync(model, currentUser);
             return Ok(result);
         }
     }

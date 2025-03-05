@@ -12,8 +12,9 @@ namespace MTCS.Data.Request
         public string ContractId { get; set; } = null!;
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public string? Description { get; set; }
-        public string? Note { get; set; }
+        public int? Status { get; set; }
+        public List<string> Descriptions { get; set; } = new();
+        public List<string> Notes { get; set; } = new();
         public List<string> FileIdsToRemove { get; set; } = new();
         public IFormFileCollection? AddedFiles { get; set; } = null;
 
