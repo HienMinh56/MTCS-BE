@@ -46,8 +46,8 @@
 
         public static string INCIDENTREPORT = "INCIDENT";
         public static string INCIDENTREPORT_INDEX = "ReportId";
-        public static string IMAGE = "IMG";
-        public static string IMAGE_INDEX = "ImageId";
+        public static string INCIDENTREPORTIMAGE = "INCIMG";
+        public static string INCIDENTREPORTIMAGE_INDEX = "FileId";
 
         #endregion
     }

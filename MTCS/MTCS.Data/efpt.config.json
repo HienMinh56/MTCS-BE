@@ -79,10 +79,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[Token]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[Tractor]",
          "ObjectType": 0
       },
