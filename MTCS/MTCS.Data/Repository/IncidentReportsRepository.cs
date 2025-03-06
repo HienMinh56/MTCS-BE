@@ -19,10 +19,13 @@ namespace MTCS.Data.Repository
 
         public async Task<List<IncidentReport>> GetIncidentReportsByDriverId(string driverId)
         {
-            return await _context.IncidentReports.Where(i => i.ReportId == driverId)
-                                                 .Include(i => i.IncidentReportsFiles)
-                                                 .AsNoTracking()
-                                                 .ToListAsync();
+            return await _context.IncidentReports
+                                 .Include(i => i.IncidentReportsFiles)
+                                 .Include(i => i.Trip)
+                                 .ThenInclude(t => t.Driver)
+                                 .Where(i => i.Trip.Driver.DriverId == driverId)
+                                 .AsNoTracking()
+                                 .ToListAsync();
         }
 
         /// <summary>
