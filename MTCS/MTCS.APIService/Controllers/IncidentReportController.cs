@@ -50,8 +50,7 @@ namespace MTCS.APIService.Controllers
         [HttpDelete]
         public async Task<IBusinessResult> DeleteIncidentReport(string reportId)
         {
-            var currentUser = HttpContext.User;
-            var result = await _incidentReportsService.DeleteIncidentReportById(reportId, currentUser);
+            var result = await _incidentReportsService.DeleteIncidentReportById(reportId);
             return result;
         }
     }
