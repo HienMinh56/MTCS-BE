@@ -1,4 +1,6 @@
-﻿using MTCS.Common;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Identity.Client;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
@@ -8,6 +10,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
@@ -16,6 +19,7 @@ namespace MTCS.Service.Services
 {
     public interface IIncidentReportsService
     {
+        Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId);
         Task<IBusinessResult> GetIncidentReportsByTripId(string tripId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
@@ -30,6 +34,39 @@ namespace MTCS.Service.Services
         {
             _unitOfWork ??= new UnitOfWork();
             _firebaseStorageService = firebaseStorageService;
+        }
+
+        // Helper method to determine file type from extension
+        private string GetFileTypeFromExtension(string extension)
+        {
+            switch (extension.ToLowerInvariant())
+            {
+                case ".jpg":
+                case ".jpeg":
+                case ".png":
+                case ".webp":
+                case ".gif":
+                    return "Image";
+                default:
+                    return "Unknown";
+            }
+        }
+
+        public async Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId)
+        {
+            try
+            {
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByDriverId(driverId);
+                if (incidents == null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+            }
         }
 
         /// <summary>
@@ -67,12 +104,12 @@ namespace MTCS.Service.Services
 
             var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByTripId(request.TripId);
             var Id = incidents.Count + 1;
-            if (_unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == $"{Const.INCIDENTREPORT}{Id.ToString("D4")}") is not null)
+            if (_unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == $"{Const.INCIDENTREPORT}{Id.ToString("D6")}") is not null)
             {
                 Id = await _unitOfWork.IncidentReportsRepository.FindEmptyPositionWithBinarySearch(incidents, 1, Id, Const.INCIDENTREPORT, Const.INCIDENTREPORT_INDEX);
             }
 
-            var reportId = $"{Const.INCIDENTREPORT}{Id.ToString("D4")}";
+            var reportId = $"{Const.INCIDENTREPORT}{Id.ToString("D6")}";
             await _unitOfWork.IncidentReportsRepository.CreateAsync(new IncidentReport
             {
                 ReportId = reportId,
@@ -84,7 +121,7 @@ namespace MTCS.Service.Services
                 Location = request.Location,
                 Type = request.Type,
                 Status = request.Status,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.UtcNow
             });
 
             try
@@ -96,25 +133,31 @@ namespace MTCS.Service.Services
                     int iId = 1;
                     foreach (var image in request.Image)
                     {
+                        var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
                         images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
                         iId = images.Count + 1;
-                        if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D4")}") is not null)
+                        if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}") is not null)
                         {
                             iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                         }
 
-                        FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D4")}";
+                        FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
                         await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                         {
                             FileId = FileId,
                             ReportId = reportId,
                             FileName = Path.GetFileName(image.FileName),
-                            FileType = Path.GetExtension(image.FileName).ToLowerInvariant().TrimStart('.'),
+                            FileType = GetFileTypeFromExtension(FileExtension),
                             FileUrl = await _firebaseStorageService.UploadImageAsync(image),
-                            UploadDate = DateTime.Now,
+                            UploadDate = DateTime.UtcNow,
                             UploadBy = userName
                         });
                     }
+                }
+
+                if (request.Type == 2)
+                {
+
                 }
             }
             catch (Exception ex)
@@ -191,9 +234,10 @@ namespace MTCS.Service.Services
                 int id;
                 foreach (var image in request.AddedImage)
                 {
+                    var FileExtemsion = Path.GetExtension(image.FileName).ToLowerInvariant();
                     images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
                     id = images.Count + 1;
-                    if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D4")}") is not null)
+                    if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}") is not null)
                     {
                         id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                     }
@@ -204,9 +248,9 @@ namespace MTCS.Service.Services
                         FileId = FileId,
                         ReportId = incident.ReportId,
                         FileName = Path.GetFileName(image.FileName),
-                        FileType = Path.GetExtension(image.FileName).ToLowerInvariant().TrimStart('.'),
+                        FileType = GetFileTypeFromExtension(FileExtemsion),
                         FileUrl = await _firebaseStorageService.UploadImageAsync(image),
-                        UploadDate = DateTime.Now,
+                        UploadDate = DateTime.UtcNow,
                         UploadBy = userName
                     });
                 }
