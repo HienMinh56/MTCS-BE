@@ -87,6 +87,11 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+//logging azure
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+
+
 builder.Services.AddCors(options =>
 {
     var allowedOrigins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
@@ -102,15 +107,16 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+
 app.UseCors("AllowSpecificOrigin");
 
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 
+app.UseRouting();
+app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
