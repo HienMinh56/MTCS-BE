@@ -25,11 +25,9 @@ jobs:
 
       - name: Build with dotnet
         run: dotnet build --configuration Release
-        working-directory: MTCS
 
       - name: dotnet publish
         run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
-        working-directory: MTCS
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -43,23 +41,13 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
+    
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: .net-app
       
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F2C53752FDB0433D9AFAE434DBA00102 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_58DA3E52C7C24906B6566EF2BB49E7B9 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6D015A14976D4C0BBC8D355DF948E623 }}
-
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
@@ -67,4 +55,4 @@ jobs:
           app-name: 'MTCS'
           slot-name: 'Production'
           package: .
-          
+          publish-profile: ${{ secrets.AzureAppService_PublishProfile_e6f5b310a356417aad4b62cc379180a4 }}
