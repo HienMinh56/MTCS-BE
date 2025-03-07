@@ -21,8 +21,11 @@ namespace MTCS.Service.Services
     {
         Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId);
         Task<IBusinessResult> GetIncidentReportsByTripId(string tripId);
+        Task<IBusinessResult> GetIncidentReportsByReportId(string reportId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
+        //Task<IBusinessResult> CreateIncidentReportsFileInfo(IncidentReportsFile request);
+        //Task<IBusinessResult> UpdateIncidentReportsFileInfo(IncidentReportsFile request);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
     }
 
@@ -52,6 +55,11 @@ namespace MTCS.Service.Services
             }
         }
 
+        /// <summary>
+        /// Get all incident reports by driver id
+        /// </summary>
+        /// <author name="Đoàn Lê Hiển Minh"></author>
+        /// <returns></returns>
         public async Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId)
         {
             try
@@ -79,6 +87,28 @@ namespace MTCS.Service.Services
             try
             {
                 var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByTripId(tripId);
+                if (incidents == null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get all incident reports by report id
+        /// </summary>
+        /// <author name="Đoàn Lê Hiển Minh"></author>
+        /// <returns></returns>
+        public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
+        {
+            try
+            {
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(reportId);
                 if (incidents == null)
                 {
                     return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
@@ -265,6 +295,18 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, new IncidentReport());
             }
         }
+
+        //public async Task<IBusinessResult> CreateIncidentReportFileInfo(IncidentReportsFile request)
+        //{
+        //    try
+        //    {
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+        //    }
+        //}
 
         /// <summary>
         /// Delete incident report by report id

@@ -31,6 +31,13 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
+        [HttpGet("{reportId}")]
+        public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
+        {
+            var result = await _incidentReportsService.GetIncidentReportsByReportId(reportId);
+            return result;
+        }
+
         [HttpPost]
         public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
         {
@@ -50,8 +57,7 @@ namespace MTCS.APIService.Controllers
         [HttpDelete]
         public async Task<IBusinessResult> DeleteIncidentReport(string reportId)
         {
-            var currentUser = HttpContext.User;
-            var result = await _incidentReportsService.DeleteIncidentReportById(reportId, currentUser);
+            var result = await _incidentReportsService.DeleteIncidentReportById(reportId);
             return result;
         }
     }
