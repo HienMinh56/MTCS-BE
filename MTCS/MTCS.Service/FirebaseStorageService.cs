@@ -1,6 +1,9 @@
-﻿using Google.Cloud.Storage.V1;
+﻿using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,12 +40,52 @@ namespace MTCS.Service
         private readonly IConfiguration _configuration;
         private readonly string _bucketName;
 
-        public FirebaseStorageService(StorageClient storageClient, IConfiguration configuration)
+        public FirebaseStorageService(IConfiguration configuration, ILogger<FirebaseStorageService> logger)
         {
-            _storageClient = storageClient;
             _configuration = configuration;
             _bucketName = _configuration["Firebase:Bucket"]!;
+
+            try
+            {
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                logger.LogInformation($"Current Environment: {environment}");
+
+                GoogleCredential googleCredential;
+
+                if (environment == "Production")
+                {
+                    var base64JsonAuth = Environment.GetEnvironmentVariable("FIREBASE_CREDENTIALS");
+
+                    if (string.IsNullOrEmpty(base64JsonAuth))
+                    {
+                        throw new InvalidOperationException("🔥 FIREBASE_CREDENTIALS environment variable is missing.");
+                    }
+
+                    var jsonAuthBytes = Convert.FromBase64String(base64JsonAuth);
+                    var jsonAuth = Encoding.UTF8.GetString(jsonAuthBytes);
+                    googleCredential = GoogleCredential.FromJson(jsonAuth);
+
+                }
+                else
+                {
+                    var firebaseAuthPath = _configuration["Firebase:AuthFile"];
+
+                    if (!File.Exists(firebaseAuthPath))
+                    {
+                        throw new FileNotFoundException($"🔥 Firebase Auth file not found: {firebaseAuthPath}");
+                    }
+
+                    googleCredential = GoogleCredential.FromFile(firebaseAuthPath);
+                }
+
+                _storageClient = StorageClient.Create(googleCredential);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
+
 
         public async Task DeleteImageAsync(string imageName)
         {
