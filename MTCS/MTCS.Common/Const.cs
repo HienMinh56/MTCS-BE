@@ -44,10 +44,12 @@
 
         #region Entity Id
 
-        public static string INCIDENTREPORT = "INCIDENT";
+        public static string INCIDENTREPORT = "INC";
         public static string INCIDENTREPORT_INDEX = "ReportId";
-        public static string INCIDENTREPORTIMAGE = "INCIMG";
+        public static string INCIDENTREPORTIMAGE = "INCFIL";
         public static string INCIDENTREPORTIMAGE_INDEX = "FileId";
+        public static string FUELREPORT = "FUEL";
+        public static string FUELREPORT_INDEX = "ReportId";
 
         #endregion
     }

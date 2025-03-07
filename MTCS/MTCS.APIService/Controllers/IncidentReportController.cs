@@ -17,6 +17,13 @@ namespace MTCS.APIService.Controllers
             _incidentReportsService = incidentReportsService;
         }
 
+        [HttpGet("{driverId}")]
+        public async Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId)
+        {
+            var result = await _incidentReportsService.GetIncidentReportsByDriverId(driverId);
+            return result;
+        }
+
         [HttpGet("{tripId}")]
         public async Task<IBusinessResult> GetIncidentReportsByTripId(string tripId)
         {
@@ -24,18 +31,34 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
-        //[HttpPost]
-        //public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
-        //{
-        //    var result = await _incidentReportsService.CreateIncidentReport(request);
-        //    return result;
-        //}
+        [HttpGet("{reportId}")]
+        public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
+        {
+            var result = await _incidentReportsService.GetIncidentReportsByReportId(reportId);
+            return result;
+        }
 
-        //[HttpPut]
-        //public async Task<IBusinessResult> UpdateIncidentReport([FromForm] UpdateIncidentReportRequest request)
-        //{
-        //    var result = await _incidentReportsService.UpdateIncidentReport(request);
-        //    return result;
-        //}
+        [HttpPost]
+        public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.CreateIncidentReport(request, currentUser);
+            return result;
+        }
+
+        [HttpPut]
+        public async Task<IBusinessResult> UpdateIncidentReport([FromForm] UpdateIncidentReportRequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.UpdateIncidentReport(request, currentUser);
+            return result;
+        }
+
+        [HttpDelete]
+        public async Task<IBusinessResult> DeleteIncidentReport(string reportId)
+        {
+            var result = await _incidentReportsService.DeleteIncidentReportById(reportId);
+            return result;
+        }
     }
 }
