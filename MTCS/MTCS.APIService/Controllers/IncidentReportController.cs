@@ -31,6 +31,13 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
+        [HttpGet("{reportId}")]
+        public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
+        {
+            var result = await _incidentReportsService.GetIncidentReportsByReportId(reportId);
+            return result;
+        }
+
         [HttpPost]
         public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
         {
