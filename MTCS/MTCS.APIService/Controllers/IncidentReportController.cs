@@ -2,7 +2,6 @@
 using MTCS.Data.Request;
 using MTCS.Service.Base;
 using MTCS.Service.Services;
-using static MTCS.Service.Services.IncidentReportsService;
 
 namespace MTCS.APIService.Controllers
 {

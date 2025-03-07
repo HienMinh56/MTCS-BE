@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.Storage;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 
@@ -14,6 +13,7 @@ namespace MTCS.Data
         private IncidentReportsFileRepository incidentReportsFileRepository;
         private UserRepository userRepository;
         private DriverRepository driverRepository;
+        private TripRepository tripRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
 
@@ -37,6 +37,13 @@ namespace MTCS.Data
                 return driverRepository ??= new DriverRepository();
             }
         }
+        public TripRepository TripRepository
+        {
+            get
+            {
+                return tripRepository ??= new TripRepository();
+            }
+        }
 
         public IncidentReportsRepository IncidentReportsRepository
         {
@@ -45,7 +52,7 @@ namespace MTCS.Data
                 return incidentReportsRepository ??= new IncidentReportsRepository();
             }
         }
-        
+
         public IncidentReportsFileRepository IncidentReportsFileRepository
         {
             get
@@ -54,7 +61,7 @@ namespace MTCS.Data
             }
         }
 
-public ContractRepository ContractRepository
+        public ContractRepository ContractRepository
         {
             get
             {
