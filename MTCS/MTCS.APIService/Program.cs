@@ -6,8 +6,8 @@ using Microsoft.OpenApi.Models;
 using MTCS.APIService.Middlewares;
 using MTCS.Data;
 using MTCS.Data.DTOs;
+using MTCS.Data.Helpers;
 using MTCS.Service;
-using MTCS.Service.Helpers;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using System.Security.Claims;
@@ -22,6 +22,8 @@ builder.Services.AddScoped<IDriverService, DriverService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<ITractorService, TractorService>();
+builder.Services.AddScoped<ITrailerService, TrailerService>();
 builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
 builder.Services.AddScoped<ITripService, TripService>();
 
@@ -112,11 +114,11 @@ if (app.Environment.IsDevelopment())
 }
 app.UseCors("AllowSpecificOrigin");
 
-app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.UseAuthentication();
 
 app.UseAuthorization();
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.UseHttpsRedirection();
 

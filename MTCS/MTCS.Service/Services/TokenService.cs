@@ -65,7 +65,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.UtcNow.AddMinutes(_accessExpiryMinutes),
+                expires: DateTime.Now.AddMinutes(_accessExpiryMinutes),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -91,7 +91,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.UtcNow.AddDays(_refreshExpiryDays),
+                expires: DateTime.Now.AddDays(_refreshExpiryDays),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -137,7 +137,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.UtcNow.AddMinutes(_accessExpiryMinutes),
+                expires: DateTime.Now.AddMinutes(_accessExpiryMinutes),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -163,7 +163,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.UtcNow.AddDays(_refreshExpiryDays),
+                expires: DateTime.Now.AddDays(_refreshExpiryDays),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -206,7 +206,7 @@ namespace MTCS.Service.Services
 
                 TokenDTO newTokens;
 
-                if (role == Role.Driver.Name)
+                if (role == UserRole.Driver.ToString())
                 {
                     var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(userId);
                     if (driver == null)

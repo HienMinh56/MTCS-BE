@@ -2,16 +2,10 @@
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
-using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MTCS.Service.Services
 {
@@ -54,7 +48,7 @@ namespace MTCS.Service.Services
                     StartDate = contractRequest.StartDate,
                     EndDate = contractRequest.EndDate,
                     Status = contractRequest.Status,
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = DateTime.Now,
                     CreatedBy = userName
                     // Set other contract properties as needed
                 };
@@ -79,16 +73,16 @@ namespace MTCS.Service.Services
                 // 5. Create ContractFile entity
                 var contractFile = new ContractFile
                 {
-                    FileId = fileId, 
+                    FileId = fileId,
                     ContractId = contractId,
                     FileName = fileName,
                     FileType = fileType,
-                    UploadDate = DateTime.UtcNow,
+                    UploadDate = DateTime.Now,
                     UploadBy = userName,
                     Description = contractRequest.FileDescription,
-                    Note = contractRequest.FileNote, 
+                    Note = contractRequest.FileNote,
                     FileUrl = fileUrl,
-                    ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow), 
+                    ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                     ModifiedBy = userName
                 };
 
@@ -143,12 +137,12 @@ namespace MTCS.Service.Services
                     ContractId = contractId,
                     FileName = fileName,
                     FileType = fileType,
-                    UploadDate = DateTime.UtcNow,
+                    UploadDate = DateTime.Now,
                     UploadBy = userName,
                     Description = description,
                     Note = note,
                     FileUrl = fileUrl,
-                    ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                     ModifiedBy = userName
                 };
 
@@ -159,7 +153,7 @@ namespace MTCS.Service.Services
                 await _repository.CommitTransactionAsync();
 
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
-                
+
             }
             catch (Exception ex)
             {

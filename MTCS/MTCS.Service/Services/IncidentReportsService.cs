@@ -1,19 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.Identity.Client;
-using MTCS.Common;
+﻿using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Security.Permissions;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace MTCS.Service.Services
 {
@@ -151,7 +142,7 @@ namespace MTCS.Service.Services
                 Location = request.Location,
                 Type = request.Type,
                 Status = request.Status,
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.Now
             });
 
             try
@@ -179,7 +170,7 @@ namespace MTCS.Service.Services
                             FileName = Path.GetFileName(image.FileName),
                             FileType = GetFileTypeFromExtension(FileExtension),
                             FileUrl = await _firebaseStorageService.UploadImageAsync(image),
-                            UploadDate = DateTime.UtcNow,
+                            UploadDate = DateTime.Now,
                             UploadBy = userName
                         });
                     }
@@ -280,7 +271,7 @@ namespace MTCS.Service.Services
                         FileName = Path.GetFileName(image.FileName),
                         FileType = GetFileTypeFromExtension(FileExtemsion),
                         FileUrl = await _firebaseStorageService.UploadImageAsync(image),
-                        UploadDate = DateTime.UtcNow,
+                        UploadDate = DateTime.Now,
                         UploadBy = userName
                     });
                 }
