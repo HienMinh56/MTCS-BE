@@ -17,22 +17,16 @@ namespace MTCS.Data.Repository
 
         public ContractFileRepository(MTCSContext context) => _context = context;
 
-        public async Task<int> GetNextFileNumberAsync()
+        public async Task<string> GetNextFileNumberAsync()
         {
-            var lastFile = await _context.ContractFiles
-                .OrderByDescending(c => c.ContractId)
-                .FirstOrDefaultAsync();
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
 
-            if (lastFile == null)
-                return 1; 
+            var existingFiles = await _context.ContractFiles
+                .Where(c => c.FileId.StartsWith($"CTR{timestamp}"))
+                .ToListAsync();
 
-            string lastNumberStr = lastFile.FileId.Substring(3); 
-            if (int.TryParse(lastNumberStr, out int lastNumber))
-            {
-                return lastNumber + 1;
-            }
-
-            return 1; 
+            int nextNumber = existingFiles.Count + 1;
+            return $"FIL{timestamp}{nextNumber:D2}";
         }
     }
 }

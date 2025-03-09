@@ -16,21 +16,21 @@ namespace MTCS.APIService.Controllers
             _incidentReportsService = incidentReportsService;
         }
 
-        [HttpGet("{driverId}")]
+        [HttpGet("driver/{driverId}")]
         public async Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId)
         {
             var result = await _incidentReportsService.GetIncidentReportsByDriverId(driverId);
             return result;
         }
 
-        [HttpGet("{tripId}")]
+        [HttpGet("trip/{tripId}")]
         public async Task<IBusinessResult> GetIncidentReportsByTripId(string tripId)
         {
             var result = await _incidentReportsService.GetIncidentReportsByTripId(tripId);
             return result;
         }
 
-        [HttpGet("{reportId}")]
+        [HttpGet("report/{reportId}")]
         public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
         {
             var result = await _incidentReportsService.GetIncidentReportsByReportId(reportId);

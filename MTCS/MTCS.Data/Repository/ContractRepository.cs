@@ -17,22 +17,31 @@ namespace MTCS.Data.Repository
 
         public ContractRepository(MTCSContext context) => _context = context;
 
-        public async Task<int> GetNextContractNumberAsync()
+        public async Task<string> GetNextContractIdAsync()
         {
-            var lastContract = await _context.Contracts
-                .OrderByDescending(c => c.ContractId)
-                .FirstOrDefaultAsync();
+            string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
 
-            if (lastContract == null)
-                return 1; 
+            var existingContracts = await _context.Contracts
+                .Where(c => c.ContractId.StartsWith($"CTR{timestamp}"))
+                .ToListAsync();
 
-            string lastNumberStr = lastContract.ContractId.Substring(3); 
-            if (int.TryParse(lastNumberStr, out int lastNumber))
-            {
-                return lastNumber + 1;
-            }
-
-            return 1; 
+            int nextNumber = existingContracts.Count + 1; 
+            return $"CTR{timestamp}{nextNumber:D2}"; 
         }
+
+
+
+        public async Task<List<Contract>> GetContractsAsync()
+        {
+            var contracts = await _context.Contracts.Include(c => c.ContractFiles).ToListAsync();
+            return contracts;
+        }
+
+        public async Task<Contract> GetContractAsync(string contractId)
+        {
+            var contract = await _context.Contracts.Include(c => c.ContractFiles).FirstOrDefaultAsync(c => c.ContractId == contractId);
+            return contract;
+        }
+
     }
 }
