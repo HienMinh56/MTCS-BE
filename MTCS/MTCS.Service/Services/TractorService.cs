@@ -26,7 +26,7 @@ namespace MTCS.Service.Services
                 return new ApiResponse<TractorCategory>(false, null, "Category already exists", "A category with this name already exists");
             }
 
-            string categoryId = await CategoryIDGenerator.GenerateCategoryId(_unitOfWork);
+            string categoryId = await CategoryIDGenerator.GenerateTractorCategoryId(_unitOfWork);
 
             var createTractorCategory = new TractorCategory
             {
