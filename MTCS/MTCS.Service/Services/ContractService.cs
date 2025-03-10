@@ -5,17 +5,13 @@ using Microsoft.IdentityModel.Tokens;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
-using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MTCS.Service.Services
 {
@@ -62,7 +58,7 @@ namespace MTCS.Service.Services
                     StartDate = contractRequest.StartDate,
                     EndDate = contractRequest.EndDate,
                     Status = contractRequest.Status,
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = DateTime.Now,
                     CreatedBy = userName
                 };
 

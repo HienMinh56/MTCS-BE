@@ -2,6 +2,7 @@
 using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
+using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 using MTCS.Data.Response;
 using MTCS.Service.Interfaces;
@@ -37,9 +38,9 @@ namespace MTCS.Service.Services
                 Email = userDto.Email,
                 Password = _passwordHasher.HashPassword(userDto.Password),
                 PhoneNumber = userDto.PhoneNumber,
-                Role = Role.Customer.Name,
+                Role = UserRole.Customer.ToString(),
                 Status = (int)UserStatus.Active,
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.Now
             };
 
             await _unitOfWork.UserRepository.CreateAsync(user);

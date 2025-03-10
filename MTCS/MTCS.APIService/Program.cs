@@ -8,8 +8,8 @@ using Microsoft.OpenApi.Models;
 using MTCS.APIService.Middlewares;
 using MTCS.Data;
 using MTCS.Data.DTOs;
+using MTCS.Data.Helpers;
 using MTCS.Service;
-using MTCS.Service.Helpers;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using System.Security.Claims;
@@ -20,10 +20,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddScoped<UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IDriverService, DriverService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<ITractorService, TractorService>();
+builder.Services.AddScoped<ITrailerService, TrailerService>();
 builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
+builder.Services.AddScoped<ITripService, TripService>();
+
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddSingleton<IFCMService, FCMService>();
@@ -131,13 +136,13 @@ var app = builder.Build();
 
 app.UseCors("AllowSpecificOrigin");
 
-app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.UseRouting();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
+app.UseMiddleware<ExceptionHandlerMiddleware>();
 
 app.UseHttpsRedirection();
 

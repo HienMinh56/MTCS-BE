@@ -1,9 +1,14 @@
-using MTCS.Service.Interfaces;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace MTCS.Service.Helpers
+namespace MTCS.Data.Helpers
 {
+
+    public interface IPasswordHasher
+    {
+        string HashPassword(string password);
+        bool VerifyPassword(string password, string hashedPassword);
+    }
     public sealed class PasswordHasher : IPasswordHasher
     {
         private const int SaltSize = 8;

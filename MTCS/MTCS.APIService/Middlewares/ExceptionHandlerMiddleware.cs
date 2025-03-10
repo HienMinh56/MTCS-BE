@@ -1,4 +1,5 @@
-﻿using MTCS.Data.Response;
+﻿using Microsoft.EntityFrameworkCore;
+using MTCS.Data.Response;
 using System.Net;
 
 namespace MTCS.APIService.Middlewares
@@ -22,7 +23,9 @@ namespace MTCS.APIService.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception");
+                _logger.LogError(ex, "FULL EXCEPTION: {ExMessage}, Inner: {InnerMessage}",
+            ex.Message,
+            ex.InnerException?.Message ?? "No inner exception");
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -41,6 +44,10 @@ namespace MTCS.APIService.Middlewares
         {
             return exception switch
             {
+                // EF Core exceptions - check these first since they're most specific
+                DbUpdateConcurrencyException => HttpStatusCode.Conflict,
+                DbUpdateException => HttpStatusCode.BadRequest,
+
                 // Repository exceptions
                 KeyNotFoundException => HttpStatusCode.NotFound,
                 ArgumentException => HttpStatusCode.BadRequest,
@@ -61,7 +68,16 @@ namespace MTCS.APIService.Middlewares
             var errorMessage = exception.Message;
             var errors = new List<string> { errorMessage };
 
-            // For aggregate exceptions, collect all inner exceptions
+            if (exception.InnerException != null)
+            {
+                errors.Add(exception.InnerException.Message);
+
+                if (exception is DbUpdateException dbEx && dbEx.InnerException?.InnerException != null)
+                {
+                    errors.Add(dbEx.InnerException.InnerException.Message);
+                }
+            }
+
             if (exception is AggregateException aggregateException)
             {
                 errors.AddRange(aggregateException.InnerExceptions.Select(ex => ex.Message));
