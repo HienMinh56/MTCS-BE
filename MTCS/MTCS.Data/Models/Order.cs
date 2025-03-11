@@ -39,6 +39,10 @@ public partial class Order
 
     public string ModifiedBy { get; set; }
 
+    public decimal? TotalPrice { get; set; }
+
+    public double? Distance { get; set; }
+
     public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();
 
     public virtual ShippingPrice Price { get; set; }
