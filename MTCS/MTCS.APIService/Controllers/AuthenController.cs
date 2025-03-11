@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.DTOs;
 using MTCS.Data.Response;
 using MTCS.Service.Interfaces;
+using System.Security.Claims;
 
 namespace MTCS.APIService.Controllers
 {
@@ -49,9 +51,27 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        public async Task<ActionResult<ApiResponse<TokenDTO>>> RefreshToken([FromBody] string refreshToken)
         {
             var result = await _tokenService.RefreshTokenAsync(refreshToken);
+            return Ok(result);
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> UpdateProfile([FromBody] ProfileDTO profileDto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _authService.UpdateUserProfile(userId, profileDto);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
             return Ok(result);
         }
     }
