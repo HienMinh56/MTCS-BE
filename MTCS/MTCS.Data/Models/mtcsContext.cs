@@ -415,6 +415,7 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValue("Pending");
             entity.Property(e => e.Temperature).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.TotalPrice).HasColumnType("decimal(12, 0)");
             entity.Property(e => e.TrackingCode).IsUnicode(false);
             entity.Property(e => e.UserId)
                 .IsRequired()
@@ -588,6 +589,7 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.EndTime).HasColumnType("datetime");
             entity.Property(e => e.MatchBy).HasMaxLength(255);
+            entity.Property(e => e.MatchTime).HasColumnType("datetime");
             entity.Property(e => e.OrderId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
