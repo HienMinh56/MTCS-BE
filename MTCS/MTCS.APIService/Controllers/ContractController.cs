@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MTCS.Common;
 using MTCS.Data.Request;
 using MTCS.Service.Services;
 using System.Security.Claims;
@@ -77,5 +78,29 @@ namespace MTCS.APIService.Controllers
             var result = await _contractService.UpdateContractAsync(model, currentUser);
             return Ok(result);
         }
+
+        [HttpPost("download-selected-zip")]
+        public async Task<IActionResult> DownloadSelectedFilesAsZip([FromBody] List<string> fileIds)
+        {
+            var result = await _contractService.DownloadSelectedFilesAsZip(fileIds);
+
+            if (result.Status != 400)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            if (result.Data is string zipBase64) // Dữ liệu trả về là Base64 string
+            {
+                var zipBytes = Convert.FromBase64String(zipBase64);
+                var zipFileName = $"ContractFile.zip"; // 🔹 Đặt tên ở API
+
+                return File(zipBytes, "application/zip", zipFileName);
+            }
+
+            return BadRequest(new { success = false, message = "Invalid data format" });
+        }
+
+
+
     }
 }

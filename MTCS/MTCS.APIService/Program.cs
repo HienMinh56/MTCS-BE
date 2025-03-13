@@ -14,8 +14,11 @@ using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using System.Security.Claims;
 using System.Text;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Env.Load();
 
 // Add services to the container.
 builder.Services.AddScoped<UnitOfWork>();
@@ -34,17 +37,13 @@ builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddSingleton<IFCMService, FCMService>();
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json")));
-var credentialJson = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS");
 
-if (string.IsNullOrEmpty(credentialJson))
-{
-    throw new InvalidOperationException("Firebase credentials not found in environment variables.");
-}
 
-var credential = GoogleCredential.FromJson(credentialJson);
+var credential = GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json");
 var firestoreClient = new FirestoreClientBuilder { Credential = credential }.Build();
 var firestoreDb = FirestoreDb.Create("driverapp-3845f", firestoreClient);
 builder.Services.AddSingleton(firestoreDb);
+
 
 
 
