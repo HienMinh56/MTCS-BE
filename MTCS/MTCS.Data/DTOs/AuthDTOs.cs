@@ -48,5 +48,24 @@ namespace MTCS.Data.DTOs
         public required string PhoneNumber { get; set; }
     }
 
+    public class ProfileDTO
+    {
+        [MaxLength(25)]
+        public string? FullName { get; set; }
+        [EmailAddress]
+        public string? Email { get; set; }
 
+        [Phone]
+        public string? PhoneNumber { get; set; }
+        public string? CurrentPassword { get; set; }
+    }
+
+    public class ProfileResponseDTO
+    {
+        public string UserId { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string PhoneNumber { get; set; } = null!;
+        public DateTime? ModifiedDate { get; set; }
+    }
 }

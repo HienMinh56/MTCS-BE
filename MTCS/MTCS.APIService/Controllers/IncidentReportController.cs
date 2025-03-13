@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
 using MTCS.Service.Services;
@@ -50,6 +51,14 @@ namespace MTCS.APIService.Controllers
         {
             var currentUser = HttpContext.User;
             var result = await _incidentReportsService.UpdateIncidentReport(request, currentUser);
+            return result;
+        }
+
+        [HttpPut("IncidentReportFile")]
+        public async Task<IBusinessResult> UpdateIncidentReportsFileInfo ([FromForm] List<IncidentReportsFileUpdateRequest> request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.UpdateIncidentReportFileInfo(request, currentUser);
             return result;
         }
 

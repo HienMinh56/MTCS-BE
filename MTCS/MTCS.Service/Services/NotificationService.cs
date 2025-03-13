@@ -6,7 +6,7 @@ using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace MTCS.Service
+namespace MTCS.Service.Services
 {
     public interface INotificationService
     {

@@ -64,8 +64,55 @@ namespace MTCS.Service.Services
             }
 
             var token = await _tokenService.GenerateTokensForUserAsync(user);
+            return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
+        }
 
-            return new ApiResponse<TokenDTO>(true, token, "Đăng nhập thành công", null);
+        public async Task<ApiResponse<ProfileResponseDTO>> UpdateUserProfile(string userId, ProfileDTO profileDto)
+        {
+            var user = await _unitOfWork.UserRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                throw new KeyNotFoundException("User not found");
+            }
+
+            user.FullName = profileDto.FullName ?? user.FullName;
+            user.PhoneNumber = profileDto.PhoneNumber ?? user.PhoneNumber;
+
+            if (profileDto.Email != null && profileDto.Email != user.Email)
+            {
+                if (string.IsNullOrEmpty(profileDto.CurrentPassword))
+                {
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Password required",
+                        "Current password is required to update email");
+                }
+
+                if (!_passwordHasher.VerifyPassword(profileDto.CurrentPassword, user.Password))
+                {
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Invalid password",
+                        "Current password is incorrect");
+                }
+
+                if (await _unitOfWork.UserRepository.EmailExistsAsync(profileDto.Email))
+                {
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable",
+                        "This email is already in use");
+                }
+                user.Email = profileDto.Email;
+            }
+            user.ModifiedDate = DateTime.Now;
+
+            await _unitOfWork.UserRepository.UpdateAsync(user);
+
+            var newProfile = new ProfileResponseDTO
+            {
+                UserId = user.UserId,
+                FullName = user.FullName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                ModifiedDate = user.ModifiedDate
+            };
+
+            return new ApiResponse<ProfileResponseDTO>(true, newProfile, "Updated profile successfully", null);
         }
 
         public async Task<ApiResponse<TokenDTO>> LoginDriverAsync(LoginRequestDTO loginDto)

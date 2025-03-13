@@ -8,5 +8,6 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<string>> RegisterCustomerAsync(RegisterUserDTO userDto);
         Task<ApiResponse<TokenDTO>> LoginUserAsync(LoginRequestDTO loginDto);
         Task<ApiResponse<TokenDTO>> LoginDriverAsync(LoginRequestDTO loginDto);
+        Task<ApiResponse<ProfileResponseDTO>> UpdateUserProfile(string userId, ProfileDTO profileDto);
     }
 }

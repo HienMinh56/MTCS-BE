@@ -25,6 +25,8 @@ namespace MTCS.Data.Request
 
         public int? Type { get; set; }
 
+        public List<int> ImageType { get; set; }
+
         public string Status { get; set; }
 
         public DateTime? CreatedDate { get; set; }

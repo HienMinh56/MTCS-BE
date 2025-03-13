@@ -19,6 +19,22 @@ namespace MTCS.Service.Services
             _passwordHasher = passwordHasher;
         }
 
+        public async Task<ApiResponse<PagedList<ViewDriverDTO>>> ViewDrivers(PaginationParams paginationParams, int? status = null)
+        {
+            var pagedDrivers = await _unitOfWork.DriverRepository.GetDrivers(
+                paginationParams, status);
+
+            string message = status.HasValue
+                ? $"Drivers with status {(UserStatus)status.Value} retrieved successfully"
+                : "All drivers retrieved successfully";
+
+            return new ApiResponse<PagedList<ViewDriverDTO>>(
+                true,
+                pagedDrivers,
+                message,
+                null);
+        }
+
         public async Task<ApiResponse<string>> CreateDriver(CreateDriverDTO driverDto)
         {
             if (await _unitOfWork.DriverRepository.EmailExistsAsync(driverDto.Email))
@@ -42,6 +58,43 @@ namespace MTCS.Service.Services
 
             string successMessage = $"Driver {driverDto.FullName} registered successfully";
             return new ApiResponse<string>(true, successMessage, "Registration successful", null);
+        }
+
+        public async Task<ApiResponse<DriverProfileDetailsDTO>> GetDriverProfile(string driverId)
+        {
+            var driver = await _unitOfWork.DriverRepository.GetByIdAsync(driverId);
+            if (driver == null)
+            {
+                throw new InvalidOperationException("Driver not found");
+            }
+
+            var (totalWorkingTime, currentWeekWorkingTime, fileUrls) =
+                await _unitOfWork.DriverRepository.GetDriverProfileDetails(driverId);
+
+            var driverProfileDetails = new DriverProfileDetailsDTO
+            {
+                DriverId = driver.DriverId,
+                FullName = driver.FullName,
+                Email = driver.Email,
+                DateOfBirth = driver.DateOfBirth,
+                PhoneNumber = driver.PhoneNumber,
+                Status = driver.Status,
+                CreatedDate = driver.CreatedDate,
+                CreatedBy = driver.CreatedBy,
+                ModifiedDate = driver.ModifiedDate,
+                ModifiedBy = driver.ModifiedBy,
+
+                TotalWorkingTime = totalWorkingTime,
+                CurrentWeekWorkingTime = currentWeekWorkingTime,
+
+                FileUrls = fileUrls
+            };
+
+            return new ApiResponse<DriverProfileDetailsDTO>(
+                true,
+                driverProfileDetails,
+                "Driver profile details retrieved successfully",
+                null);
         }
     }
 }

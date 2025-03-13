@@ -11,8 +11,6 @@ public partial class DeliveryReport
 
     public string TripId { get; set; }
 
-    public int? Status { get; set; }
-
     public string Notes { get; set; }
 
     public DateTime? ReportTime { get; set; }
