@@ -28,5 +28,13 @@ namespace MTCS.Data.Repository
             int nextNumber = existingFiles.Count + 1;
             return $"FIL{timestamp}{nextNumber:D2}";
         }
+
+        public async Task<List<ContractFile>> GetFilesByIdsAsync(List<string> fileIds)
+        {
+            return await _context.ContractFiles
+                .Where(x => fileIds.Contains(x.FileId))
+                .ToListAsync();
+        }
+
     }
 }

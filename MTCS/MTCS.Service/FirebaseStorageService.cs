@@ -24,6 +24,7 @@ namespace MTCS.Service
 
         Task<string[]> UploadImagesAsync(IFormFileCollection files);
         Task<FileMetadata> UploadFileAsync(IFormFile file, string? fileName = default);
+        Task<byte[]> DownloadFileAsync(string fileUrl);
         string ExtractImageNameFromUrl(string imageUrl);
     }
 
@@ -189,6 +190,41 @@ namespace MTCS.Service
 
             return imageUrls;
         }
+
+        public async Task<byte[]> DownloadFileAsync(string fileUrl)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(fileUrl))
+                {
+                    throw new ArgumentException("File URL cannot be null or empty.");
+                }
+
+                using (var httpClient = new HttpClient())
+                {
+                    return await httpClient.GetByteArrayAsync(fileUrl);
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine($"HTTP Request Error: {ex.Message}");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"DownloadFileAsync Error: {ex.Message}");
+                throw;
+            }
+        }
+
+
+        // Helper function to extract file path from Firebase URL
+        private string GetFilePathFromUrl(string fileUrl)
+        {
+            var uri = new Uri(fileUrl);
+            return uri.AbsolutePath.TrimStart('/');
+        }
+
         public string ExtractImageNameFromUrl(string imageUrl)
         {
             // Find the position of 'o/' in the URL

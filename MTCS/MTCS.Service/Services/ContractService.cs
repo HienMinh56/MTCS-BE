@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IdentityModel.Tokens.Jwt;
+using System.IO.Compression;
 using System.Security.Claims;
 
 namespace MTCS.Service.Services
@@ -23,6 +24,7 @@ namespace MTCS.Service.Services
         Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, List<string> descriptions, List<string> notes, ClaimsPrincipal claims);
         Task<BusinessResult> SendSignedContract(string contractId, List<string> descriptions, List<string> notes, List<IFormFile> files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims);
+        Task<BusinessResult> DownloadSelectedFilesAsZip(List<string> fileIds);
         Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims);
     }
 
@@ -309,6 +311,51 @@ namespace MTCS.Service.Services
             }
         }
 
+
+        public async Task<BusinessResult> DownloadSelectedFilesAsZip(List<string> fileIds)
+        {
+            try
+            {
+                if (fileIds == null || !fileIds.Any())
+                {
+                    return new BusinessResult(Const.FAIL_READ_CODE, "No file IDs provided.");
+                }
+
+                var contractFiles = await _repository.ContractFileRepository.GetFilesByIdsAsync(fileIds);
+                if (contractFiles == null || !contractFiles.Any())
+                {
+                    return new BusinessResult(Const.FAIL_READ_CODE, "No matching files found.");
+                }
+
+                using (var memoryStream = new MemoryStream())
+                {
+                    using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                    {
+                        foreach (var file in contractFiles)
+                        {
+                            var fileData = await _firebaseService.DownloadFileAsync(file.FileUrl);
+                            if (fileData == null || fileData.Length == 0)
+                                continue;
+
+                            var zipEntry = archive.CreateEntry(file.FileName, CompressionLevel.Fastest);
+                            using (var entryStream = zipEntry.Open())
+                            {
+                                await entryStream.WriteAsync(fileData, 0, fileData.Length);
+                            }
+                        }
+                    }
+
+                    memoryStream.Position = 0;
+                    var zipBytes = memoryStream.ToArray();
+
+                    return new BusinessResult(Const.SUCCESS_READ_CODE, "Files downloaded successfully.", Convert.ToBase64String(zipBytes));
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.FAIL_READ_CODE, $"Error downloading selected files: {ex.Message}");
+            }
+        }
 
 
 

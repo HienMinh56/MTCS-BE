@@ -11,6 +11,7 @@ namespace MTCS.Service.Services
     public interface INotificationService
     {
         Task<BusinessResult> SendNotificationAsync(string userId, string title, string body, ClaimsPrincipal claims);
+        Task<BusinessResult> SendNotificationWebAsync(string userId, string title, string body, ClaimsPrincipal claims);
     }
 
     public class NotificationService : INotificationService
@@ -67,7 +68,8 @@ namespace MTCS.Service.Services
                     Title = title,
                     Body = body,
                     Timestamp = Timestamp.FromDateTime(DateTime.UtcNow),
-                    Sender = userName
+                    Sender = userName,
+                    isRead = false
                 });
 
                 Console.WriteLine("✅ Notification saved to Firestore.");
@@ -78,6 +80,33 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, $"Error sending notification: {ex.Message}");
             }
         }
+
+        public async Task<BusinessResult> SendNotificationWebAsync(string userId, string title, string body, ClaimsPrincipal claims)
+        {
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
+            // Save notification in Firestore
+            try
+            {
+                var notificationRef = _firestoreDb.Collection("Notifications").Document();
+                await notificationRef.SetAsync(new
+                {
+                    UserId = userId,
+                    Title = title,
+                    Body = body,
+                    Timestamp = Timestamp.FromDateTime(DateTime.UtcNow),
+                    Sender = userName,
+                    isRead = false
+                });
+
+                return new BusinessResult(200, "Notification saved to Firestore successfully");
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(500, $"Error saving notification: {ex.Message}");
+            }
+        }
+
 
     }
 }

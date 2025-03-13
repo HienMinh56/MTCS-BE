@@ -14,8 +14,11 @@ using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using System.Security.Claims;
 using System.Text;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Env.Load();
 
 // Add services to the container.
 builder.Services.AddScoped<UnitOfWork>();
@@ -40,6 +43,7 @@ var credential = GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adm
 var firestoreClient = new FirestoreClientBuilder { Credential = credential }.Build();
 var firestoreDb = FirestoreDb.Create("driverapp-3845f", firestoreClient);
 builder.Services.AddSingleton(firestoreDb);
+
 
 
 

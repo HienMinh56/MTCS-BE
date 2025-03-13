@@ -24,5 +24,13 @@ namespace MTCS.APIService.Controllers
             var result = await _notificationService.SendNotificationAsync(request.UserId, request.Title, request.Body, currentUser);
             return Ok(result);
         }
+
+        [HttpPost("sendWeb")]
+        public async Task<IActionResult> SendNotificationWeb([FromBody] NotificationRequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _notificationService.SendNotificationWebAsync(request.UserId, request.Title, request.Body, currentUser);
+            return Ok(result);
+        }
     }
 }
