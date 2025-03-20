@@ -13,13 +13,9 @@ public partial class Tractor
 
     public string Brand { get; set; }
 
-    public string Model { get; set; }
-
     public int? ManufactureYear { get; set; }
 
     public decimal? MaxLoadWeight { get; set; }
-
-    public string TractorCateId { get; set; }
 
     public DateTime? LastMaintenanceDate { get; set; }
 
@@ -43,9 +39,9 @@ public partial class Tractor
 
     public string DeletedBy { get; set; }
 
-    public virtual TractorCategory TractorCate { get; set; }
+    public int? ContainerType { get; set; }
+
+    public virtual ICollection<TractorFile> TractorFiles { get; set; } = new List<TractorFile>();
 
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
-
-    public virtual ICollection<VehicleFile> VehicleFiles { get; set; } = new List<VehicleFile>();
 }

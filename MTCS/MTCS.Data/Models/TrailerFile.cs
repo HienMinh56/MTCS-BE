@@ -5,19 +5,17 @@ using System.Collections.Generic;
 
 namespace MTCS.Data.Models;
 
-public partial class VehicleFile
+public partial class TrailerFile
 {
     public string FileId { get; set; }
 
-    public string TractorsId { get; set; }
-
     public string TrailerId { get; set; }
-
-    public int? Type { get; set; }
 
     public string FileName { get; set; }
 
     public string FileType { get; set; }
+
+    public byte[] FileContent { get; set; }
 
     public DateTime? UploadDate { get; set; }
 
@@ -31,13 +29,9 @@ public partial class VehicleFile
 
     public string DeletedBy { get; set; }
 
-    public string FileUrl { get; set; }
-
-    public DateOnly? ModifiedDate { get; set; }
+    public DateTime? ModifiedDate { get; set; }
 
     public string ModifiedBy { get; set; }
-
-    public virtual Tractor Tractors { get; set; }
 
     public virtual Trailer Trailer { get; set; }
 }

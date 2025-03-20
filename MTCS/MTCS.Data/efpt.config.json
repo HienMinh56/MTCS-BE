@@ -23,6 +23,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[Customer]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[DeliveryReports]",
          "ObjectType": 0
       },
@@ -67,6 +71,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[InternalUser]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[OrderFile]",
          "ObjectType": 0
       },
@@ -75,7 +83,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ShippingPrices]",
+         "Name": "[dbo].[PriceTable]",
          "ObjectType": 0
       },
       {
@@ -83,7 +91,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[TractorCategory]",
+         "Name": "[dbo].[TractorFile]",
          "ObjectType": 0
       },
       {
@@ -91,7 +99,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[TrailerCategory]",
+         "Name": "[dbo].[TrailerFile]",
          "ObjectType": 0
       },
       {
@@ -100,14 +108,6 @@
       },
       {
          "Name": "[dbo].[TripStatusHistory]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Users]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[VehicleFile]",
          "ObjectType": 0
       }
    ],

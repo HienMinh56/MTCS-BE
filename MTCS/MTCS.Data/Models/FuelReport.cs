@@ -19,6 +19,8 @@ public partial class FuelReport
 
     public DateTime? ReportTime { get; set; }
 
+    public string ReportBy { get; set; }
+
     public virtual ICollection<FuelReportFile> FuelReportFiles { get; set; } = new List<FuelReportFile>();
 
     public virtual Trip Trip { get; set; }

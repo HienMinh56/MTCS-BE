@@ -13,15 +13,9 @@ public partial class Trailer
 
     public string Brand { get; set; }
 
-    public string Model { get; set; }
-
     public int? ManufactureYear { get; set; }
 
     public decimal? MaxLoadWeight { get; set; }
-
-    public decimal? Length { get; set; }
-
-    public string TrailerCateId { get; set; }
 
     public DateTime? LastMaintenanceDate { get; set; }
 
@@ -45,9 +39,9 @@ public partial class Trailer
 
     public string DeletedBy { get; set; }
 
-    public virtual TrailerCategory TrailerCate { get; set; }
+    public int? ContainerSize { get; set; }
+
+    public virtual ICollection<TrailerFile> TrailerFiles { get; set; } = new List<TrailerFile>();
 
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
-
-    public virtual ICollection<VehicleFile> VehicleFiles { get; set; } = new List<VehicleFile>();
 }

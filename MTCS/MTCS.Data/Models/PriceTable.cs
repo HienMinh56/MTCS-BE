@@ -5,23 +5,29 @@ using System.Collections.Generic;
 
 namespace MTCS.Data.Models;
 
-public partial class ShippingPrice
+public partial class PriceTable
 {
     public string PriceId { get; set; }
 
-    public int ContainerSize { get; set; }
+    public double? MinKm { get; set; }
 
-    public int Type { get; set; }
+    public double? MaxKm { get; set; }
 
-    public decimal PricePerKm { get; set; }
+    public string ContainerSize { get; set; }
 
-    public int? IsActive { get; set; }
+    public string ContainerType { get; set; }
+
+    public decimal? MinPricePerKm { get; set; }
+
+    public decimal? MaxPricePerKm { get; set; }
+
+    public int? Status { get; set; }
 
     public DateTime? CreatedDate { get; set; }
+
+    public string CreatedBy { get; set; }
 
     public DateTime? ModifiedDate { get; set; }
 
     public string ModifiedBy { get; set; }
-
-    public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

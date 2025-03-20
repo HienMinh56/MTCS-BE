@@ -1,4 +1,6 @@
-﻿using MTCS.Common;
+﻿using Google.Cloud.Firestore;
+using Microsoft.Extensions.Logging;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
@@ -23,10 +25,16 @@ namespace MTCS.Service.Services
     {
         private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseStorageService;
-        public IncidentReportsService(IFirebaseStorageService firebaseStorageService)
+        private readonly IFCMService _fcmService;
+        private readonly ILogger<NotificationService> _logger;
+        private readonly FirestoreDb _firestoreDb;
+        public IncidentReportsService(IFirebaseStorageService firebaseStorageService, IFCMService fcmService, ILogger<NotificationService> logger, FirestoreDb firestoreDb)
         {
             _unitOfWork ??= new UnitOfWork();
             _firebaseStorageService = firebaseStorageService;
+            _fcmService = fcmService;
+            _logger = logger;
+            _firestoreDb = firestoreDb;
         }
 
         // Helper method to determine file type from extension
@@ -176,11 +184,6 @@ namespace MTCS.Service.Services
                         });
                     }
                 }
-
-                if (request.Type == 2)
-                {
-
-                }
             }
             catch (Exception ex)
             {
@@ -194,8 +197,17 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
             }
 
-            if (result.IncidentReportsFiles is not null)
+            if (result is not null)
             {
+                // Gửi thông báo sau khi tạo thành công
+                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb);
+                var notificationResult = await notificationService.SendNotificationAsync(userId, "Incident Report Created", $"Incident report {reportId} has been created successfully.", claims);
+
+                if (notificationResult.Status != 200)
+                {
+                    return new BusinessResult(Const.FAIL_CREATE_CODE, "Incident report created but failed to send notification.", result);
+                }
+
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
             }
             else
@@ -204,6 +216,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
             }
         }
+
 
         /// <summary>
         /// Update incident report for a trip
@@ -224,16 +237,18 @@ namespace MTCS.Service.Services
             {
                 incident.ReportId = request.ReportId is null ? incident.ReportId : request.ReportId;
                 incident.TripId = request.TripId is null ? incident.TripId : request.TripId;
-                incident.ReportedBy = userName is null ? incident.ReportedBy : userName;
+                incident.ReportedBy = userName;
                 incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
                 incident.Description = request.Description is null ? incident.Description : request.Description;
                 incident.IncidentTime = request.IncidentTime != default ? request.IncidentTime : incident.IncidentTime;
                 incident.Location = request.Location is null ? incident.Location : request.Location;
                 incident.Type = request.Type is null ? incident.Type : request.Type;
                 incident.Status = request.Status is null ? incident.Status : request.Status;
+                incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
+                incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
             }
 
-            // Handle removed images
+            // Xử lý xóa ảnh bị loại bỏ
             if (request.RemovedImage is not [])
             {
                 IncidentReportsFile? image;
@@ -247,7 +262,7 @@ namespace MTCS.Service.Services
                 }
             }
 
-            // Handle added images
+            // Xử lý thêm ảnh mới
             if (request.AddedImage is not null)
             {
                 string FileId;
@@ -264,7 +279,6 @@ namespace MTCS.Service.Services
                     {
                         id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                     }
-
                     FileId = $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}";
                     await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                     {
@@ -282,6 +296,20 @@ namespace MTCS.Service.Services
 
             if (await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident) > 0)
             {
+                // Sau khi update thành công, gửi thông báo
+                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb);
+                var notificationResult = await notificationService.SendNotificationAsync(
+                    userId,
+                    "Incident Report Updated",
+                    $"Incident report {incident.ReportId} has been updated successfully.",
+                    claims);
+
+                // Bạn có thể kiểm tra kết quả gửi thông báo (ví dụ: log lỗi) nhưng update vẫn trả về thành công
+                if (notificationResult.Status != 200)
+                {
+                    _logger.LogWarning($"Update succeeded but failed to send notification: {notificationResult.Message}");
+                }
+
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, incident);
             }
             else

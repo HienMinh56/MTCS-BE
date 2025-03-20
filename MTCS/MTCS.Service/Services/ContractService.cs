@@ -46,7 +46,7 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                var customerId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
@@ -56,7 +56,7 @@ namespace MTCS.Service.Services
                 var contract = new Data.Models.Contract
                 {
                     ContractId = contractId,
-                    UserId = userId,
+                    CustomerId = customerId,
                     StartDate = contractRequest.StartDate,
                     EndDate = contractRequest.EndDate,
                     Status = contractRequest.Status,

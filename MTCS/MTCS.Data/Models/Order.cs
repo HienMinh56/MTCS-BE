@@ -11,9 +11,7 @@ public partial class Order
 
     public string TrackingCode { get; set; }
 
-    public string UserId { get; set; }
-
-    public string PriceId { get; set; }
+    public string CustomerId { get; set; }
 
     public decimal? Temperature { get; set; }
 
@@ -22,10 +20,6 @@ public partial class Order
     public DateOnly? PickUpDate { get; set; }
 
     public DateOnly? DeliveryDate { get; set; }
-
-    public string PickUpLocation { get; set; }
-
-    public string DeliveryLocation { get; set; }
 
     public string Status { get; set; }
 
@@ -39,15 +33,29 @@ public partial class Order
 
     public string ModifiedBy { get; set; }
 
-    public decimal? TotalPrice { get; set; }
+    public int? ContainerType { get; set; }
 
-    public double? Distance { get; set; }
+    public string PickUpLocation { get; set; }
+
+    public string DeliveryLocation { get; set; }
+
+    public string ConReturnLocation { get; set; }
+
+    public int? DeliveryType { get; set; }
+
+    public int? Price { get; set; }
+
+    public string ContainerNumber { get; set; }
+
+    public string ContactPerson { get; set; }
+
+    public string ContactPhone { get; set; }
+
+    public string OrderPlacer { get; set; }
+
+    public virtual Customer Customer { get; set; }
 
     public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();
 
-    public virtual ShippingPrice Price { get; set; }
-
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
-
-    public virtual User User { get; set; }
 }
