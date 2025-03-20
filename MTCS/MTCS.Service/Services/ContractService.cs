@@ -57,6 +57,9 @@ namespace MTCS.Service.Services
                 {
                     ContractId = contractId,
                     CustomerId = customerId,
+                    Summary = contractRequest.Summary,
+                    SignedBy = contractRequest.SignedBy,
+                    SignedTime = contractRequest.SignedTime,
                     StartDate = contractRequest.StartDate,
                     EndDate = contractRequest.EndDate,
                     Status = contractRequest.Status,
