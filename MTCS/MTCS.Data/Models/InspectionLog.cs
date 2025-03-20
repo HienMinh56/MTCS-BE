@@ -11,8 +11,6 @@ public partial class InspectionLog
 
     public string TripId { get; set; }
 
-    public string DriverId { get; set; }
-
     public string TractorStatus { get; set; }
 
     public string TrailerStatus { get; set; }
@@ -24,6 +22,8 @@ public partial class InspectionLog
     public string Status { get; set; }
 
     public string Reason { get; set; }
+
+    public string ReportBy { get; set; }
 
     public virtual Trip Trip { get; set; }
 }

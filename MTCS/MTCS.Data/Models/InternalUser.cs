@@ -5,17 +5,27 @@ using System.Collections.Generic;
 
 namespace MTCS.Data.Models;
 
-public partial class DeliveryStatus
+public partial class InternalUser
 {
-    public string StatusId { get; set; }
+    public string UserId { get; set; }
 
-    public string StatusName { get; set; }
+    public string FullName { get; set; }
 
-    public int? IsActive { get; set; }
+    public string Password { get; set; }
 
-    public string CreatedBy { get; set; }
+    public string Email { get; set; }
+
+    public string PhoneNumber { get; set; }
+
+    public int? Role { get; set; }
+
+    public string Gender { get; set; }
+
+    public DateOnly? Birthday { get; set; }
 
     public DateTime? CreatedDate { get; set; }
+
+    public string CreatedBy { get; set; }
 
     public DateTime? ModifiedDate { get; set; }
 
@@ -24,6 +34,4 @@ public partial class DeliveryStatus
     public DateTime? DeletedDate { get; set; }
 
     public string DeletedBy { get; set; }
-
-    public virtual ICollection<TripStatusHistory> TripStatusHistories { get; set; } = new List<TripStatusHistory>();
 }

@@ -15,6 +15,8 @@ public partial class DeliveryReport
 
     public DateTime? ReportTime { get; set; }
 
+    public string ReportBy { get; set; }
+
     public virtual ICollection<DeliveryReportsFile> DeliveryReportsFiles { get; set; } = new List<DeliveryReportsFile>();
 
     public virtual Trip Trip { get; set; }

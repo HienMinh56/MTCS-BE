@@ -9,7 +9,7 @@ public partial class Contract
 {
     public string ContractId { get; set; }
 
-    public string UserId { get; set; }
+    public string CustomerId { get; set; }
 
     public DateTime? StartDate { get; set; }
 
@@ -21,7 +21,13 @@ public partial class Contract
 
     public string CreatedBy { get; set; }
 
+    public string Summary { get; set; }
+
+    public DateOnly? SignedTime { get; set; }
+
+    public string SignedBy { get; set; }
+
     public virtual ICollection<ContractFile> ContractFiles { get; set; } = new List<ContractFile>();
 
-    public virtual User User { get; set; }
+    public virtual Customer Customer { get; set; }
 }

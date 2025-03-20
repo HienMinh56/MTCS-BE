@@ -70,7 +70,6 @@ namespace MTCS.Service.Services
                 {
                     Id = trip.TractorId,
                     Brand = trip.Tractor.Brand,
-                    Model = trip.Tractor.Model,
                     LicensePlate = trip.Tractor.LicensePlate,
                 },
 
@@ -78,7 +77,6 @@ namespace MTCS.Service.Services
                 {
                     Id = trip.TrailerId,
                     Brand = trip.Trailer.Brand,
-                    Model = trip.Trailer.Model,
                     LicensePlate = trip.Trailer.LicensePlate,
                 },
 

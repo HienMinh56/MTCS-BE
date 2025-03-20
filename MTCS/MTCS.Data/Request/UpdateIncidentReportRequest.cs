@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,9 +26,15 @@ namespace MTCS.Data.Request
 
         public int? Type { get; set; }
 
+        [Required(ErrorMessage = "ImageType is required.")]
+        [MinLength(1, ErrorMessage = "At least one ImageType is required.")]
         public List<int> ImageType { get; set; }
 
         public string Status { get; set; }
+
+        public string HandledBy { get; set; }
+
+        public DateTime? HandledTime { get; set; }
 
         public List<string> RemovedImage { get; set; } = [];
 
