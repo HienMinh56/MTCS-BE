@@ -1,6 +1,7 @@
 ﻿using FirebaseAdmin.Messaging;
 using Google.Cloud.Firestore;
 using Microsoft.Extensions.Logging;
+using MTCS.Data;
 using MTCS.Service.Base;
 using System;
 using System.Security.Claims;
@@ -19,24 +20,30 @@ namespace MTCS.Service.Services
         private readonly IFCMService _fcmService;
         private readonly ILogger<NotificationService> _logger;
         private readonly FirestoreDb _firestoreDb;
+        private readonly UnitOfWork _unitOfWork;
 
 
-        public NotificationService(IFCMService fcmService, ILogger<NotificationService> logger, FirestoreDb firestoreDb)
+        public NotificationService(IFCMService fcmService, ILogger<NotificationService> logger, FirestoreDb firestoreDb, UnitOfWork unitOfWork)
         {
             _fcmService = fcmService;
             _logger = logger;
             _firestoreDb = firestoreDb;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<BusinessResult> SendNotificationAsync(string userId, string title, string body, ClaimsPrincipal claims)
         {
-
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+            var userExisted = _unitOfWork.DriverRepository.Get(d => d.DriverId == userId);
+            if(userExisted == null)
+            {
+                return new BusinessResult(404, "Cannot find user");
+            }
 
             var userDoc = await _firestoreDb.Collection("users").Document(userId).GetSnapshotAsync();
             if (!userDoc.Exists || !userDoc.ContainsField("fcmToken"))
             {
-                return new BusinessResult(404, $"{userId} does not have FCM Token!!!");
+                return await SendNotificationWebAsync(userId, title, body, claims);
             }
 
             var fcmToken = userDoc.GetValue<string>("fcmToken");
@@ -61,6 +68,7 @@ namespace MTCS.Service.Services
                 var messaging = FirebaseMessaging.DefaultInstance;
                 var response = await messaging.SendAsync(message);
 
+                // 🔵 Lưu thông báo vào Firestore sau khi gửi thành công
                 var notificationRef = _firestoreDb.Collection("Notifications").Document();
                 await notificationRef.SetAsync(new
                 {
@@ -73,13 +81,14 @@ namespace MTCS.Service.Services
                 });
 
                 Console.WriteLine("✅ Notification saved to Firestore.");
-                return new BusinessResult(400, "Send Notify success");
+                return new BusinessResult(200, "Send Notify success");
             }
             catch (Exception ex)
             {
                 return new BusinessResult(500, $"Error sending notification: {ex.Message}");
             }
         }
+
 
         public async Task<BusinessResult> SendNotificationWebAsync(string userId, string title, string body, ClaimsPrincipal claims)
         {
