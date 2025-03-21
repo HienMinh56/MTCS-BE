@@ -218,7 +218,7 @@ namespace MTCS.Service.Services
             if (result is not null)
             {
                 // Gửi thông báo sau khi tạo thành công
-                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb);
+                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb, _unitOfWork);
                 var notificationResult = await notificationService.SendNotificationAsync(userId, "Incident Report Created", $"Incident report {reportId} has been created successfully.", claims);
 
                 if (notificationResult.Status != 200)
@@ -315,7 +315,7 @@ namespace MTCS.Service.Services
             if (await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident) > 0)
             {
                 // Sau khi update thành công, gửi thông báo
-                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb);
+                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb, _unitOfWork);
                 var notificationResult = await notificationService.SendNotificationAsync(
                     userId,
                     "Incident Report Updated",
