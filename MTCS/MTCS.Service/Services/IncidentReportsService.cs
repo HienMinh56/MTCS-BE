@@ -15,6 +15,7 @@ namespace MTCS.Service.Services
         Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId);
         Task<IBusinessResult> GetIncidentReportsByTripId(string tripId);
         Task<IBusinessResult> GetIncidentReportsByReportId(string reportId);
+        Task<IBusinessResult> GetAllIncidentReports();
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
@@ -107,6 +108,23 @@ namespace MTCS.Service.Services
             try
             {
                 var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(reportId);
+                if (incidents == null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+            }
+        }
+
+        public async Task<IBusinessResult> GetAllIncidentReports()
+        {
+            try
+            {
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetAllAsync();
                 if (incidents == null)
                 {
                     return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
