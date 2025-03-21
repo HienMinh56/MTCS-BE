@@ -24,5 +24,11 @@ namespace MTCS.Data.Repository
         {
             return await _context.Customers.FirstOrDefaultAsync(u => u.CustomerId == userId);
         }
+
+        public async Task<string?> GetUserAssignedOrder(string orderId)
+        {
+            var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == orderId);
+            return order?.CreatedBy;
+        }
     }
 }

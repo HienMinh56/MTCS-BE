@@ -219,7 +219,7 @@ namespace MTCS.Service.Services
             {
                 // Gửi thông báo sau khi tạo thành công
                 var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb, _unitOfWork);
-                var notificationResult = await notificationService.SendNotificationAsync(userId, "Incident Report Created", $"Incident report {reportId} has been created successfully.", claims);
+                var notificationResult = await notificationService.SendNotificationAsync(userId, "Incident Report Created", $"Incident report {reportId} has been created successfully.", userName);
 
                 if (notificationResult.Status != 200)
                 {
@@ -320,7 +320,7 @@ namespace MTCS.Service.Services
                     userId,
                     "Incident Report Updated",
                     $"Incident report {incident.ReportId} has been updated successfully.",
-                    claims);
+                    userName);
 
                 // Bạn có thể kiểm tra kết quả gửi thông báo (ví dụ: log lỗi) nhưng update vẫn trả về thành công
                 if (notificationResult.Status != 200)

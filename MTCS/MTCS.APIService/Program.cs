@@ -31,6 +31,8 @@ builder.Services.AddScoped<IContractService, ContractService>();
 // builder.Services.AddScoped<ITrailerService, TrailerService>();
 builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
 builder.Services.AddScoped<ITripService, TripService>();
+builder.Services.AddScoped<IFuelReportService, FuelReportService>();
+builder.Services.AddScoped<IDeliveryReportService, DeliveryReportService>();
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
