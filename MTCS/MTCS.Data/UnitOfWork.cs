@@ -18,6 +18,10 @@ namespace MTCS.Data
         private TrailerRepository trailerRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
+        private FuelReportRepository fuelReportRepository;
+        private FuelReportFileRepository fuelReportFileRepository;
+        private DeliveryReportRepository deliveryReportRepository;
+        private DeliveryReportFileRepository deliveryReportFileRepository;
 
         public UnitOfWork()
         {
@@ -92,6 +96,38 @@ namespace MTCS.Data
             get
             {
                 return contractFileRepository ??= new ContractFileRepository();
+            }
+        }
+
+        public FuelReportRepository FuelReportRepository
+        {
+            get
+            {
+                return fuelReportRepository ??= new FuelReportRepository();
+            }
+        }
+
+        public FuelReportFileRepository FuelReportFileRepository
+        {
+            get
+            {
+                return fuelReportFileRepository ??= new FuelReportFileRepository();
+            }
+        }
+
+        public DeliveryReportRepository DeliveryReportRepository
+        {
+            get
+            {
+                return deliveryReportRepository ??= new DeliveryReportRepository();
+            }
+        }
+
+        public DeliveryReportFileRepository DeliveryReportFileRepository
+        {
+            get
+            {
+                return deliveryReportFileRepository ??= new DeliveryReportFileRepository();
             }
         }
 

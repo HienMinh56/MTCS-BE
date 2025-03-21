@@ -30,18 +30,27 @@ namespace MTCS.Service.Services
 
     public class ContractService : IContractService
     {
-        private readonly UnitOfWork _repository;
+        private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseService;
 
         public ContractService(UnitOfWork repository, IFirebaseStorageService firebaseService)
         {
-            _repository = repository;
+            _unitOfWork = repository;
             _firebaseService = firebaseService;
         }
 
 
 
-
+        #region Create Contract
+        /// <summary>
+        /// Create Contract
+        /// </summary>
+        /// <param name="contractRequest"></param>
+        /// <param name="files"></param>
+        /// <param name="descriptions"></param>
+        /// <param name="notes"></param>
+        /// <param name="claims"></param>
+        /// <returns></returns>
         public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, List<string> descriptions, List<string> notes, ClaimsPrincipal claims)
         {
             try
@@ -50,8 +59,8 @@ namespace MTCS.Service.Services
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-                await _repository.BeginTransactionAsync();
-                var contractId = await _repository.ContractRepository.GetNextContractIdAsync();
+                await _unitOfWork.BeginTransactionAsync();
+                var contractId = await _unitOfWork.ContractRepository.GetNextContractIdAsync();
 
                 var contract = new Data.Models.Contract
                 {
@@ -67,7 +76,7 @@ namespace MTCS.Service.Services
                     CreatedBy = userName
                 };
 
-                await _repository.ContractRepository.CreateAsync(contract);
+                await _unitOfWork.ContractRepository.CreateAsync(contract);
                 var savedFiles = new List<ContractFile>();
 
                 for (int i = 0; i < files.Count; i++)
@@ -77,7 +86,7 @@ namespace MTCS.Service.Services
                     var fileName = Path.GetFileName(file.FileName);
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
-                    var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+                    var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                     var contractFile = new ContractFile
                     {
@@ -94,7 +103,7 @@ namespace MTCS.Service.Services
                         ModifiedBy = userName,
                     };
 
-                    await _repository.ContractFileRepository.CreateAsync(contractFile);
+                    await _unitOfWork.ContractFileRepository.CreateAsync(contractFile);
                     savedFiles.Add(contractFile);
                 }
 
@@ -106,24 +115,30 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                await _repository.RollbackTransactionAsync();
+                await _unitOfWork.RollbackTransactionAsync();
                 throw;
             }
         }
+        #endregion
 
-
-
+        #region Delete Contract
+        /// <summary>
+        /// Change status of contract
+        /// </summary>
+        /// <param name="contractId"></param>
+        /// <param name="claims"></param>
+        /// <returns></returns>
         public async Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims)
         {
             try
             {
-                var existingContract = _repository.ContractRepository.GetById(contractId);
+                var existingContract = _unitOfWork.ContractRepository.GetById(contractId);
                 if (existingContract == null)
                 {
                     new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG, null);
                 }
                 existingContract.Status = 2;
-                var result = await _repository.ContractRepository.UpdateAsync(existingContract);
+                var result = await _unitOfWork.ContractRepository.UpdateAsync(existingContract);
                 return new BusinessResult(Const.SUCCESS_DELETE_CODE, Const.SUCCESS_DELETE_MSG);
             }
             catch
@@ -133,12 +148,19 @@ namespace MTCS.Service.Services
 
 
         }
+        #endregion
 
+
+        #region Get contract and contract file
+        /// <summary>
+        /// Get all contract
+        /// </summary>
+        /// <returns></returns>
         public async Task<BusinessResult> GetContract()
         {
             try
             {
-                var contracts = await _repository.ContractRepository.GetAllAsync();
+                var contracts = await _unitOfWork.ContractRepository.GetAllAsync();
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contracts);
             }
             catch
@@ -146,12 +168,16 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
             }
         }
-
+        /// <summary>
+        /// Get contract by contractId
+        /// </summary>
+        /// <param name="contractId"></param>
+        /// <returns></returns>
         public Task<BusinessResult> GetContract(string contractId)
         {
             try
             {
-                var contract = _repository.ContractRepository.GetById(contractId);
+                var contract = _unitOfWork.ContractRepository.GetById(contractId);
                 return Task.FromResult(new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contract));
             }
             catch
@@ -159,11 +185,16 @@ namespace MTCS.Service.Services
                 return Task.FromResult(new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG));
             }
         }
+        /// <summary>
+        /// Get contractFile by contractId
+        /// </summary>
+        /// <param name="contractId"></param>
+        /// <returns></returns>
         public async Task<BusinessResult> GetContractFiles(string contractId)
         {
             try
             {
-                var contractFiles = _repository.ContractFileRepository.GetList(x => x.ContractId == contractId);
+                var contractFiles = _unitOfWork.ContractFileRepository.GetList(x => x.ContractId == contractId);
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contractFiles);
             }
             catch
@@ -171,7 +202,17 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
             }
         }
-
+        #endregion
+        #region Send Signed Contract
+        /// <summary>
+        /// add file to contract
+        /// </summary>
+        /// <param name="contractId"></param>
+        /// <param name="descriptions"></param>
+        /// <param name="notes"></param>
+        /// <param name="files"></param>
+        /// <param name="claims"></param>
+        /// <returns></returns>
         public async Task<BusinessResult> SendSignedContract(string contractId, List<string> descriptions, List<string> notes, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
@@ -187,7 +228,7 @@ namespace MTCS.Service.Services
                 }
 
                 // Bắt đầu transaction
-                await _repository.BeginTransactionAsync();
+                await _unitOfWork.BeginTransactionAsync();
                 var savedFiles = new List<ContractFile>();
 
                 for (int i = 0; i < files.Count; i++)
@@ -199,7 +240,7 @@ namespace MTCS.Service.Services
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
 
-                    var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+                    var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                     var contractFile = new ContractFile
                     {
@@ -217,7 +258,7 @@ namespace MTCS.Service.Services
                     };
 
                     // Lưu vào database
-                    await _repository.ContractFileRepository.CreateAsync(contractFile);
+                    await _unitOfWork.ContractFileRepository.CreateAsync(contractFile);
                     savedFiles.Add(contractFile);
                 }
 
@@ -228,13 +269,19 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                await _repository.RollbackTransactionAsync();
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG);
             }
         }
+        #endregion
 
-
-
+        #region Update Contract
+        /// <summary>
+        /// Update not check logic yet
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="claims"></param>
+        /// <returns></returns>
         public async Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims)
         {
             try
@@ -243,9 +290,9 @@ namespace MTCS.Service.Services
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-                await _repository.BeginTransactionAsync();
+                await _unitOfWork.BeginTransactionAsync();
 
-                var contract = await _repository.ContractRepository.GetContractAsync(model.ContractId);
+                var contract = await _unitOfWork.ContractRepository.GetContractAsync(model.ContractId);
                 if (contract == null)
                     return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
 
@@ -258,10 +305,10 @@ namespace MTCS.Service.Services
                 {
                     foreach (var fileId in model.FileIdsToRemove)
                     {
-                        var file = _repository.ContractFileRepository.GetById(fileId);
+                        var file = _unitOfWork.ContractFileRepository.GetById(fileId);
                         if (file != null)
                         {
-                            await _repository.ContractFileRepository.RemoveAsync(file);
+                            await _unitOfWork.ContractFileRepository.RemoveAsync(file);
                         }
                     }
                 }
@@ -280,7 +327,7 @@ namespace MTCS.Service.Services
                         var fileName = Path.GetFileName(file.FileName);
                         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                         string fileType = GetFileTypeFromExtension(fileExtension);
-                        var fileId = await _repository.ContractFileRepository.GetNextFileNumberAsync();
+                        var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                         contract.ContractFiles.Add(new ContractFile
                         {
@@ -298,7 +345,7 @@ namespace MTCS.Service.Services
                         });
                     }
 
-                    await _repository.ContractRepository.UpdateAsync(contract);
+                    await _unitOfWork.ContractRepository.UpdateAsync(contract);
                 }
 
 
@@ -309,11 +356,11 @@ namespace MTCS.Service.Services
             }
             catch
             {
-                await _repository.RollbackTransactionAsync();
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
             }
         }
-
+        #endregion
 
         public async Task<BusinessResult> DownloadSelectedFilesAsZip(List<string> fileIds)
         {
@@ -324,7 +371,7 @@ namespace MTCS.Service.Services
                     return new BusinessResult(Const.FAIL_READ_CODE, "No file IDs provided.");
                 }
 
-                var contractFiles = await _repository.ContractFileRepository.GetFilesByIdsAsync(fileIds);
+                var contractFiles = await _unitOfWork.ContractFileRepository.GetFilesByIdsAsync(fileIds);
                 if (contractFiles == null || !contractFiles.Any())
                 {
                     return new BusinessResult(Const.FAIL_READ_CODE, "No matching files found.");
@@ -363,7 +410,12 @@ namespace MTCS.Service.Services
 
 
 
-        // Helper method to determine file type from extension
+        #region Support Read extension file
+        /// <summary>
+        /// Get extension file to assign into field File Type
+        /// </summary>
+        /// <param name="extension"></param>
+        /// <returns></returns>
         private string GetFileTypeFromExtension(string extension)
         {
             switch (extension.ToLowerInvariant())
@@ -393,5 +445,6 @@ namespace MTCS.Service.Services
                     return "Unknown";
             }
         }
+        #endregion
     }
 }

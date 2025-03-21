@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace MTCS.APIService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/contract")]
     [ApiController]
     public class ContractController : ControllerBase
     {
@@ -35,7 +35,7 @@ namespace MTCS.APIService.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{contractId}/contractFile")]
+        [HttpGet("{contractId}/contract-file")]
         public async Task<IActionResult> GetContractFile(string contractId)
         {
             var result = await _contractService.GetContractFiles(contractId);
@@ -58,7 +58,7 @@ namespace MTCS.APIService.Controllers
 
 
 
-        [HttpPost("sendContract")]
+        [HttpPost("send-contract")]
         public async Task<IActionResult> SendSignedContract([FromForm] string contractId,[FromForm] List<string> descriptions,[FromForm] List<string> notes,[FromForm] List<IFormFile> files)
         {
             var currentUser = HttpContext.User;
