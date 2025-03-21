@@ -78,11 +78,10 @@ namespace MTCS.Service.Services
                     var fileName = Path.GetFileName(file.FileName);
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
-                    var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                     var fuelReportFile = new FuelReportFile
                     {
-                        FileId = fileId,
+                        FileId = Guid.NewGuid().ToString(),
                         ReportId = fuelReport.ReportId,
                         Description = "Fuel Report File",
                         Note = "Fuel Report File",
@@ -202,11 +201,10 @@ namespace MTCS.Service.Services
                         var fileName = Path.GetFileName(file.FileName);
                         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                         string fileType = GetFileTypeFromExtension(fileExtension);
-                        var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                         fuelReport.FuelReportFiles.Add(new FuelReportFile
                         {
-                            FileId = fileId,
+                            FileId = Guid.NewGuid().ToString(),
                             ReportId = fuelReport.ReportId,
                             Description = "Fuel Report File",
                             Note = "Fuel Report File",

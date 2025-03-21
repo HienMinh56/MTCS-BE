@@ -86,11 +86,10 @@ namespace MTCS.Service.Services
                     var fileName = Path.GetFileName(file.FileName);
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
-                    var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                     var contractFile = new ContractFile
                     {
-                        FileId = fileId,
+                        FileId = Guid.NewGuid().ToString(),
                         ContractId = contractId,
                         FileName = fileName,
                         FileType = fileType,
@@ -240,11 +239,10 @@ namespace MTCS.Service.Services
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
 
-                    var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                     var contractFile = new ContractFile
                     {
-                        FileId = fileId,
+                        FileId = Guid.NewGuid().ToString(),
                         ContractId = contractId,
                         FileName = fileName,
                         FileType = fileType,
@@ -327,11 +325,10 @@ namespace MTCS.Service.Services
                         var fileName = Path.GetFileName(file.FileName);
                         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                         string fileType = GetFileTypeFromExtension(fileExtension);
-                        var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                         contract.ContractFiles.Add(new ContractFile
                         {
-                            FileId = fileId,
+                            FileId = Guid.NewGuid().ToString(),
                             ContractId = contract.ContractId,
                             FileName = fileName,
                             FileType = fileType,

@@ -84,11 +84,10 @@ namespace MTCS.Service.Services
                     var fileName = Path.GetFileName(file.FileName);
                     var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                     string fileType = GetFileTypeFromExtension(fileExtension);
-                    var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                     var deliveryReportFile = new DeliveryReportsFile
                     {
-                        FileId = fileId,
+                        FileId = Guid.NewGuid().ToString(),
                         ReportId = deliveryReportModel.ReportId,
                         Description = "Delivery Report File",
                         Note = "Delivery Report File",
@@ -197,11 +196,10 @@ namespace MTCS.Service.Services
                         var fileName = Path.GetFileName(file.FileName);
                         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
                         string fileType = GetFileTypeFromExtension(fileExtension);
-                        var fileId = await _unitOfWork.ContractFileRepository.GetNextFileNumberAsync();
 
                         deliveryReportModel.DeliveryReportsFiles.Add(new DeliveryReportsFile
                         {
-                            FileId = fileId,
+                            FileId = Guid.NewGuid().ToString(),
                             ReportId = deliveryReportModel.ReportId,
                             Description = "Delivery Report File",
                             Note = "Delivery Report File",

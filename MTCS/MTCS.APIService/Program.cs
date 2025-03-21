@@ -41,10 +41,30 @@ builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromF
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json")));
 
 
-var credential = GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json");
+var googleCredentialJson = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS");
+GoogleCredential credential;
+
+if (!string.IsNullOrEmpty(googleCredentialJson))
+{
+    credential = GoogleCredential.FromJson(googleCredentialJson);
+}
+else
+{
+    credential = GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json");
+}
+
 var firestoreClient = new FirestoreClientBuilder { Credential = credential }.Build();
 var firestoreDb = FirestoreDb.Create("driverapp-3845f", firestoreClient);
 builder.Services.AddSingleton(firestoreDb);
+
+//var googleCredentialJson = Environment.GetEnvironmentVariable("GOOGLE_CREDENTIALS");
+//GoogleCredential credential = GoogleCredential.FromJson(googleCredentialJson);
+
+
+////var credential = GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json");
+//var firestoreClient = new FirestoreClientBuilder { Credential = credential }.Build();
+//var firestoreDb = FirestoreDb.Create("driverapp-3845f", firestoreClient);
+//builder.Services.AddSingleton(firestoreDb);
 
 
 
