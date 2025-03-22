@@ -26,16 +26,13 @@ namespace MTCS.Service.Services
     {
         private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseStorageService;
-        private readonly IFCMService _fcmService;
-        private readonly ILogger<NotificationService> _logger;
+        private readonly INotificationService _notification;
         private readonly FirestoreDb _firestoreDb;
-        public IncidentReportsService(IFirebaseStorageService firebaseStorageService, IFCMService fcmService, ILogger<NotificationService> logger, FirestoreDb firestoreDb)
+        public IncidentReportsService(IFirebaseStorageService firebaseStorageService, FirestoreDb firestoreDb, INotificationService notification)
         {
             _unitOfWork ??= new UnitOfWork();
             _firebaseStorageService = firebaseStorageService;
-            _fcmService = fcmService;
-            _logger = logger;
-            _firestoreDb = firestoreDb;
+            _notification = notification;
         }
 
         // Helper method to determine file type from extension
@@ -218,20 +215,12 @@ namespace MTCS.Service.Services
             if (result is not null)
             {
                 // Gửi thông báo sau khi tạo thành công
-                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb, _unitOfWork);
-                var notificationResult = await notificationService.SendNotificationAsync(userId, "Incident Report Created", $"Incident report {reportId} has been created successfully.", userName);
-
-                if (notificationResult.Status != 200)
-                {
-                    return new BusinessResult(Const.FAIL_CREATE_CODE, "Incident report created but failed to send notification.", result);
-                }
-
+                await _notification.SendNotificationAsync(result.ReportedBy, "Incident Report Created", $"New Incident Report Created from {result.ReportedBy}.", result.ReportedBy);
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
             }
             else
             {
-                await DeleteIncidentReportById(reportId);
-                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
+                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, result);
             }
         }
 
@@ -264,6 +253,7 @@ namespace MTCS.Service.Services
                 incident.Status = request.Status is null ? incident.Status : request.Status;
                 incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
                 incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
+                incident.ResolutionDetails = request.ResolutionDetails != default ? request.ResolutionDetails : incident.ResolutionDetails;
             }
 
             // Xử lý xóa ảnh bị loại bỏ
@@ -312,27 +302,18 @@ namespace MTCS.Service.Services
                 }
             }
 
-            if (await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident) > 0)
+            var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+            var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
+
+            if (result > 0)
             {
-                // Sau khi update thành công, gửi thông báo
-                var notificationService = new NotificationService(_fcmService, _logger, _firestoreDb, _unitOfWork);
-                var notificationResult = await notificationService.SendNotificationAsync(
-                    userId,
-                    "Incident Report Updated",
-                    $"Incident report {incident.ReportId} has been updated successfully.",
-                    userName);
-
-                // Bạn có thể kiểm tra kết quả gửi thông báo (ví dụ: log lỗi) nhưng update vẫn trả về thành công
-                if (notificationResult.Status != 200)
-                {
-                    _logger.LogWarning($"Update succeeded but failed to send notification: {notificationResult.Message}");
-                }
-
-                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, incident);
+                // Gửi thông báo sau khi cập nhật thành công
+                await _notification.SendNotificationAsync(data.ReportedBy, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
             }
             else
             {
-                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, new IncidentReport());
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
             }
         }
 

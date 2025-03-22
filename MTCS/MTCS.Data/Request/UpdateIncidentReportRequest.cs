@@ -29,6 +29,8 @@ namespace MTCS.Data.Request
         [Required(ErrorMessage = "ImageType is required.")]
         [MinLength(1, ErrorMessage = "At least one ImageType is required.")]
         public List<int> ImageType { get; set; }
+        
+        public string ResolutionDetails { get; set; }
 
         public string Status { get; set; }
 

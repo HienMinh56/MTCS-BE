@@ -18,7 +18,6 @@ namespace MTCS.Data.Request
         public string TripId { get; set; }
 
         [Required(ErrorMessage = "ReportedBy is required.")]
-        [EmailAddress(ErrorMessage = "Invalid email format.")]
         public string ReportedBy { get; set; }
 
         [Required(ErrorMessage = "IncidentType is required.")]
@@ -45,7 +44,7 @@ namespace MTCS.Data.Request
         public List<int> ImageType { get; set; }
 
         [Required(ErrorMessage = "Status is required.")]
-        [RegularExpression("^(New|InProgress|Resolved|Closed)$", ErrorMessage = "Status must be New, InProgress, Resolved, or Closed.")]
+        [RegularExpression("^(Handling|Resolved)$", ErrorMessage = "Status must be InProgress, Resolved")]
         public string Status { get; set; }
 
         public DateTime? CreatedDate { get; set; }
