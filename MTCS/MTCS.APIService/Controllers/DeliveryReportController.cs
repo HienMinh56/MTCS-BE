@@ -17,9 +17,9 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("get-delivery-reports")]
-        public async Task<IActionResult> GetDeliveryReports(string? reportId, string? tripId)
+        public async Task<IActionResult> GetDeliveryReports(string? reportId, string? tripId, string? driverId)
         {
-            var deliveryReports = await _deliveryReportService.GetDeliveryReport(reportId, tripId);
+            var deliveryReports = await _deliveryReportService.GetDeliveryReport(reportId, tripId, driverId);
             return Ok(deliveryReports);
         }
 

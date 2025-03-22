@@ -18,7 +18,7 @@ namespace MTCS.Service.Services
 {
     public interface IFuelReportService
     {
-        Task<BusinessResult> GetFuelReport(string? reportId = null, string? tripId = null);
+        Task<BusinessResult> GetFuelReport(string? reportId , string? tripId , string? driverId );
         Task<BusinessResult> UpdateFuelReport(UpdateFuelReportRequest updateFuel, ClaimsPrincipal claims);
         Task<BusinessResult> CreateFuelReport(CreateFuelReportRequest createFuel, List<IFormFile> files, ClaimsPrincipal claims);
     }
@@ -242,11 +242,11 @@ namespace MTCS.Service.Services
         /// <param name="reportId"></param>
         /// <param name="tripId"></param>
         /// <returns></returns>
-        public async Task<BusinessResult> GetFuelReport(string? reportId = null, string? tripId = null)
+        public async Task<BusinessResult> GetFuelReport(string? reportId, string? tripId , string? driverId)
         {
             try
             {
-                var fuelReports = _unitOfWork.FuelReportRepository.GetFuelReports(reportId, tripId);
+                var fuelReports = _unitOfWork.FuelReportRepository.GetFuelReports(reportId, tripId, driverId);
 
                 if (!fuelReports.Any())
                 {

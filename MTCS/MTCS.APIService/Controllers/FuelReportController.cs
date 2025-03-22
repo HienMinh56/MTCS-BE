@@ -17,9 +17,9 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("get-fuel-reports")]
-        public async Task<IActionResult> GetFuelReports(string? reportId, string? tripId)
+        public async Task<IActionResult> GetFuelReports(string? reportId, string? tripId, string? driverId)
         {
-            var fuelReports = await _fuelReportService.GetFuelReport(reportId, tripId);
+            var fuelReports = await _fuelReportService.GetFuelReport(reportId, tripId, driverId);
             return Ok(fuelReports);
         }
 

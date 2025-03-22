@@ -17,7 +17,7 @@ namespace MTCS.Service.Services
 {
     public interface IDeliveryReportService
     {
-        Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId);
+        Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId, string? driverId);
         Task<BusinessResult> CreateDeliveryReport(CreateDeliveryReportRequest deliveryReport, List<IFormFile> files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateDeliveryReport(UpdateDeliveryReportRequest updateDelivery, ClaimsPrincipal claims);
     }
@@ -40,11 +40,11 @@ namespace MTCS.Service.Services
         /// <param name="reportId"></param>
         /// <param name="tripId"></param>
         /// <returns></returns>
-        public async Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId)
+        public async Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId, string? driverId)
         {
             try
             {
-                var deliveryReports = _unitOfWork.DeliveryReportRepository.GetDeliveryReportsByReportIdOrTripId(reportId, tripId);
+                var deliveryReports = _unitOfWork.DeliveryReportRepository.GetDeliveryReports(reportId, tripId, driverId);
                 return new BusinessResult(200, "Get Delivery Report Success", deliveryReports);
             }
             catch

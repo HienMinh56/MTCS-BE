@@ -27,7 +27,7 @@ namespace MTCS.Data.Repository
         }
 
 
-        public IEnumerable<DeliveryReport> GetDeliveryReportsByReportIdOrTripId(string? reportId, string? tripId)
+        public IEnumerable<DeliveryReport> GetDeliveryReports(string? reportId, string? tripId, string? driverid)
         {
             if (!string.IsNullOrEmpty(reportId))
             {
@@ -38,6 +38,10 @@ namespace MTCS.Data.Repository
             if (!string.IsNullOrEmpty(tripId))
             {
                 return _context.DeliveryReports.Where(fr => fr.TripId == tripId).ToList();
+            }
+            if (!string.IsNullOrEmpty(driverid))
+            {
+                return _context.DeliveryReports.Include(d => d.Trip).Where(fr => fr.Trip.DriverId == driverid).ToList();
             }
 
             return _context.DeliveryReports.ToList();

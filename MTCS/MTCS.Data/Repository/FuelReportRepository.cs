@@ -40,7 +40,7 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
-        public IEnumerable<FuelReport> GetFuelReports(string? reportId, string? tripId)
+        public IEnumerable<FuelReport> GetFuelReports(string? reportId, string? tripId, string? driverid)
         {
             if (!string.IsNullOrEmpty(reportId))
             {
@@ -51,6 +51,10 @@ namespace MTCS.Data.Repository
             if (!string.IsNullOrEmpty(tripId))
             {
                 return _context.FuelReports.Where(fr => fr.TripId == tripId).ToList();
+            }
+            if (!string.IsNullOrEmpty(driverid))
+            {
+                return _context.FuelReports.Include(f => f.Trip).Where(f => f.Trip.DriverId== driverid).ToList();
             }
 
             return _context.FuelReports.ToList();
