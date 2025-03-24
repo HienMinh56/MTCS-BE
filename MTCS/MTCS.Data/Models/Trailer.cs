@@ -41,6 +41,8 @@ public partial class Trailer
 
     public int? ContainerSize { get; set; }
 
+    public int? OrderCount { get; set; }
+
     public virtual ICollection<TrailerFile> TrailerFiles { get; set; } = new List<TrailerFile>();
 
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();

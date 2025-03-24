@@ -41,6 +41,8 @@ public partial class Tractor
 
     public int? ContainerType { get; set; }
 
+    public int? OrderCount { get; set; }
+
     public virtual ICollection<TractorFile> TractorFiles { get; set; } = new List<TractorFile>();
 
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();

@@ -54,6 +54,8 @@ public partial class MTCSContext : DbContext
 
     public virtual DbSet<PriceTable> PriceTables { get; set; }
 
+    public virtual DbSet<SystemConfiguration> SystemConfigurations { get; set; }
+
     public virtual DbSet<Tractor> Tractors { get; set; }
 
     public virtual DbSet<TractorFile> TractorFiles { get; set; }
@@ -140,12 +142,9 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.CompanyName)
                 .IsRequired()
                 .HasMaxLength(255);
-            entity.Property(e => e.CreatedBy).IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.DeletedBy).IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Email).HasMaxLength(255);
-            entity.Property(e => e.ModifiedBy).IsUnicode(false);
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
             entity.Property(e => e.PhoneNumber).HasMaxLength(50);
             entity.Property(e => e.TaxNumber)
@@ -224,7 +223,6 @@ public partial class MTCSContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.DeletedBy).IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Email).IsUnicode(false);
             entity.Property(e => e.FullName).IsUnicode(false);
@@ -291,6 +289,9 @@ public partial class MTCSContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.FuelCost).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.LicensePlate)
+                .HasMaxLength(20)
+                .IsUnicode(false);
             entity.Property(e => e.RefuelAmount).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.ReportTime).HasColumnType("datetime");
             entity.Property(e => e.TripId)
@@ -323,7 +324,6 @@ public partial class MTCSContext : DbContext
                 .IsRequired()
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.UploadBy).IsUnicode(false);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Report).WithMany(p => p.FuelReportFiles)
@@ -340,9 +340,6 @@ public partial class MTCSContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
-            entity.Property(e => e.HandledBy)
-                .HasMaxLength(255)
-                .IsUnicode(false);
             entity.Property(e => e.HandledTime).HasColumnType("datetime");
             entity.Property(e => e.IncidentTime).HasColumnType("datetime");
             entity.Property(e => e.IncidentType).HasMaxLength(255);
@@ -452,11 +449,13 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.ContainerNumber)
                 .HasMaxLength(11)
                 .IsUnicode(false);
+            entity.Property(e => e.CreatedBy).IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.CustomerId)
                 .IsRequired()
                 .HasMaxLength(255)
                 .IsUnicode(false);
+            entity.Property(e => e.Distance).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -516,6 +515,26 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
         });
 
+        modelBuilder.Entity<SystemConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.ConfigId).HasName("PK__SystemCo__C3BC335C4D4B573E");
+
+            entity.ToTable("SystemConfiguration");
+
+            entity.HasIndex(e => e.ConfigKey, "UQ__SystemCo__4A3067845200C4A9").IsUnique();
+
+            entity.Property(e => e.ConfigId).ValueGeneratedNever();
+            entity.Property(e => e.ConfigKey)
+                .IsRequired()
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.ConfigValue).IsRequired();
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.UpdatedDate).HasColumnType("datetime");
+        });
+
         modelBuilder.Entity<Tractor>(entity =>
         {
             entity.HasKey(e => e.TractorId).HasName("PK__Tractor__46B2DC30F327396B");
@@ -564,7 +583,6 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.TractorsId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.UploadBy).IsUnicode(false);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Tractors).WithMany(p => p.TractorFiles)
@@ -620,7 +638,6 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.TrailerId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.UploadBy).IsUnicode(false);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
             entity.HasOne(d => d.Trailer).WithMany(p => p.TrailerFiles)
@@ -635,7 +652,6 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.TripId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.Distance).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.DriverId)
                 .HasMaxLength(255)
                 .IsUnicode(false);

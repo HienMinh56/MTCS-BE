@@ -87,6 +87,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[SystemConfiguration]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Tractor]",
          "ObjectType": 0
       },
