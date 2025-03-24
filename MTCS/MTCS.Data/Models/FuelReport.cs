@@ -2,6 +2,7 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace MTCS.Data.Models;
 
@@ -22,6 +23,7 @@ public partial class FuelReport
     public string ReportBy { get; set; }
 
     public virtual ICollection<FuelReportFile> FuelReportFiles { get; set; } = new List<FuelReportFile>();
+    [JsonIgnore]
 
     public virtual Trip Trip { get; set; }
 }

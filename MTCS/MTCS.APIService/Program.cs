@@ -22,9 +22,9 @@ Env.Load();
 
 // Add services to the container.
 builder.Services.AddScoped<UnitOfWork>();
-// builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDriverService, DriverService>();
-// builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IContractService, ContractService>();
 // builder.Services.AddScoped<ITractorService, TractorService>();

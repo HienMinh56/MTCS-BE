@@ -40,25 +40,31 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
-        public IEnumerable<FuelReport> GetFuelReports(string? reportId, string? tripId, string? driverid)
+        public IEnumerable<FuelReport> GetFuelReports(string? reportId, string? tripId, string? driverId)
         {
+            IQueryable<FuelReport> query = _context.FuelReports
+                .Include(f => f.Trip)
+                .Include(f => f.FuelReportFiles);
+
             if (!string.IsNullOrEmpty(reportId))
             {
-                var report = _context.FuelReports.FirstOrDefault(fr => fr.ReportId == reportId);
+                var report = query.FirstOrDefault(fr => fr.ReportId == reportId);
                 return report != null ? new List<FuelReport> { report } : new List<FuelReport>();
             }
 
             if (!string.IsNullOrEmpty(tripId))
             {
-                return _context.FuelReports.Where(fr => fr.TripId == tripId).ToList();
-            }
-            if (!string.IsNullOrEmpty(driverid))
-            {
-                return _context.FuelReports.Include(f => f.Trip).Where(f => f.Trip.DriverId== driverid).ToList();
+                return query.Where(fr => fr.TripId == tripId).ToList();
             }
 
-            return _context.FuelReports.ToList();
+            if (!string.IsNullOrEmpty(driverId))
+            {
+                return query.Where(fr => fr.Trip.DriverId == driverId).ToList();
+            }
+
+            return query.ToList();
         }
+
 
         public async Task<Order> GetOrderByTripId(string tripId)
         {
