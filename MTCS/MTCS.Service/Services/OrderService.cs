@@ -1,0 +1,266 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using MTCS.Common;
+using MTCS.Data;
+using MTCS.Data.Models;
+using MTCS.Data.Repository;
+using MTCS.Data.Request;
+using MTCS.Service.Base;
+using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MTCS.Service.Services
+{
+    public interface IOrderService
+    {
+        Task<BusinessResult> GetOrders(string? orderId = null,
+                                            string? userId = null,
+                                            int? containerType = null,
+                                            string? containerNumber = null,
+                                            string? trackingCode = null,
+                                            string? status = null,
+                                            DateOnly? pickUpDate = null,
+                                            DateOnly? deliveryDate = null
+                                            );
+        Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims, List<IFormFile> files, List<string> descriptions, List<string> notes);
+        Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims);
+    }
+
+    public class OrderService : IOrderService
+    {
+        private readonly UnitOfWork _unitOfWork;
+        private readonly IFirebaseStorageService _firebaseService;
+
+        public OrderService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseService)
+        {
+            _unitOfWork = unitOfWork;
+            _firebaseService = firebaseService;
+
+        }
+
+        #region Create Order
+        public async Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims, List<IFormFile> files, List<string> descriptions, List<string> notes)
+        {
+            try
+            {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                    ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
+               
+
+                if (string.IsNullOrEmpty(orderRequest.CompanyName))
+                {
+                    throw new ArgumentException("CompanyName không được để trống.");
+                }
+
+                var customer = await _unitOfWork.CustomerRepository.GetCustomerByCompanyNameAsync(orderRequest.CompanyName);
+
+                if (customer == null)
+                {
+                    throw new KeyNotFoundException("Không tìm thấy khách hàng với CompanyName đã nhập.");
+                }
+
+                if (orderRequest.ContainerType != 20 && orderRequest.ContainerType != 40)
+                {
+                    throw new ArgumentException("ContainerType chỉ được nhập 20 hoặc 40.");
+                }
+
+                if (orderRequest.DeliveryType != 1 && orderRequest.DeliveryType != 2)
+                {
+                    throw new ArgumentException("DeliveryType chỉ được nhập 1 (Nhập) hoặc 2 (Xuất).");
+                }
+
+                await _unitOfWork.BeginTransactionAsync();
+                var trackingCode = await _unitOfWork.OrderRepository.GetNextCodeAsync();
+                var orderId = Guid.NewGuid().ToString();
+                var order = new Order
+                {
+                    OrderId = orderId,
+                    TrackingCode = trackingCode,
+                    CustomerId = customer.CustomerId,
+                    Temperature = orderRequest.Temperature,
+                    Weight = orderRequest.Weight,
+                    PickUpDate = orderRequest.PickUpDate,
+                    DeliveryDate = orderRequest.DeliveryDate,
+                    DeliveryLocation = orderRequest.DeliveryLocation,
+                    PickUpLocation = orderRequest.PickUpLocation,
+                    ConReturnLocation = orderRequest.ConReturnLocation,
+                    ContactPerson = orderRequest.ContactPerson,
+                    ContactPhone = orderRequest.ContactPhone,
+                    ContainerNumber = orderRequest.ContainerNumber,
+                    Distance = orderRequest.Distance,
+                    Note = orderRequest.Note,
+                    Price = orderRequest.Price,
+                    Status = "Pending",
+                    OrderPlacer = userName, 
+                    ContainerType = orderRequest.ContainerType, 
+                    DeliveryType = orderRequest.DeliveryType, 
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = userId,
+                };
+
+                await _unitOfWork.OrderRepository.CreateAsync(order);
+
+                var savedFiles = new List<OrderFile>();
+
+                for (int i = 0; i < files.Count; i++)
+                {
+                    var file = files[i];
+                    var fileUrl = await _firebaseService.UploadImageAsync(file);
+                    var fileName = Path.GetFileName(file.FileName);
+                    var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                    string fileType = GetFileTypeFromExtension(fileExtension);
+
+                    var orderFile = new OrderFile
+                    {
+                        FileId = Guid.NewGuid().ToString(),
+                        OrderId = orderId,
+                        FileName = fileName,
+                        FileType = fileType,
+                        UploadDate = DateTime.UtcNow,
+                        UploadBy = userName,
+                        Description = descriptions[i],
+                        Note = notes[i],
+                        FileUrl = fileUrl,
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedBy = userName,
+                    };
+
+                    await _unitOfWork.OrderFileRepository.CreateAsync(orderFile);
+                    savedFiles.Add(orderFile);
+                }
+
+                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, new
+                {
+                    OrderId = orderId,
+                    Files = savedFiles
+                });
+            }
+            catch (Exception ex)
+            {
+                //await _unitOfWork.RollbackTransactionAsync();
+                return new BusinessResult(Const.FAIL_CREATE_CODE, ex.Message);
+            }
+        }
+        #endregion
+
+        #region Get Orders
+        public async Task<BusinessResult> GetOrders(
+            string? orderId = null,
+            string? customerId = null,
+            int? containerType = null,
+            string? containerNumber = null,
+            string? trackingCode = null,
+            string? status = null,
+            DateOnly? pickUpDate = null,
+            DateOnly? deliveryDate = null)
+        {
+            try
+            {
+                var query = _unitOfWork.OrderRepository.GetQueryable();
+
+                if (!string.IsNullOrEmpty(orderId))
+                    query = query.Where(o => o.OrderId == orderId);
+
+                if (!string.IsNullOrEmpty(customerId))
+                    query = query.Where(o => o.CustomerId == customerId);
+
+                if (containerType.HasValue)
+                    query = query.Where(o => o.ContainerType == containerType.Value);
+
+                if (!string.IsNullOrEmpty(containerNumber))
+                    query = query.Where(o => o.ContainerNumber == containerNumber);
+
+                if (!string.IsNullOrEmpty(trackingCode))
+                    query = query.Where(o => o.TrackingCode == trackingCode);
+
+                if (!string.IsNullOrEmpty(status))
+                    query = query.Where(o => o.Status == status);
+
+                if (pickUpDate.HasValue)
+                    query = query.Where(o => o.PickUpDate == DateOnly.FromDateTime(pickUpDate.Value.ToDateTime(TimeOnly.MinValue)));
+
+                if (deliveryDate.HasValue)
+                    query = query.Where(o => o.DeliveryDate == DateOnly.FromDateTime(deliveryDate.Value.ToDateTime(TimeOnly.MinValue)));
+
+              
+                query = query.OrderBy(o => o.CreatedDate);
+
+                var orders = await query.ToListAsync();
+
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, orders);
+            }
+            catch
+            {
+                return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+            }
+        }
+        #endregion
+
+        #region Update Order
+        public async Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                await _unitOfWork.BeginTransactionAsync();
+
+                var order = await _unitOfWork.OrderRepository.GetByIdAsync(model.OrderId);
+                if (order == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+
+                order.Price = model.Price ?? order.Price;
+                order.Status = model.Status ?? order.Status;
+                order.ModifiedDate = DateTime.Now;
+                order.ModifiedBy = userName;
+
+                await _unitOfWork.OrderRepository.UpdateAsync(order);
+
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, order);
+            }
+            catch (Exception ex)
+            {
+                //await _unitOfWork.RollbackTransactionAsync();
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message);
+            }
+        }
+        #endregion
+
+
+        private string GetFileTypeFromExtension(string extension)
+        {
+            switch (extension.ToLowerInvariant())
+            {
+                case ".pdf":
+                    return "PDF Document";
+                case ".doc":
+                case ".docx":
+                    return "Word Document";
+                case ".xls":
+                case ".xlsx":
+                    return "Excel Spreadsheet";
+                case ".ppt":
+                case ".pptx":
+                    return "PowerPoint Presentation";
+                case ".jpg":
+                case ".jpeg":
+                case ".png":
+                case ".gif":
+                    return "Image";
+                case ".txt":
+                    return "Text Document";
+                case ".zip":
+                case ".rar":
+                    return "Archive";
+                default:
+                    return "Unknown";
+            }
+        }
+    }
+}

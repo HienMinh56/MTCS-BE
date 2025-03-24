@@ -23,6 +23,9 @@ namespace MTCS.Data
         private FuelReportFileRepository fuelReportFileRepository;
         private DeliveryReportRepository deliveryReportRepository;
         private DeliveryReportFileRepository deliveryReportFileRepository;
+        private OrderRepository orderRepository; 
+        private OrderFileRepository orderFileRepository; 
+        private CustomerRepository customerRepository;
 
         public UnitOfWork()
         {
@@ -138,6 +141,30 @@ namespace MTCS.Data
                 return deliveryReportFileRepository ??= new DeliveryReportFileRepository();
             }
         }
+        public OrderRepository OrderRepository
+        {
+            get
+            {
+                return orderRepository ??= new OrderRepository();
+            }
+        }
+
+        public OrderFileRepository OrderFileRepository
+        {
+            get
+            {
+                return orderFileRepository ??= new OrderFileRepository();
+            }
+        }
+
+        public CustomerRepository CustomerRepository
+        {
+            get
+            {
+                return customerRepository ??= new CustomerRepository();
+            }
+        }
+
 
         //    ////TO-DO CODE HERE/////////////////
 
