@@ -9,129 +9,152 @@ using MTCS.Service.Interfaces;
 
 namespace MTCS.Service.Services
 {
-    //public class AuthService : IAuthService
-    //{
-    //    private readonly UnitOfWork _unitOfWork;
-    //    private readonly ITokenService _tokenService;
-    //    private readonly IPasswordHasher _passwordHasher;
-    //    private readonly IConfiguration _configuration;
+    public class AuthService : IAuthService
+    {
+        private readonly UnitOfWork _unitOfWork;
+        private readonly ITokenService _tokenService;
+        private readonly IPasswordHasher _passwordHasher;
+        private readonly IConfiguration _configuration;
 
-    //    public AuthService(UnitOfWork unitOfWork, ITokenService tokenService, IPasswordHasher passwordHasher, IConfiguration configuration)
-    //    {
-    //        _unitOfWork = unitOfWork;
-    //        _tokenService = tokenService;
-    //        _passwordHasher = passwordHasher;
-    //        _configuration = configuration;
-    //    }
+        public AuthService(UnitOfWork unitOfWork, ITokenService tokenService, IPasswordHasher passwordHasher, IConfiguration configuration)
+        {
+            _unitOfWork = unitOfWork;
+            _tokenService = tokenService;
+            _passwordHasher = passwordHasher;
+            _configuration = configuration;
+        }
 
-    //    public async Task<ApiResponse<string>> RegisterCustomerAsync(RegisterUserDTO userDto)
-    //    {
-    //        if (await _unitOfWork.UserRepository.EmailExistsAsync(userDto.Email))
-    //        {
-    //            throw new InvalidOperationException("Email already exists");
-    //        }
+        public async Task<ApiResponse<string>> RegisterStaff(RegisterUserDTO userDto)
+        {
+            if (await _unitOfWork.UserRepository.EmailExistsAsync(userDto.Email))
+            {
+                throw new InvalidOperationException("Email already exists");
+            }
 
-    //        var user = new User
-    //        {
-    //            UserId = Guid.NewGuid().ToString(),
-    //            FullName = userDto.FullName,
-    //            Email = userDto.Email,
-    //            Password = _passwordHasher.HashPassword(userDto.Password),
-    //            PhoneNumber = userDto.PhoneNumber,
-    //            Role = UserRole.Customer.ToString(),
-    //            Status = (int)UserStatus.Active,
-    //            CreatedDate = DateTime.Now
-    //        };
+            var internalUser = new InternalUser
+            {
+                UserId = Guid.NewGuid().ToString(),
+                FullName = userDto.FullName,
+                Email = userDto.Email,
+                Password = _passwordHasher.HashPassword(userDto.Password),
+                PhoneNumber = userDto.PhoneNumber,
+                Role = (int)InternalUserRole.Staff,
+                CreatedDate = DateTime.Now
+            };
 
-    //        await _unitOfWork.UserRepository.CreateAsync(user);
+            await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
 
-    //        string successMessage = $"User {userDto.FullName} registered successfully";
-    //        return new ApiResponse<string>(true, successMessage, "Registration successful", null);
-    //    }
+            string successMessage = $"User {userDto.FullName} registered successfully";
+            return new ApiResponse<string>(true, successMessage, "Registration successful", null);
+        }
 
-    //    public async Task<ApiResponse<TokenDTO>> LoginUserAsync(LoginRequestDTO loginDto)
-    //    {
-    //        var user = await _unitOfWork.UserRepository.GetUserByEmailAsync(loginDto.Email);
+        public async Task<ApiResponse<string>> RegisterAdmin(RegisterUserDTO userDto)
+        {
+            if (await _unitOfWork.UserRepository.EmailExistsAsync(userDto.Email))
+            {
+                throw new InvalidOperationException("Email already exists");
+            }
 
-    //        if (user == null || user.Status != (int)UserStatus.Active)
-    //        {
-    //            throw new KeyNotFoundException("User not found");
-    //        }
+            var internalUser = new InternalUser
+            {
+                UserId = Guid.NewGuid().ToString(),
+                FullName = userDto.FullName,
+                Email = userDto.Email,
+                Password = _passwordHasher.HashPassword(userDto.Password),
+                PhoneNumber = userDto.PhoneNumber,
+                Role = (int)InternalUserRole.Admin,
+                CreatedDate = DateTime.Now
+            };
 
-    //        if (!_passwordHasher.VerifyPassword(loginDto.Password, user.Password))
-    //        {
-    //            throw new UnauthorizedAccessException("Invalid email or password");
-    //        }
+            await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
 
-    //        var token = await _tokenService.GenerateTokensForUserAsync(user);
-    //        return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
-    //    }
+            string successMessage = $"User {userDto.FullName} registered successfully";
+            return new ApiResponse<string>(true, successMessage, "Registration successful", null);
+        }
 
-    //    public async Task<ApiResponse<ProfileResponseDTO>> UpdateUserProfile(string userId, ProfileDTO profileDto)
-    //    {
-    //        var user = await _unitOfWork.UserRepository.GetUserByIdAsync(userId);
-    //        if (user == null)
-    //        {
-    //            throw new KeyNotFoundException("User not found");
-    //        }
+        public async Task<ApiResponse<TokenDTO>> LoginInternalUser(LoginRequestDTO loginDto)
+        {
+            var user = await _unitOfWork.InternalUserRepository.GetUserByEmailAsync(loginDto.Email);
 
-    //        user.FullName = profileDto.FullName ?? user.FullName;
-    //        user.PhoneNumber = profileDto.PhoneNumber ?? user.PhoneNumber;
+            if (user == null || user.DeletedBy != null)
+            {
+                throw new KeyNotFoundException("User not found");
+            }
 
-    //        if (profileDto.Email != null && profileDto.Email != user.Email)
-    //        {
-    //            if (string.IsNullOrEmpty(profileDto.CurrentPassword))
-    //            {
-    //                return new ApiResponse<ProfileResponseDTO>(false, null, "Password required",
-    //                    "Current password is required to update email");
-    //            }
+            if (!_passwordHasher.VerifyPassword(loginDto.Password, user.Password))
+            {
+                throw new UnauthorizedAccessException("Invalid email or password");
+            }
 
-    //            if (!_passwordHasher.VerifyPassword(profileDto.CurrentPassword, user.Password))
-    //            {
-    //                return new ApiResponse<ProfileResponseDTO>(false, null, "Invalid password",
-    //                    "Current password is incorrect");
-    //            }
+            var token = await _tokenService.GenerateTokensForInternalUser(user);
+            return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
+        }
 
-    //            if (await _unitOfWork.UserRepository.EmailExistsAsync(profileDto.Email))
-    //            {
-    //                return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable",
-    //                    "This email is already in use");
-    //            }
-    //            user.Email = profileDto.Email;
-    //        }
-    //        user.ModifiedDate = DateTime.Now;
+        public async Task<ApiResponse<ProfileResponseDTO>> UpdateInternalUserProfile(string userId, ProfileDTO profileDto)
+        {
+            var user = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                throw new KeyNotFoundException("User not found");
+            }
 
-    //        await _unitOfWork.UserRepository.UpdateAsync(user);
+            user.FullName = profileDto.FullName ?? user.FullName;
+            user.PhoneNumber = profileDto.PhoneNumber ?? user.PhoneNumber;
 
-    //        var newProfile = new ProfileResponseDTO
-    //        {
-    //            UserId = user.UserId,
-    //            FullName = user.FullName,
-    //            Email = user.Email,
-    //            PhoneNumber = user.PhoneNumber,
-    //            ModifiedDate = user.ModifiedDate
-    //        };
+            if (profileDto.Email != null && profileDto.Email != user.Email)
+            {
+                if (string.IsNullOrEmpty(profileDto.CurrentPassword))
+                {
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Password required",
+                        "Current password is required to update email");
+                }
 
-    //        return new ApiResponse<ProfileResponseDTO>(true, newProfile, "Updated profile successfully", null);
-    //    }
+                if (!_passwordHasher.VerifyPassword(profileDto.CurrentPassword, user.Password))
+                {
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Invalid password",
+                        "Current password is incorrect");
+                }
 
-    //    public async Task<ApiResponse<TokenDTO>> LoginDriverAsync(LoginRequestDTO loginDto)
-    //    {
-    //        var driver = await _unitOfWork.DriverRepository.GetDriverByEmailAsync(loginDto.Email);
+                if (await _unitOfWork.UserRepository.EmailExistsAsync(profileDto.Email))
+                {
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable",
+                        "This email is already in use");
+                }
+                user.Email = profileDto.Email;
+            }
+            user.ModifiedDate = DateTime.Now;
 
-    //        if (driver == null)
-    //        {
-    //            throw new KeyNotFoundException("Không tìm thấy tài xế");
-    //        }
+            await _unitOfWork.InternalUserRepository.UpdateAsync(user);
 
-    //        if (!_passwordHasher.VerifyPassword(loginDto.Password, driver.Password))
-    //        {
-    //            throw new UnauthorizedAccessException("Invalid email or password");
-    //        }
+            var newProfile = new ProfileResponseDTO
+            {
+                UserId = user.UserId,
+                FullName = user.FullName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                ModifiedDate = user.ModifiedDate
+            };
 
-    //        var token = await _tokenService.GenerateTokensForDriverAsync(driver);
+            return new ApiResponse<ProfileResponseDTO>(true, newProfile, "Updated profile successfully", null);
+        }
 
-    //        return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
-    //    }
-    //}
+        public async Task<ApiResponse<TokenDTO>> LoginDriver(LoginRequestDTO loginDto)
+        {
+            var driver = await _unitOfWork.DriverRepository.GetDriverByEmailAsync(loginDto.Email);
+
+            if (driver == null)
+            {
+                throw new KeyNotFoundException("Không tìm thấy tài xế");
+            }
+
+            if (!_passwordHasher.VerifyPassword(loginDto.Password, driver.Password))
+            {
+                throw new UnauthorizedAccessException("Invalid email or password");
+            }
+
+            var token = await _tokenService.GenerateTokensForDriver(driver);
+
+            return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
+        }
+    }
 }

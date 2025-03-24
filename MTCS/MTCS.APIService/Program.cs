@@ -1,4 +1,5 @@
-﻿using Google.Apis.Auth.OAuth2;
+﻿using DotNetEnv;
+using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 using Google.Cloud.Firestore.V1;
 using Google.Cloud.Storage.V1;
@@ -14,7 +15,6 @@ using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using System.Security.Claims;
 using System.Text;
-using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,12 +22,12 @@ Env.Load();
 
 // Add services to the container.
 builder.Services.AddScoped<UnitOfWork>();
-// builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IDriverService, DriverService>();
-// builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IContractService, ContractService>();
-// builder.Services.AddScoped<ITractorService, TractorService>();
+builder.Services.AddScoped<ITractorService, TractorService>();
 // builder.Services.AddScoped<ITrailerService, TrailerService>();
 builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
 builder.Services.AddScoped<ITripService, TripService>();
@@ -107,7 +107,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.MaxDepth = 64; // Tăng giới hạn độ sâu nếu cần
 });
 
