@@ -33,6 +33,8 @@ public partial class Driver
 
     public string DeletedBy { get; set; }
 
+    public int? TotalProcessedOrders { get; set; }
+
     public virtual ICollection<DriverDailyWorkingTime> DriverDailyWorkingTimes { get; set; } = new List<DriverDailyWorkingTime>();
 
     public virtual ICollection<DriverFile> DriverFiles { get; set; } = new List<DriverFile>();

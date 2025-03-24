@@ -34,6 +34,6 @@ public partial class IncidentReport
     public DateTime? CreatedDate { get; set; }
 
     public virtual ICollection<IncidentReportsFile> IncidentReportsFiles { get; set; } = new List<IncidentReportsFile>();
-    [System.Text.Json.Serialization.JsonIgnore]
+
     public virtual Trip Trip { get; set; }
 }

@@ -23,8 +23,6 @@ public partial class Trip
 
     public string Status { get; set; }
 
-    public decimal? Distance { get; set; }
-
     public int? MatchType { get; set; }
 
     public string MatchBy { get; set; }
