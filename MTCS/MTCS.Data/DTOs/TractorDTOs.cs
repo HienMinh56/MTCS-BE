@@ -1,4 +1,5 @@
-﻿using MTCS.Data.Helpers;
+﻿using MTCS.Data.Enums;
+using MTCS.Data.Helpers;
 using System.ComponentModel.DataAnnotations;
 
 namespace MTCS.Data.DTOs
@@ -20,14 +21,14 @@ namespace MTCS.Data.DTOs
         public required string LicensePlate { get; set; }
 
         [Required(ErrorMessage = "Brand is required")]
-        [StringLength(20, MinimumLength = 1, ErrorMessage = "Brand must be between 1 and 50 characters")]
+        [StringLength(20, MinimumLength = 1, ErrorMessage = "Brand must be between 1 and 20 characters")]
         public required string Brand { get; set; }
 
         [Required(ErrorMessage = "Model is required")]
-        [StringLength(20, MinimumLength = 1, ErrorMessage = "Model must be between 1 and 50 characters")]
+        [StringLength(20, MinimumLength = 1, ErrorMessage = "Model must be between 1 and 20 characters")]
         public required string Model { get; set; }
 
-        [Range(1900, 2025, ErrorMessage = "Manufacture year must be between 1900 and 2100")]
+        [Range(1990, 2025, ErrorMessage = "Manufacture year must be between 1990 and 2025")]
         public int? ManufactureYear { get; set; }
 
         [Range(0, 100, ErrorMessage = "Max load weight must be between 0 and 100")]
@@ -42,12 +43,12 @@ namespace MTCS.Data.DTOs
         [CustomValidation(typeof(DateValidator), "NotFutureDateOnly")]
         public DateOnly? RegistrationDate { get; set; }
 
-
         [Required(ErrorMessage = "Registration expiration date is required")]
         public DateOnly? RegistrationExpirationDate { get; set; }
 
-        [Required(ErrorMessage = "Tractor category is required")]
-        public required string TractorCateId { get; set; }
+        [Required(ErrorMessage = "Container type is required")]
+        [EnumDataType(typeof(ContainerType), ErrorMessage = "Invalid container type")]
+        public int ContainerType { get; set; }
     }
 
     public class TractorResponseDTO
@@ -55,7 +56,6 @@ namespace MTCS.Data.DTOs
         public required string TractorId { get; set; }
         public required string LicensePlate { get; set; }
         public required string Brand { get; set; }
-        public required string Model { get; set; }
         public int? ManufactureYear { get; set; }
         public decimal? MaxLoadWeight { get; set; }
         public DateTime? LastMaintenanceDate { get; set; }
@@ -63,12 +63,7 @@ namespace MTCS.Data.DTOs
         public DateOnly? RegistrationDate { get; set; }
         public DateOnly? RegistrationExpirationDate { get; set; }
         public required string Status { get; set; }
-        public required TractorCategoryResponseDTO Category { get; set; }
+        public ContainerType ContainerType { get; set; }
     }
 
-    public class TractorCategoryResponseDTO
-    {
-        public required string TractorCateId { get; set; }
-        public required string CategoryName { get; set; }
-    }
 }

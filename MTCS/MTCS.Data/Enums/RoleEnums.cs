@@ -1,10 +1,8 @@
 namespace MTCS.Data.Enums
 {
-    public enum UserRole
+    public enum InternalUserRole
     {
-        Customer = 1,
-        Staff = 2,
-        Admin = 3,
-        Driver = 4
+        Staff = 1,
+        Admin = 2,
     }
 }

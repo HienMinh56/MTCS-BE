@@ -53,6 +53,8 @@ public partial class Order
 
     public string OrderPlacer { get; set; }
 
+    public decimal? Distance { get; set; }
+
     public virtual Customer Customer { get; set; }
 
     public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();

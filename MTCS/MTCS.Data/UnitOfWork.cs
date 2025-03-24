@@ -12,6 +12,7 @@ namespace MTCS.Data
         private IncidentReportsRepository incidentReportsRepository;
         private IncidentReportsFileRepository incidentReportsFileRepository;
         private UserRepository userRepository;
+        private InternalUserRepository internalUserRepository;
         private DriverRepository driverRepository;
         private TripRepository tripRepository;
         private TractorRepository tractorRepository;
@@ -33,6 +34,13 @@ namespace MTCS.Data
             get
             {
                 return userRepository ??= new UserRepository();
+            }
+        }
+        public InternalUserRepository InternalUserRepository
+        {
+            get
+            {
+                return internalUserRepository ??= new InternalUserRepository();
             }
         }
 

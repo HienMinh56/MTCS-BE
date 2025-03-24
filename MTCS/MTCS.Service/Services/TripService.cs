@@ -63,7 +63,7 @@ namespace MTCS.Service.Services
                 CurrentStatus = latestStatus?.Status.StatusName ?? "Unknown",
                 StartTime = trip.StartTime,
                 EndTime = trip.EndTime,
-                Distance = trip.Distance,
+                // Distance = trip.Distance,
 
                 // Vehicle information
                 TractorInfo = new VehicleInfoDTO

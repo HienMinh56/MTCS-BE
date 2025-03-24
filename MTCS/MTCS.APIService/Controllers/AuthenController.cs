@@ -22,19 +22,26 @@ namespace MTCS.APIService.Controllers
             _driverService = driverService;
         }
 
-        //[HttpPost("register")]
-        //public async Task<ActionResult<ApiResponse<string>>> RegisterCustomer([FromBody] RegisterUserDTO registerDto)
-        //{
-        //    var result = await _authService.RegisterCustomerAsync(registerDto);
-        //    return Ok(result);
-        //}
+        [HttpPost("register-staff")]
+        public async Task<ActionResult<ApiResponse<string>>> RegisterStaff([FromBody] RegisterUserDTO registerDto)
+        {
+            var result = await _authService.RegisterStaff(registerDto);
+            return Ok(result);
+        }
 
-        //[HttpPost("login")]
-        //public async Task<ActionResult<ApiResponse<TokenDTO>>> Login([FromBody] LoginRequestDTO loginDto)
-        //{
-        //    var result = await _authService.LoginUserAsync(loginDto);
-        //    return Ok(result);
-        //}
+        [HttpPost("register-admin")]
+        public async Task<ActionResult<ApiResponse<string>>> RegisterAdmin([FromBody] RegisterUserDTO registerDto)
+        {
+            var result = await _authService.RegisterAdmin(registerDto);
+            return Ok(result);
+        }
+
+        [HttpPost("login")]
+        public async Task<ActionResult<ApiResponse<TokenDTO>>> Login([FromBody] LoginRequestDTO loginDto)
+        {
+            var result = await _authService.LoginInternalUser(loginDto);
+            return Ok(result);
+        }
 
         [HttpPost("create-driver")]
         public async Task<ActionResult<ApiResponse<string>>> CreateDriver([FromBody] CreateDriverDTO createDriverDTO)
@@ -46,33 +53,33 @@ namespace MTCS.APIService.Controllers
         [HttpPost("driver-login")]
         public async Task<ActionResult<ApiResponse<TokenDTO>>> LoginDriver([FromBody] LoginRequestDTO loginDto)
         {
-            var result = await _authService.LoginDriverAsync(loginDto);
+            var result = await _authService.LoginDriver(loginDto);
             return Ok(result);
         }
 
-        //[HttpPost("refresh-token")]
-        //public async Task<ActionResult<ApiResponse<TokenDTO>>> RefreshToken([FromBody] string refreshToken)
-        //{
-        //    var result = await _tokenService.RefreshTokenAsync(refreshToken);
-        //    return Ok(result);
-        //}
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<ApiResponse<TokenDTO>>> RefreshToken([FromBody] string refreshToken)
+        {
+            var result = await _tokenService.RefreshToken(refreshToken);
+            return Ok(result);
+        }
 
-        //[HttpPut("profile")]
-        //[Authorize]
-        //public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> UpdateProfile([FromBody] ProfileDTO profileDto)
-        //{
-        //    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        //    if (string.IsNullOrEmpty(userId))
-        //    {
-        //        return Unauthorized();
-        //    }
-        //    var result = await _authService.UpdateUserProfile(userId, profileDto);
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> UpdateProfile([FromBody] ProfileDTO profileDto)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+            var result = await _authService.UpdateInternalUserProfile(userId, profileDto);
 
-        //    if (!result.Success)
-        //    {
-        //        return BadRequest(result);
-        //    }
-        //    return Ok(result);
-        //}
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
+        }
     }
 }

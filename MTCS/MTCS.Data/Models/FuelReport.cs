@@ -22,6 +22,8 @@ public partial class FuelReport
 
     public string ReportBy { get; set; }
 
+    public string LicensePlate { get; set; }
+
     public virtual ICollection<FuelReportFile> FuelReportFiles { get; set; } = new List<FuelReportFile>();
     [JsonIgnore]
 

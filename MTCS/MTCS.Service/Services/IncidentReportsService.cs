@@ -121,7 +121,7 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var incidents = await _unitOfWork.IncidentReportsRepository.GetAllAsync();
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetAllIncidentReport();
                 if (incidents == null)
                 {
                     return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
