@@ -131,6 +131,7 @@ namespace MTCS.Service.Services
         {
             try
             {
+                await _unitOfWork.BeginTransactionAsync();
                 var existingContract = _unitOfWork.ContractRepository.GetById(contractId);
                 if (existingContract == null)
                 {
@@ -142,6 +143,7 @@ namespace MTCS.Service.Services
             }
             catch
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(Const.SUCCESS_DELETE_CODE, Const.SUCCESS_DELETE_MSG);
             }
 
@@ -219,6 +221,7 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
 
                 // Kiểm tra số lượng descriptions, notes và files có khớp nhau không
                 if (files.Count != descriptions.Count || files.Count != notes.Count)

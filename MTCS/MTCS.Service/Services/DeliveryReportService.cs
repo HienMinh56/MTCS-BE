@@ -60,6 +60,8 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                await _unitOfWork.BeginTransactionAsync();
+
 
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == deliveryReport.TripId);
                 if (trip == null)
@@ -111,6 +113,7 @@ namespace MTCS.Service.Services
             }
             catch
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(500, "Create Delivery Report Failed");
             }
         }
@@ -170,6 +173,8 @@ namespace MTCS.Service.Services
                 {
                     return new BusinessResult(404, "Delivery Report not found");
                 }
+
+                await _unitOfWork.BeginTransactionAsync();
                 deliveryReportModel.Notes = updateDelivery.Note;
                 _unitOfWork.DeliveryReportRepository.Update(deliveryReportModel);
 
@@ -224,6 +229,7 @@ namespace MTCS.Service.Services
             }
             catch
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(500, "Update Delivery Report Failed");
             }
         }

@@ -15,29 +15,20 @@ namespace MTCS.APIService.Controllers
             _tripService = tripService;
         }
 
-        [HttpGet("assigned-trips")]
-        public async Task<IActionResult> GetDriverAssignedTrips()
+
+        [HttpGet("get-trips")]
+        public async Task<IActionResult> GetTripsFilters(string? driverId, string? tructorId, string? trailerId, string? status, string? orderId)
         {
-            var driverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(driverId))
-            {
-                return Unauthorized();
-            }
-            var response = await _tripService.GetDriverAssignedTrips(driverId);
-            return Ok(response);
+            var result = await _tripService.GetTripsByFilterAsync(driverId, status, tructorId, trailerId, orderId);
+            return Ok(result);
         }
 
-        [HttpGet("{tripId}")]
-        public async Task<IActionResult> GetTripDetails(string tripId)
+        [HttpPost("update-trip-status")]
+        public async Task<IActionResult> UpdateTripStatus(string tripId, string newStatusId)
         {
-            var driverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(driverId))
-            {
-                return Unauthorized();
-            }
-
-            var response = await _tripService.GetTripDetails(tripId);
-            return Ok(response);
+            var currentUser = HttpContext.User;
+            var result = await _tripService.UpdateStatusTrip(tripId, newStatusId, currentUser);
+            return Ok(result);
         }
     }
 }
