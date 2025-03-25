@@ -13,11 +13,9 @@ public partial class TripStatusHistory
 
     public string StatusId { get; set; }
 
-    public int? SubStatus { get; set; }
+    public DateTime? StartTime { get; set; }
 
-    public DateTime ChangeTime { get; set; }
-
-    public string Notes { get; set; }
+    public int? StatusIndex { get; set; }
 
     public virtual DeliveryStatus Status { get; set; }
 

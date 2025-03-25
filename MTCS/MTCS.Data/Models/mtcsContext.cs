@@ -698,7 +698,7 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.HistoryId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.ChangeTime).HasColumnType("datetime");
+            entity.Property(e => e.StartTime).HasColumnType("datetime");
             entity.Property(e => e.StatusId)
                 .IsRequired()
                 .HasMaxLength(255)
