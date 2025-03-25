@@ -15,8 +15,6 @@ public partial class TripStatusHistory
 
     public DateTime? StartTime { get; set; }
 
-    public int? StatusIndex { get; set; }
-
     public virtual DeliveryStatus Status { get; set; }
 
     public virtual Trip Trip { get; set; }
