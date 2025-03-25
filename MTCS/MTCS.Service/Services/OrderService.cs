@@ -29,6 +29,7 @@ namespace MTCS.Service.Services
                                             );
         Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims, List<IFormFile> files, List<string> descriptions, List<string> notes);
         Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims);
+        Task<BusinessResult> GetOrderFiles(string orderId);
     }
 
     public class OrderService : IOrderService
@@ -231,6 +232,19 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
+        public async Task<BusinessResult> GetOrderFiles(string orderId)
+        {
+            try
+            {
+                var contractFiles = _unitOfWork.OrderFileRepository.GetList(x => x.OrderId == orderId);
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contractFiles);
+            }
+            catch
+            {
+                return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+            }
+        }
 
 
         private string GetFileTypeFromExtension(string extension)
