@@ -26,7 +26,7 @@ namespace MTCS.Service.Services
 
         public async Task<ApiResponse<string>> RegisterStaff(RegisterUserDTO userDto)
         {
-            if (await _unitOfWork.UserRepository.EmailExistsAsync(userDto.Email))
+            if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(userDto.Email))
             {
                 throw new InvalidOperationException("Email already exists");
             }
@@ -39,18 +39,18 @@ namespace MTCS.Service.Services
                 Password = _passwordHasher.HashPassword(userDto.Password),
                 PhoneNumber = userDto.PhoneNumber,
                 Role = (int)InternalUserRole.Staff,
+                Gender = userDto.Gender.ToString(),
+                Birthday = userDto.BirthDate,
                 CreatedDate = DateTime.Now
             };
 
             await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
-
-            string successMessage = $"User {userDto.FullName} registered successfully";
-            return new ApiResponse<string>(true, successMessage, "Registration successful", null);
+            return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null);
         }
 
         public async Task<ApiResponse<string>> RegisterAdmin(RegisterUserDTO userDto)
         {
-            if (await _unitOfWork.UserRepository.EmailExistsAsync(userDto.Email))
+            if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(userDto.Email))
             {
                 throw new InvalidOperationException("Email already exists");
             }
@@ -63,13 +63,13 @@ namespace MTCS.Service.Services
                 Password = _passwordHasher.HashPassword(userDto.Password),
                 PhoneNumber = userDto.PhoneNumber,
                 Role = (int)InternalUserRole.Admin,
+                Gender = userDto.Gender.ToString(),
+                Birthday = userDto.BirthDate,
                 CreatedDate = DateTime.Now
             };
 
             await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
-
-            string successMessage = $"User {userDto.FullName} registered successfully";
-            return new ApiResponse<string>(true, successMessage, "Registration successful", null);
+            return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null);
         }
 
         public async Task<ApiResponse<TokenDTO>> LoginInternalUser(LoginRequestDTO loginDto)
@@ -115,7 +115,7 @@ namespace MTCS.Service.Services
                         "Current password is incorrect");
                 }
 
-                if (await _unitOfWork.UserRepository.EmailExistsAsync(profileDto.Email))
+                if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(profileDto.Email))
                 {
                     return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable",
                         "This email is already in use");
