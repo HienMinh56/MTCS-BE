@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MTCS.Service.Interfaces;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace MTCS.APIService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/trips")]
     [ApiController]
     public class TripController : ControllerBase
     {
@@ -15,29 +16,28 @@ namespace MTCS.APIService.Controllers
             _tripService = tripService;
         }
 
-        [HttpGet("assigned-trips")]
-        public async Task<IActionResult> GetDriverAssignedTrips()
+
+        [HttpGet]
+        public async Task<IActionResult> GetTrips(
+            [FromQuery] string? driverId,
+            [FromQuery] string? tractorId,
+            [FromQuery] string? trailerId,
+            [FromQuery] string? status,
+            [FromQuery] string? orderId)
         {
-            var driverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(driverId))
-            {
-                return Unauthorized();
-            }
-            var response = await _tripService.GetDriverAssignedTrips(driverId);
-            return Ok(response);
+            var result = await _tripService.GetTripsByFilterAsync(driverId, status, tractorId, trailerId, orderId);
+            return Ok(result);
         }
 
-        [HttpGet("{tripId}")]
-        public async Task<IActionResult> GetTripDetails(string tripId)
-        {
-            var driverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(driverId))
-            {
-                return Unauthorized();
-            }
 
-            var response = await _tripService.GetTripDetails(tripId);
-            return Ok(response);
+        [HttpPatch("{tripId}/status")]
+        public async Task<IActionResult> UpdateTripStatus(
+            [FromRoute] string tripId,
+            [FromBody] string newStatusId)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _tripService.UpdateStatusTrip(tripId, newStatusId, currentUser);
+            return Ok(result);
         }
     }
 }

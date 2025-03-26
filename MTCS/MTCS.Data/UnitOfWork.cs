@@ -26,6 +26,9 @@ namespace MTCS.Data
         private OrderRepository orderRepository; 
         private OrderFileRepository orderFileRepository; 
         private CustomerRepository customerRepository;
+        private DeliveryStatusRepository deliveryStatusRepository;
+        private TripStatusHistoryRepository tripStatusHistoryRepository;
+        private PriceTableRepository priceTableRepository;
 
         public UnitOfWork()
         {
@@ -165,6 +168,29 @@ namespace MTCS.Data
             }
         }
 
+        public DeliveryStatusRepository DeliveryStatusRepository
+        {
+            get
+            {
+                return deliveryStatusRepository ??= new DeliveryStatusRepository();
+            }
+        }
+
+        public TripStatusHistoryRepository TripStatusHistoryRepository
+        {
+            get
+            {
+                return tripStatusHistoryRepository ??= new TripStatusHistoryRepository();
+            }
+        }
+
+        public PriceTableRepository PriceTableRepository
+        {
+            get
+            {
+                return priceTableRepository ??= new PriceTableRepository();
+            }
+        }
 
         //    ////TO-DO CODE HERE/////////////////
 

@@ -17,7 +17,7 @@ namespace MTCS.Service.Services
 {
     public interface IDeliveryReportService
     {
-        Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId);
+        Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId, string? driverId);
         Task<BusinessResult> CreateDeliveryReport(CreateDeliveryReportRequest deliveryReport, List<IFormFile> files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateDeliveryReport(UpdateDeliveryReportRequest updateDelivery, ClaimsPrincipal claims);
     }
@@ -40,11 +40,11 @@ namespace MTCS.Service.Services
         /// <param name="reportId"></param>
         /// <param name="tripId"></param>
         /// <returns></returns>
-        public async Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId)
+        public async Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId, string? driverId)
         {
             try
             {
-                var deliveryReports = _unitOfWork.DeliveryReportRepository.GetDeliveryReportsByReportIdOrTripId(reportId, tripId);
+                var deliveryReports = _unitOfWork.DeliveryReportRepository.GetDeliveryReports(reportId, tripId, driverId);
                 return new BusinessResult(200, "Get Delivery Report Success", deliveryReports);
             }
             catch
@@ -60,11 +60,17 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                await _unitOfWork.BeginTransactionAsync();
 
-                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == deliveryReport.TripId);
+                var lastedStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
+                if (lastedStatus == null)
+                {
+                    return new BusinessResult(404, "Status not valid");
+                }
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == deliveryReport.TripId && t.Status == lastedStatus.StatusId);
                 if (trip == null)
                 {
-                    return new BusinessResult(404, "Trip not found");
+                    return new BusinessResult(404, "Trip not found or trip cannot create delivery report");
                 }
                 var deliveryReportModel = new DeliveryReport
                 {
@@ -111,6 +117,7 @@ namespace MTCS.Service.Services
             }
             catch
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(500, "Create Delivery Report Failed");
             }
         }
@@ -170,6 +177,8 @@ namespace MTCS.Service.Services
                 {
                     return new BusinessResult(404, "Delivery Report not found");
                 }
+
+                await _unitOfWork.BeginTransactionAsync();
                 deliveryReportModel.Notes = updateDelivery.Note;
                 _unitOfWork.DeliveryReportRepository.Update(deliveryReportModel);
 
@@ -224,6 +233,7 @@ namespace MTCS.Service.Services
             }
             catch
             {
+                await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(500, "Update Delivery Report Failed");
             }
         }

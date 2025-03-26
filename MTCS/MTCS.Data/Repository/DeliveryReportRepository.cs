@@ -27,21 +27,31 @@ namespace MTCS.Data.Repository
         }
 
 
-        public IEnumerable<DeliveryReport> GetDeliveryReportsByReportIdOrTripId(string? reportId, string? tripId)
+        public IEnumerable<DeliveryReport> GetDeliveryReports(string? reportId, string? tripId, string? driverid)
         {
+            IQueryable<DeliveryReport> query = _context.DeliveryReports
+                .Include(d => d.Trip)
+                .Include(d => d.DeliveryReportsFiles);
+
             if (!string.IsNullOrEmpty(reportId))
             {
-                var report = _context.DeliveryReports.FirstOrDefault(fr => fr.ReportId == reportId);
+                var report = query.FirstOrDefault(fr => fr.ReportId == reportId);
                 return report != null ? new List<DeliveryReport> { report } : new List<DeliveryReport>();
             }
 
             if (!string.IsNullOrEmpty(tripId))
             {
-                return _context.DeliveryReports.Where(fr => fr.TripId == tripId).ToList();
+                return query.Where(fr => fr.TripId == tripId).ToList();
             }
 
-            return _context.DeliveryReports.ToList();
+            if (!string.IsNullOrEmpty(driverid))
+            {
+                return query.Where(fr => fr.Trip.DriverId == driverid).ToList();
+            }
+
+            return query.ToList();
         }
+
 
         public async Task<Trip?> GetTripByReportId(string reportId)
         {

@@ -11,30 +11,32 @@ namespace MTCS.Data.Repository
         public TripRepository(MTCSContext context) : base(context) { }
 
 
-        public IQueryable<Trip?> GetTripsByDriverIdAsync(string driverId)
+        public async Task<IEnumerable<Trip>> GetTripsByFilterAsync(string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
         {
-            return _context.Trips
-                .Include(t => t.Driver)
-                .Include(t => t.Order)
-                .Include(t => t.TripStatusHistories)
-                .ThenInclude(tsh => tsh.Status)
-                .Where(t => t.DriverId == driverId);
-        }
+            var query = _context.Trips.Include(t => t.TripStatusHistories).AsQueryable();
 
-        public async Task<Trip?> GetTripDetailsByID(string tripId)
-        {
-            return await _context.Trips
-                .Include(t => t.Driver)
-                .Include(t => t.Order)
-                .Include(t => t.Tractor)
-                .Include(t => t.Trailer)
-                .Include(t => t.TripStatusHistories)
-                .Include(t => t.DeliveryReports)
-                .Include(t => t.FuelReports)
-                .Include(t => t.IncidentReports)
-                .Include(t => t.InspectionLogs)
-                .ThenInclude(tsh => tsh.Status)
-                .FirstOrDefaultAsync(t => t.TripId == tripId);
+            if (!string.IsNullOrEmpty(driverId))
+            {
+                query = query.Where(t => t.DriverId == driverId);
+            }
+            if (!string.IsNullOrEmpty(status))
+            {
+                query = query.Where(t => t.Status == status);
+            }
+            if (!string.IsNullOrEmpty(tractorId))
+            {
+                query = query.Where(t => t.TractorId == tractorId);
+            }
+            if (!string.IsNullOrEmpty(trailerId))
+            {
+                query = query.Where(t => t.TrailerId == trailerId);
+            }
+            if (!string.IsNullOrEmpty(orderId))
+            {
+                query = query.Where(t => t.OrderId == orderId);
+            }
+
+            return await query.ToListAsync();
         }
     }
 }
