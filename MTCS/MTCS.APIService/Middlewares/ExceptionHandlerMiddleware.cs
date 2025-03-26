@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Response;
 using System.Net;
 
@@ -94,7 +96,28 @@ namespace MTCS.APIService.Middlewares
 
             string errorString = string.Join(", ", errors);
 
-            return new ApiResponse<object>(false, null, message, errorString);
+            return new ApiResponse<object>(false, null, message, null, errorString);
+        }
+    }
+    public class ValidateModelAttribute : ActionFilterAttribute
+    {
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            if (!context.ModelState.IsValid)
+            {
+                var errors = string.Join("; ", context.ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+
+                var response = new ApiResponse<object>(
+                    false,
+                    null,
+                    "Validation failed",
+                    null,
+                    errors);
+
+                context.Result = new BadRequestObjectResult(response);
+            }
         }
     }
 }

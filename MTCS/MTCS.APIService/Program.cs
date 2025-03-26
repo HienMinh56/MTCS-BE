@@ -106,10 +106,14 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddControllers().AddJsonOptions(options =>
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<ValidateModelAttribute>();
+})
+.AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-    options.JsonSerializerOptions.MaxDepth = 64; // Tăng giới hạn độ sâu nếu cần
+    options.JsonSerializerOptions.MaxDepth = 64;
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

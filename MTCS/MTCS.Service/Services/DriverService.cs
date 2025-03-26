@@ -32,6 +32,7 @@ namespace MTCS.Service.Services
                 true,
                 pagedDrivers,
                 message,
+                null,
                 null);
         }
 
@@ -57,7 +58,7 @@ namespace MTCS.Service.Services
             await _unitOfWork.DriverRepository.CreateAsync(driver);
 
             string successMessage = $"Driver {driverDto.FullName} registered successfully";
-            return new ApiResponse<string>(true, successMessage, "Registration successful", null);
+            return new ApiResponse<string>(true, successMessage, "Registration successful", null, null);
         }
 
         public async Task<ApiResponse<DriverProfileDetailsDTO>> GetDriverProfile(string driverId)
@@ -94,6 +95,7 @@ namespace MTCS.Service.Services
                 true,
                 driverProfileDetails,
                 "Driver profile details retrieved successfully",
+                null,
                 null);
         }
     }

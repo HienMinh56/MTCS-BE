@@ -16,8 +16,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDrivers(
-            [FromQuery] PaginationParams paginationParams, int? status = null)
+        public async Task<IActionResult> GetDrivers([FromQuery] PaginationParams paginationParams, int? status = null)
         {
             var response = await _driverService.ViewDrivers(paginationParams, status);
             return Ok(response);

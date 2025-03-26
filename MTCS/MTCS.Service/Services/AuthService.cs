@@ -45,7 +45,7 @@ namespace MTCS.Service.Services
             };
 
             await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
-            return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null);
+            return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null, null);
         }
 
         public async Task<ApiResponse<string>> RegisterAdmin(RegisterUserDTO userDto)
@@ -69,7 +69,7 @@ namespace MTCS.Service.Services
             };
 
             await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
-            return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null);
+            return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null, null);
         }
 
         public async Task<ApiResponse<TokenDTO>> LoginInternalUser(LoginRequestDTO loginDto)
@@ -87,7 +87,7 @@ namespace MTCS.Service.Services
             }
 
             var token = await _tokenService.GenerateTokensForInternalUser(user);
-            return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
+            return new ApiResponse<TokenDTO>(true, token, "Login successful", "Login thành công", null);
         }
 
         public async Task<ApiResponse<ProfileResponseDTO>> UpdateInternalUserProfile(string userId, ProfileDTO profileDto)
@@ -106,18 +106,19 @@ namespace MTCS.Service.Services
                 if (string.IsNullOrEmpty(profileDto.CurrentPassword))
                 {
                     return new ApiResponse<ProfileResponseDTO>(false, null, "Password required",
+                        "Mật khẩu hiện tại là bắt buộc để cập nhật email",
                         "Current password is required to update email");
                 }
 
                 if (!_passwordHasher.VerifyPassword(profileDto.CurrentPassword, user.Password))
                 {
-                    return new ApiResponse<ProfileResponseDTO>(false, null, "Invalid password",
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Invalid password", "Mật khẩu hiện tại không đúng",
                         "Current password is incorrect");
                 }
 
                 if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(profileDto.Email))
                 {
-                    return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable",
+                    return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable", "Email đã tồn tại",
                         "This email is already in use");
                 }
                 user.Email = profileDto.Email;
@@ -135,7 +136,7 @@ namespace MTCS.Service.Services
                 ModifiedDate = user.ModifiedDate
             };
 
-            return new ApiResponse<ProfileResponseDTO>(true, newProfile, "Updated profile successfully", null);
+            return new ApiResponse<ProfileResponseDTO>(true, newProfile, "Updated profile successfully", "Cập nhật hồ sơ thành công", null);
         }
 
         public async Task<ApiResponse<TokenDTO>> LoginDriver(LoginRequestDTO loginDto)
@@ -154,7 +155,7 @@ namespace MTCS.Service.Services
 
             var token = await _tokenService.GenerateTokensForDriver(driver);
 
-            return new ApiResponse<TokenDTO>(true, token, "Login successful", null);
+            return new ApiResponse<TokenDTO>(true, token, "Login successful", "Đăng nhập thành công", null);
         }
     }
 }

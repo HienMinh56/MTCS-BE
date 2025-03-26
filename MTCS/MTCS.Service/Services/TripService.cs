@@ -19,12 +19,13 @@ namespace MTCS.Service.Services
         {
             if (await _unitOfWork.DriverRepository.GetDriverByIdAsync(driverId) == null)
             {
-                return new ApiResponse<List<TripDTO>>(false, null, "Driver not found", null);
+                return new ApiResponse<List<TripDTO>>(false, null, "Driver not found", "Không tìm thấy tài xế", null);
             }
 
             var query = _unitOfWork.TripRepository.GetTripsByDriverIdAsync(driverId);
 
-            if (query == null) return new ApiResponse<List<TripDTO>>(false, null, "No trip found", null);
+            if (query == null) return new ApiResponse<List<TripDTO>>(false, null, "No trip found",
+                "Không tìm thấy hành trình", null);
 
             var trips = await query
             .Select(t => new TripDTO
@@ -40,7 +41,7 @@ namespace MTCS.Service.Services
             })
             .ToListAsync();
 
-            return new ApiResponse<List<TripDTO>>(true, trips, "Get trips succesfully", null);
+            return new ApiResponse<List<TripDTO>>(true, trips, "Get trips succesfully", null, null);
         }
 
         public async Task<ApiResponse<DetailedTripDTO>> GetTripDetails(string tripId)
@@ -48,7 +49,7 @@ namespace MTCS.Service.Services
             var trip = await _unitOfWork.TripRepository.GetTripDetailsByID(tripId);
             if (trip == null)
             {
-                return new ApiResponse<DetailedTripDTO>(false, null, "Trip not found", null);
+                return new ApiResponse<DetailedTripDTO>(false, null, "Trip not found", "Không tìm thấy hành trình", null);
             }
 
             var latestStatus = trip.TripStatusHistories
@@ -111,7 +112,7 @@ namespace MTCS.Service.Services
                 //InspectionLogsCount = trip.InspectionLogs.Count
             };
 
-            return new ApiResponse<DetailedTripDTO>(true, detailedTripDTO, "Trip details retrieved successfully", null);
+            return new ApiResponse<DetailedTripDTO>(true, detailedTripDTO, "Trip details retrieved successfully", null, null);
         }
 
     }

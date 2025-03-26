@@ -205,10 +205,10 @@ namespace MTCS.Service.Services
                 if (validatedToken is not JwtSecurityToken jwtToken ||
                     !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
                 {
-                    return new ApiResponse<TokenDTO>(false, null, "Invalid token", null);
+                    return new ApiResponse<TokenDTO>(false, null, "Invalid token", null, null);
                 }
 
-                var userId = principal.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+                var userId = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 var role = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
 
                 TokenDTO newTokens;
@@ -218,7 +218,7 @@ namespace MTCS.Service.Services
                     var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(userId);
                     if (driver == null)
                     {
-                        return new ApiResponse<TokenDTO>(false, null, "Driver not found", null);
+                        return new ApiResponse<TokenDTO>(false, null, "Driver not found", "Không tìm thấy tài xế", null);
                     }
 
                     newTokens = await GenerateTokensForDriver(driver);
@@ -229,20 +229,20 @@ namespace MTCS.Service.Services
                     var internalUser = await _unitOfWork.InternalUserRepository.GetByIdAsync(userId);
                     if (internalUser == null)
                     {
-                        return new ApiResponse<TokenDTO>(false, null, "User not found", null);
+                        return new ApiResponse<TokenDTO>(false, null, "User not found", "không tìm thấy người dùng", null);
                     }
 
                     newTokens = await GenerateTokensForInternalUser(internalUser);
                 }
-                return new ApiResponse<TokenDTO>(true, newTokens, "Token refreshed successfully", null);
+                return new ApiResponse<TokenDTO>(true, newTokens, "Token refreshed successfully", null, null);
             }
             catch (SecurityTokenExpiredException)
             {
-                return new ApiResponse<TokenDTO>(false, null, "Token expired", "Refresh token has expired");
+                return new ApiResponse<TokenDTO>(false, null, "Token expired", null, "Refresh token has expired");
             }
             catch (Exception ex)
             {
-                return new ApiResponse<TokenDTO>(false, null, "Token validation failed", ex.Message);
+                return new ApiResponse<TokenDTO>(false, null, "Token validation failed", null, ex.Message);
             }
         }
     }
