@@ -18,7 +18,9 @@ namespace MTCS.Service.Services
 {
     public interface IOrderService
     {
-        Task<BusinessResult> GetOrders(string? orderId = null,
+        Task<BusinessResult> GetOrders(
+                                            string? orderId = null,
+                                            string? tripid = null,
                                             string? userId = null,
                                             int? containerType = null,
                                             string? containerNumber = null,
@@ -154,6 +156,7 @@ namespace MTCS.Service.Services
         #region Get Orders
         public async Task<BusinessResult> GetOrders(
             string? orderId = null,
+            string? tripId = null,
             string? customerId = null,
             int? containerType = null,
             string? containerNumber = null,
@@ -168,7 +171,8 @@ namespace MTCS.Service.Services
 
                 if (!string.IsNullOrEmpty(orderId))
                     query = query.Where(o => o.OrderId == orderId);
-
+                if (!string.IsNullOrEmpty(tripId))
+                    query = query.Include(o => o.Trips).Where(o => o.Trips.Any(o => o.TripId == tripId));
                 if (!string.IsNullOrEmpty(customerId))
                     query = query.Where(o => o.CustomerId == customerId);
 

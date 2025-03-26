@@ -25,5 +25,7 @@ public partial class DeliveryStatus
 
     public string DeletedBy { get; set; }
 
+    public int? StatusIndex { get; set; }
+
     public virtual ICollection<TripStatusHistory> TripStatusHistories { get; set; } = new List<TripStatusHistory>();
 }
