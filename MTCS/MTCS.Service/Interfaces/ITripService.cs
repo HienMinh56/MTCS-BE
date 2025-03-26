@@ -7,7 +7,7 @@ namespace MTCS.Service.Interfaces
 {
     public interface ITripService
     {
-        Task<BusinessResult> GetTripsByFilterAsync(string? driverId, string? status, string? tractorId, string? trailerId, string? orderId);
+        Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId);
         Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, ClaimsPrincipal claims);
     }
 }

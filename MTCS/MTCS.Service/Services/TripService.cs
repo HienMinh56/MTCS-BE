@@ -21,11 +21,11 @@ namespace MTCS.Service.Services
 
         }
 
-        public async Task<BusinessResult> GetTripsByFilterAsync(string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
+        public async Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
         {
             try
             {
-                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(driverId, status, tractorId, trailerId, orderId);
+                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(tripId, driverId, status, tractorId, trailerId, orderId);
 
                 if (trips == null)
                 {
