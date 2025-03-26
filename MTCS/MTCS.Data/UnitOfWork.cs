@@ -28,6 +28,7 @@ namespace MTCS.Data
         private CustomerRepository customerRepository;
         private DeliveryStatusRepository deliveryStatusRepository;
         private TripStatusHistoryRepository tripStatusHistoryRepository;
+        private PriceTableRepository priceTableRepository;
 
         public UnitOfWork()
         {
@@ -180,6 +181,14 @@ namespace MTCS.Data
             get
             {
                 return tripStatusHistoryRepository ??= new TripStatusHistoryRepository();
+            }
+        }
+
+        public PriceTableRepository PriceTableRepository
+        {
+            get
+            {
+                return priceTableRepository ??= new PriceTableRepository();
             }
         }
 

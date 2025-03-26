@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MTCS.Service.Interfaces;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace MTCS.APIService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/trips")]
     [ApiController]
     public class TripController : ControllerBase
     {
@@ -16,15 +17,23 @@ namespace MTCS.APIService.Controllers
         }
 
 
-        [HttpGet("get-trips")]
-        public async Task<IActionResult> GetTripsFilters(string? driverId, string? tructorId, string? trailerId, string? status, string? orderId)
+        [HttpGet]
+        public async Task<IActionResult> GetTrips(
+            [FromQuery] string? driverId,
+            [FromQuery] string? tractorId,
+            [FromQuery] string? trailerId,
+            [FromQuery] string? status,
+            [FromQuery] string? orderId)
         {
-            var result = await _tripService.GetTripsByFilterAsync(driverId, status, tructorId, trailerId, orderId);
+            var result = await _tripService.GetTripsByFilterAsync(driverId, status, tractorId, trailerId, orderId);
             return Ok(result);
         }
 
-        [HttpPost("update-trip-status")]
-        public async Task<IActionResult> UpdateTripStatus(string tripId, string newStatusId)
+
+        [HttpPatch("{tripId}/status")]
+        public async Task<IActionResult> UpdateTripStatus(
+            [FromRoute] string tripId,
+            [FromBody] string newStatusId)
         {
             var currentUser = HttpContext.User;
             var result = await _tripService.UpdateStatusTrip(tripId, newStatusId, currentUser);

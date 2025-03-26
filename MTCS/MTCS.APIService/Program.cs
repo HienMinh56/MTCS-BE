@@ -34,6 +34,7 @@ builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IFuelReportService, FuelReportService>();
 builder.Services.AddScoped<IDeliveryReportService, DeliveryReportService>();
 builder.Services.AddScoped<IDeliveryStatusService, DeliveryStatusService>();
+builder.Services.AddScoped<IPriceTableService, PriceTableService>();
 
 
 builder.Services.AddScoped<INotificationService, NotificationService>();

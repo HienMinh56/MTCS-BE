@@ -62,11 +62,15 @@ namespace MTCS.Service.Services
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 await _unitOfWork.BeginTransactionAsync();
 
-
-                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == deliveryReport.TripId);
+                var lastedStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
+                if (lastedStatus == null)
+                {
+                    return new BusinessResult(404, "Status not valid");
+                }
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == deliveryReport.TripId && t.Status == lastedStatus.StatusId);
                 if (trip == null)
                 {
-                    return new BusinessResult(404, "Trip not found");
+                    return new BusinessResult(404, "Trip not found or trip cannot create delivery report");
                 }
                 var deliveryReportModel = new DeliveryReport
                 {

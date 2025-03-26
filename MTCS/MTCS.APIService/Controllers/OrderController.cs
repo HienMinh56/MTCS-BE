@@ -19,6 +19,7 @@ namespace MTCS.APIService.Controllers
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders(
             [FromQuery] string? orderId,
+            [FromQuery] string? tripId,
             [FromQuery] string? userId,
             [FromQuery] int? containerType,
             [FromQuery] string? containerNumber,
@@ -28,7 +29,7 @@ namespace MTCS.APIService.Controllers
             [FromQuery] DateOnly? deliveryDate
         )
         {
-            var result = await _orderService.GetOrders(orderId, userId, containerType, containerNumber, trackingCode, status, pickUpDate, deliveryDate);
+            var result = await _orderService.GetOrders(orderId, tripId, userId, containerType, containerNumber, trackingCode, status, pickUpDate, deliveryDate);
             return Ok(result);
         }
 

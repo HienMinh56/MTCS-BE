@@ -16,14 +16,14 @@ namespace MTCS.APIService.Controllers
             _deliveryReportService = deliveryReportService;
         }
 
-        [HttpGet("get-delivery-reports")]
+        [HttpGet]
         public async Task<IActionResult> GetDeliveryReports(string? reportId, string? tripId, string? driverId)
         {
             var deliveryReports = await _deliveryReportService.GetDeliveryReport(reportId, tripId, driverId);
             return Ok(deliveryReports);
         }
 
-        [HttpPost("create-delivery-report")]
+        [HttpPost]
         public async Task<IActionResult> CreateDeliveryReport([FromForm] CreateDeliveryReportRequest deliveryReport, [FromForm] List<IFormFile> files)
         {
             var currentUser = HttpContext.User;
@@ -31,7 +31,7 @@ namespace MTCS.APIService.Controllers
             return Ok(result);
         }
 
-        [HttpPut("update-delivery-report")]
+        [HttpPut]
         public async Task<IActionResult> UpdateDeliveryReport([FromForm] UpdateDeliveryReportRequest deliveryReport)
         {
             var currentUser = HttpContext.User;

@@ -5,7 +5,7 @@ using MTCS.Service.Services;
 
 namespace MTCS.APIService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/delivery-statuses")]
     [ApiController]
     public class DeliveryStatusController : ControllerBase
     {
@@ -14,13 +14,13 @@ namespace MTCS.APIService.Controllers
         {
             _deliveryStatusService = deliveryStatusService;
         }
-        [HttpGet("get-delivery-status")]
+        [HttpGet]
         public async Task<IActionResult> GetDeliveryStatus()
         {
             var result = await _deliveryStatusService.GetDeliveryStatuses();
             return Ok(result);
         }
-        [HttpPost("create-delivery-status")]
+        [HttpPost]
         public async Task<IActionResult> CreateDeliveryStatus(List<CreateDeliveryStatusRequest> createDeliveries)
         {
             var currentUser = HttpContext.User;
