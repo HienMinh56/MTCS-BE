@@ -17,31 +17,10 @@ namespace MTCS.APIService.Controllers
             _incidentReportsService = incidentReportsService;
         }
 
-        [HttpGet("driver/{driverId}")]
-        public async Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId)
-        {
-            var result = await _incidentReportsService.GetIncidentReportsByDriverId(driverId);
-            return result;
-        }
-
-        [HttpGet("trip/{tripId}")]
-        public async Task<IBusinessResult> GetIncidentReportsByTripId(string tripId)
-        {
-            var result = await _incidentReportsService.GetIncidentReportsByTripId(tripId);
-            return result;
-        }
-
-        [HttpGet("report/{reportId}")]
-        public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
-        {
-            var result = await _incidentReportsService.GetIncidentReportsByReportId(reportId);
-            return result;
-        }
-
         [HttpGet]
-        public async Task<IBusinessResult> GetAllIncidentReports()
+        public async Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId)
         {
-            var result = await _incidentReportsService.GetAllIncidentReports();
+            var result = await _incidentReportsService.GetAllIncidentReports(driverId, tripId, reportId);
             return result;
         }
 
