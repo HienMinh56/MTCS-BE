@@ -4,12 +4,12 @@ using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using MTCS.Service.Interfaces;
-using System.Security.Claims;
 
 namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "Staff")]
     public class TractorController : ControllerBase
     {
         private readonly ITractorService _tractorService;
@@ -20,14 +20,9 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("create-tractor")]
-        [Authorize]
         public async Task<IActionResult> CreateTractor([FromBody] CreateTractorDTO tractorDto)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized();
-            }
+            var userId = User.GetUserId();
 
             var response = await _tractorService.CreateTractor(tractorDto, userId);
             if (!response.Success)
@@ -64,6 +59,20 @@ namespace MTCS.APIService.Controllers
             if (!response.Success)
             {
                 return NotFound(response);
+            }
+
+            return Ok(response);
+        }
+
+        [HttpPut("inactivate-tractor/{tractorId}")]
+        public async Task<IActionResult> InactivateTractor(string tractorId)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _tractorService.DeleteTractor(tractorId, userId);
+            if (!response.Success)
+            {
+                return BadRequest(response);
             }
 
             return Ok(response);

@@ -16,5 +16,6 @@ namespace MTCS.Service.Interfaces
            int? maintenanceDueDays = null,
            int? registrationExpiringDays = null);
         Task<ApiResponse<TractorDetailsDTO>> GetTractorDetail(string tractorId);
+        Task<ApiResponse<bool>> DeleteTractor(string tractorId, string userId);
     }
 }

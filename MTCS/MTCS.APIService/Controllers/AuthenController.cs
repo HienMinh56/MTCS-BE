@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.DTOs;
+using MTCS.Data.Helpers;
 using MTCS.Data.Response;
 using MTCS.Service.Interfaces;
-using System.Security.Claims;
 
 namespace MTCS.APIService.Controllers
 {
@@ -23,6 +23,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("register-staff")]
+        [Authorize(Policy = "Staff")]
         public async Task<ActionResult<ApiResponse<string>>> RegisterStaff([FromBody] RegisterUserDTO registerDto)
         {
             var result = await _authService.RegisterStaff(registerDto);
@@ -44,6 +45,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("create-driver")]
+        [Authorize(Policy = "Staff")]
         public async Task<ActionResult<ApiResponse<string>>> CreateDriver([FromBody] CreateDriverDTO createDriverDTO)
         {
             var result = await _driverService.CreateDriver(createDriverDTO);
@@ -68,11 +70,8 @@ namespace MTCS.APIService.Controllers
         [Authorize]
         public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> UpdateProfile([FromBody] ProfileDTO profileDto)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized();
-            }
+            var userId = User.GetUserId();
+
             var result = await _authService.UpdateInternalUserProfile(userId, profileDto);
 
             if (!result.Success)

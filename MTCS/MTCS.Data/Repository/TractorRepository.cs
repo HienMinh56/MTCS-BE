@@ -40,6 +40,7 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
+
         public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(
     PaginationParams paginationParams,
     TractorStatus? status = null,
@@ -182,6 +183,30 @@ namespace MTCS.Data.Repository
                 ModifiedBy = users.TryGetValue(tractor.ModifiedBy ?? "", out var modifiedBy) ? modifiedBy : null,
                 DeletedBy = users.TryGetValue(tractor.DeletedBy ?? "", out var deletedBy) ? deletedBy : null
             };
+        }
+
+        public async Task<string> GenerateTractorId()
+        {
+            const string prefix = "TRC";
+
+            var highestId = await _context.Tractors
+                .Where(t => t.TractorId.StartsWith(prefix))
+                .Select(t => t.TractorId)
+                .OrderByDescending(id => id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (!string.IsNullOrEmpty(highestId) && highestId.Length > prefix.Length)
+            {
+                var numericPart = highestId.Substring(prefix.Length);
+                if (int.TryParse(numericPart, out int currentNumber))
+                {
+                    nextNumber = currentNumber + 1;
+                }
+            }
+
+            return $"{prefix}{nextNumber:D3}";
         }
     }
 }

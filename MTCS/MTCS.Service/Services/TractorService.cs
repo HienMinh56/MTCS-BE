@@ -31,10 +31,11 @@ namespace MTCS.Service.Services
                 return new ApiResponse<TractorResponseDTO>(false, null, "Validation failed", "Biển số đã tồn tại",
                "License plate already exists");
             }
+            var tractorId = await _unitOfWork.TractorRepository.GenerateTractorId();
 
             var createTractor = new Tractor
             {
-                TractorId = Guid.NewGuid().ToString(),
+                TractorId = tractorId,
                 LicensePlate = tractorDto.LicensePlate,
                 Brand = tractorDto.Brand,
                 ManufactureYear = tractorDto.ManufactureYear,
@@ -134,6 +135,49 @@ namespace MTCS.Service.Services
                 tractor,
                 "Tractor details retrieved successfully",
                 null,
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> DeleteTractor(string tractorId, string userId)
+        {
+            var tractor = await _unitOfWork.TractorRepository.GetTractorById(tractorId);
+            if (tractor == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Tractor not found",
+                    "Không tìm thấy đầu kéo",
+                    $"No tractor found with ID: {tractorId}");
+            }
+
+            var (isInUse, activeTrips) = await _unitOfWork.TripRepository.IsTractorInUseStatusNow(tractorId);
+
+            if (isInUse)
+            {
+                var tripIds = string.Join(", ", activeTrips.Select(t => t.TripId));
+                var tripInfo = activeTrips.Count == 1
+                    ? $"Trip ID: {tripIds}"
+                    : $"Trip IDs: {tripIds}";
+
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Tractor is in use",
+                    $"Đầu kéo đang trong hành trình: {tripIds}",
+                    $"Cannot delete tractor that is in use in delivery trips: {tripIds}");
+            }
+
+            tractor.Status = VehicleStatus.Inactive.ToString();
+            tractor.DeletedBy = userId;
+            tractor.DeletedDate = DateTime.Now;
+
+            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Tractor deleted successfully",
+                "Xóa đầu kéo thành công",
                 null);
         }
 
