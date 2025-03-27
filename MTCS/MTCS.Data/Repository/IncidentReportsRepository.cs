@@ -15,26 +15,30 @@ namespace MTCS.Data.Repository
         {
         }
 
-        public IncidentReportsRepository(MTCSContext context) => _context = context;
-
-        public async Task<List<IncidentReport>> GetAllIncidentReport()
+        public async Task<List<IncidentReport>> GetAllIncidentReport(string? driverId, string? tripId, string? reportId)
         {
-            return await _context.IncidentReports.Include(i => i.IncidentReportsFiles)
-                                                 .Include(i => i.Trip)
-                                                 .ThenInclude(i => i.Driver)
-                                                 .AsNoTracking()
-                                                 .ToListAsync();
-        }
+            var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)
+                                                .Include(i => i.Trip)
+                                                .ThenInclude(t => t.Driver)
+                                                .AsNoTracking()
+                                                .AsQueryable();
 
-        public async Task<List<IncidentReport>> GetIncidentReportsByDriverId(string driverId)
-        {
-            return await _context.IncidentReports
-                                 .Include(i => i.IncidentReportsFiles)
-                                 .Include(i => i.Trip)
-                                 .ThenInclude(t => t.Driver)
-                                 .Where(i => i.Trip.Driver.DriverId == driverId)
-                                 .AsNoTracking()
-                                 .ToListAsync();
+            if (!string.IsNullOrEmpty(driverId))
+            {
+                query = query.Where(i => i.Trip.DriverId == driverId);
+            }
+
+            if (!string.IsNullOrEmpty(tripId))
+            {
+                query = query.Where(i => i.TripId == tripId);
+            }
+
+            if (!string.IsNullOrEmpty(reportId))
+            {
+                query = query.Where(i => i.ReportId == reportId);
+            }
+
+            return await query.ToListAsync();
         }
 
         /// <summary>
