@@ -19,13 +19,14 @@ namespace MTCS.APIService.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetTrips(
+            [FromQuery] string? tripId,
             [FromQuery] string? driverId,
             [FromQuery] string? tractorId,
             [FromQuery] string? trailerId,
             [FromQuery] string? status,
             [FromQuery] string? orderId)
         {
-            var result = await _tripService.GetTripsByFilterAsync(driverId, status, tractorId, trailerId, orderId);
+            var result = await _tripService.GetTripsByFilterAsync(tripId,driverId, status, tractorId, trailerId, orderId);
             return Ok(result);
         }
 

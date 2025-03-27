@@ -49,8 +49,8 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-
-                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == createFuel.TripId);
+                var minStatus = _unitOfWork.DeliveryStatusRepository.Get(s => s.StatusIndex == 0);
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == createFuel.TripId && t.Status != $"{minStatus.StatusId}");
                 if (trip == null)
                 {
                     return new BusinessResult(404, "Cannot find Trip!!!");

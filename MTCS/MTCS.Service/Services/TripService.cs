@@ -21,11 +21,11 @@ namespace MTCS.Service.Services
 
         }
 
-        public async Task<BusinessResult> GetTripsByFilterAsync(string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
+        public async Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
         {
             try
             {
-                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(driverId, status, tractorId, trailerId, orderId);
+                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(tripId,driverId, status, tractorId, trailerId, orderId);
 
                 if (trips == null)
                 {
@@ -51,6 +51,7 @@ namespace MTCS.Service.Services
                 await _unitOfWork.BeginTransactionAsync();
 
                 var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
+                var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
 
                 if (trip == null)
                 {
@@ -75,6 +76,10 @@ namespace MTCS.Service.Services
 
 
                 trip.Status = newStatusId;
+                if(newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
+                {
+                    trip.EndTime = DateTime.UtcNow;
+                }
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
 
                 var tripStatusHistory = new TripStatusHistory

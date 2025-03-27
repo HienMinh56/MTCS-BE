@@ -11,9 +11,14 @@ namespace MTCS.Data.Repository
         public TripRepository(MTCSContext context) : base(context) { }
 
 
-        public async Task<IEnumerable<Trip>> GetTripsByFilterAsync(string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
+        public async Task<IEnumerable<Trip>> GetTripsByFilterAsync(string ? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
         {
             var query = _context.Trips.Include(t => t.TripStatusHistories).AsQueryable();
+
+            if (!string.IsNullOrEmpty(tripId))
+            {
+                query = query.Where(t => t.TripId == tripId);
+            }
 
             if (!string.IsNullOrEmpty(driverId))
             {
