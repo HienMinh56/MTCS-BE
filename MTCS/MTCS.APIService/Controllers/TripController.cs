@@ -26,7 +26,7 @@ namespace MTCS.APIService.Controllers
             [FromQuery] string? status,
             [FromQuery] string? orderId)
         {
-            var result = await _tripService.GetTripsByFilterAsync(tripId,driverId, status, tractorId, trailerId, orderId);
+            var result = await _tripService.GetTripsByFilterAsync(tripId, driverId, status, tractorId, trailerId, orderId);
             return Ok(result);
         }
 

@@ -1,3 +1,5 @@
+using MTCS.Data.Enums;
+using MTCS.Data.Helpers;
 using System.ComponentModel.DataAnnotations;
 
 namespace MTCS.Data.DTOs
@@ -26,8 +28,20 @@ namespace MTCS.Data.DTOs
         [MinLength(6)]
         public required string Password { get; set; }
 
+        [Required]
         [Phone]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits and start with 0")]
         public required string PhoneNumber { get; set; }
+
+        [Required]
+        [EnumDataType(typeof(Gender), ErrorMessage = "Invalid gender")]
+        public Gender Gender { get; set; }
+
+        [Required]
+        [DataType(DataType.Date)]
+        [Display(Name = "Birth Date")]
+        [CustomValidation(typeof(DateValidator), nameof(DateValidator.DoB))]
+        public DateOnly BirthDate { get; set; }
     }
 
     public class CreateDriverDTO
@@ -44,7 +58,9 @@ namespace MTCS.Data.DTOs
         [MinLength(6)]
         public required string Password { get; set; }
 
+        [Required]
         [Phone]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits and start with 0")]
         public required string PhoneNumber { get; set; }
     }
 
@@ -56,6 +72,7 @@ namespace MTCS.Data.DTOs
         public string? Email { get; set; }
 
         [Phone]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits and start with 0")]
         public string? PhoneNumber { get; set; }
         public string? CurrentPassword { get; set; }
     }
