@@ -135,7 +135,7 @@ namespace MTCS.Service.Services
                 new Claim(ClaimTypes.Email, driver.Email ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 
-                //add a default "Driver" role claim for authorization
+                //add a default "Driver" role claim
                 new Claim(ClaimTypes.Role, "Driver")
             };
 

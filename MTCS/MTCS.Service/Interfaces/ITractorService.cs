@@ -10,6 +10,7 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<TractorResponseDTO>> CreateTractor(CreateTractorDTO tractorDto, string userId);
         Task<ApiResponse<TractorBasicInfoResultDTO>> GetTractorsBasicInfo(
            PaginationParams paginationParams,
+           string searchKeyword = null,
            TractorStatus? status = null,
            bool? maintenanceDueSoon = null,
            bool? registrationExpiringSoon = null,

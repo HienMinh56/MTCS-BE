@@ -35,6 +35,7 @@ namespace MTCS.APIService.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTractorsBasicInfo(
              [FromQuery] PaginationParams paginationParams,
+             [FromQuery] string searchKeyword = null,
              [FromQuery] TractorStatus? status = null,
              [FromQuery] bool? maintenanceDueSoon = null,
              [FromQuery] bool? registrationExpiringSoon = null,
@@ -43,6 +44,7 @@ namespace MTCS.APIService.Controllers
         {
             var response = await _tractorService.GetTractorsBasicInfo(
                 paginationParams,
+                searchKeyword,
                 status,
                 maintenanceDueSoon,
                 registrationExpiringSoon,

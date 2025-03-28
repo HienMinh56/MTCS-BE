@@ -43,6 +43,7 @@ namespace MTCS.Data.Repository
 
         public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(
     PaginationParams paginationParams,
+    string searchKeyword = null,
     TractorStatus? status = null,
     bool? maintenanceDueSoon = null,
     bool? registrationExpiringSoon = null,
@@ -50,8 +51,15 @@ namespace MTCS.Data.Repository
     int? registrationExpiringDays = null)
         {
             var baseQuery = _context.Tractors
-                .AsNoTracking()
-                .Where(t => t.DeletedDate == null);
+                .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                searchKeyword = searchKeyword.Trim().ToLower();
+                baseQuery = baseQuery.Where(t =>
+                    t.LicensePlate.ToLower().Contains(searchKeyword)
+                );
+            }
 
             // Aggregate counts
             int allCount = await baseQuery.CountAsync();
