@@ -11,11 +11,8 @@ using System.Security.Claims;
 namespace MTCS.Service.Services
 {
     public interface IIncidentReportsService
-    {
-        Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId);
-        Task<IBusinessResult> GetIncidentReportsByTripId(string tripId);
-        Task<IBusinessResult> GetIncidentReportsByReportId(string reportId);
-        Task<IBusinessResult> GetAllIncidentReports();
+    {        
+        Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
@@ -51,80 +48,14 @@ namespace MTCS.Service.Services
             }
         }
 
-        /// <summary>
-        /// Get all incident reports by driver id
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
-        public async Task<IBusinessResult> GetIncidentReportsByDriverId(string driverId)
+        public async Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId)
         {
             try
             {
-                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByDriverId(driverId);
-                if (incidents == null)
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetAllIncidentReport(driverId, tripId, reportId);
+                if (incidents == null || !incidents.Any())
                 {
-                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
-                }
-                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
-            }
-            catch (Exception ex)
-            {
-                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Get all incident reports by trip id
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
-        public async Task<IBusinessResult> GetIncidentReportsByTripId(string tripId)
-        {
-            try
-            {
-                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByTripId(tripId);
-                if (incidents == null)
-                {
-                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
-                }
-                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
-            }
-            catch (Exception ex)
-            {
-                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Get all incident reports by report id
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
-        public async Task<IBusinessResult> GetIncidentReportsByReportId(string reportId)
-        {
-            try
-            {
-                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(reportId);
-                if (incidents == null)
-                {
-                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
-                }
-                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
-            }
-            catch (Exception ex)
-            {
-                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
-            }
-        }
-
-        public async Task<IBusinessResult> GetAllIncidentReports()
-        {
-            try
-            {
-                var incidents = await _unitOfWork.IncidentReportsRepository.GetAllIncidentReport();
-                if (incidents == null)
-                {
-                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new List<IncidentReport>());
                 }
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
             }
@@ -159,7 +90,7 @@ namespace MTCS.Service.Services
                 ReportedBy = userName,
                 IncidentType = request.IncidentType,
                 Description = request.Description,
-                IncidentTime = request.IncidentTime,
+                IncidentTime = DateTime.Now,
                 Location = request.Location,
                 Type = request.Type,
                 Status = request.Status,
@@ -247,7 +178,6 @@ namespace MTCS.Service.Services
                 incident.ReportedBy = userName;
                 incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
                 incident.Description = request.Description is null ? incident.Description : request.Description;
-                incident.IncidentTime = request.IncidentTime != default ? request.IncidentTime : incident.IncidentTime;
                 incident.Location = request.Location is null ? incident.Location : request.Location;
                 incident.Type = request.Type is null ? incident.Type : request.Type;
                 incident.Status = request.Status is null ? incident.Status : request.Status;

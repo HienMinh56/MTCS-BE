@@ -10,35 +10,42 @@ namespace MTCS.Data.Request
 {
     public class UpdateIncidentReportRequest
     {
+        [Required(ErrorMessage = "ReportId is required.")]
+        [StringLength(50, ErrorMessage = "ReportId must not exceed 50 characters.")]
         public string ReportId { get; set; }
 
+        [Required(ErrorMessage = "TripId is required.")]
+        [StringLength(50, ErrorMessage = "TripId must not exceed 50 characters.")]
         public string TripId { get; set; }
 
-        public string ReportedBy { get; set; }
+        [StringLength(100, ErrorMessage = "IncidentType must not exceed 100 characters.")]
+        public string? IncidentType { get; set; }
 
-        public string IncidentType { get; set; }
+        [StringLength(1000, ErrorMessage = "Description must not exceed 1000 characters.")]
+        public string? Description { get; set; }
 
-        public string Description { get; set; }
+        [StringLength(200, ErrorMessage = "Location must not exceed 200 characters.")]
+        public string? Location { get; set; }
 
-        public DateTime IncidentTime { get; set; }
-
-        public string Location { get; set; }
-
+        [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
         public int? Type { get; set; }
 
-        [Required(ErrorMessage = "ImageType is required.")]
-        [MinLength(1, ErrorMessage = "At least one ImageType is required.")]
-        public List<int> ImageType { get; set; }
-        
-        public string ResolutionDetails { get; set; }
+        [Range(1, 3, ErrorMessage = "Type must be between 1 and 3.")]
+        public List<int>? ImageType { get; set; }
 
-        public string Status { get; set; }
+        [StringLength(1000, ErrorMessage = "ResolutionDetails must not exceed 1000 characters.")]
+        public string? ResolutionDetails { get; set; }
 
-        public string HandledBy { get; set; }
+        [RegularExpression("^(Handling|Resolved)$", ErrorMessage = "Status must be Handling or Resolved")]
+        public string? Status { get; set; }
 
+        [StringLength(100, ErrorMessage = "HandledBy must not exceed 100 characters.")]
+        public string? HandledBy { get; set; }
+
+        [DataType(DataType.DateTime, ErrorMessage = "Invalid date format.")]
         public DateTime? HandledTime { get; set; }
 
-        public List<string> RemovedImage { get; set; } = [];
+        public List<string>? RemovedImage { get; set; } = [];
 
         public IFormFileCollection? AddedImage { get; set; } = null;
     }
