@@ -90,7 +90,7 @@ namespace MTCS.Service.Services
                 ReportedBy = userName,
                 IncidentType = request.IncidentType,
                 Description = request.Description,
-                IncidentTime = request.IncidentTime,
+                IncidentTime = DateTime.Now,
                 Location = request.Location,
                 Type = request.Type,
                 Status = request.Status,
@@ -178,7 +178,6 @@ namespace MTCS.Service.Services
                 incident.ReportedBy = userName;
                 incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
                 incident.Description = request.Description is null ? incident.Description : request.Description;
-                incident.IncidentTime = request.IncidentTime != default ? request.IncidentTime : incident.IncidentTime;
                 incident.Location = request.Location is null ? incident.Location : request.Location;
                 incident.Type = request.Type is null ? incident.Type : request.Type;
                 incident.Status = request.Status is null ? incident.Status : request.Status;

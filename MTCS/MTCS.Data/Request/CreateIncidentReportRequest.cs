@@ -21,9 +21,6 @@ namespace MTCS.Data.Request
         [StringLength(500, ErrorMessage = "Description must not exceed 500 characters.")]
         public string? Description { get; set; }
 
-        [DataType(DataType.DateTime, ErrorMessage = "Invalid date format.")]
-        public DateTime IncidentTime { get; set; }
-
         [StringLength(200, ErrorMessage = "Location must not exceed 200 characters.")]
         public string? Location { get; set; }
 
