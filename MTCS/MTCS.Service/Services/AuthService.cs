@@ -90,6 +90,17 @@ namespace MTCS.Service.Services
             return new ApiResponse<TokenDTO>(true, token, "Login successful", "Login thành công", null);
         }
 
+        public async Task<ApiResponse<ProfileResponseDTO>> GetUserProfile(string userId)
+        {
+            var profile = await _unitOfWork.InternalUserRepository.GetUserProfile(userId);
+            if (profile == null)
+            {
+                return new ApiResponse<ProfileResponseDTO>(false, null, "User not found", "Không tìm thấy người dùng", null);
+            }
+
+            return new ApiResponse<ProfileResponseDTO>(true, profile, "Profile retrieved successfully", "Lấy thông tin hồ sơ thành công", null);
+        }
+
         public async Task<ApiResponse<ProfileResponseDTO>> UpdateInternalUserProfile(string userId, ProfileDTO profileDto)
         {
             var user = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(userId);
@@ -122,7 +133,10 @@ namespace MTCS.Service.Services
                         "This email is already in use");
                 }
                 user.Email = profileDto.Email;
+                user.ModifiedBy = userId;
             }
+            user.Gender = profileDto.Gender;
+            user.Birthday = profileDto.Birthday;
             user.ModifiedDate = DateTime.Now;
 
             await _unitOfWork.InternalUserRepository.UpdateAsync(user);
@@ -132,6 +146,7 @@ namespace MTCS.Service.Services
                 UserId = user.UserId,
                 FullName = user.FullName,
                 Email = user.Email,
+                Gender = user.Gender,
                 PhoneNumber = user.PhoneNumber,
                 ModifiedDate = user.ModifiedDate
             };

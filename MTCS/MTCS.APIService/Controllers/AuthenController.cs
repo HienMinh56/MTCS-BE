@@ -66,6 +66,20 @@ namespace MTCS.APIService.Controllers
             return Ok(result);
         }
 
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> GetProfile()
+        {
+            var userId = User.GetUserId();
+            var result = await _authService.GetUserProfile(userId);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
+        }
+
         [HttpPut("profile")]
         [Authorize]
         public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> UpdateProfile([FromBody] ProfileDTO profileDto)

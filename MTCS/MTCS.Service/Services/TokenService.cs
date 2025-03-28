@@ -144,7 +144,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.Now.AddMinutes(_accessExpiryMinutes),
+                expires: DateTime.Now.AddMonths(_accessExpiryMinutes),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -170,7 +170,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.Now.AddDays(_refreshExpiryDays),
+                expires: DateTime.Now.AddYears(_refreshExpiryDays),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );

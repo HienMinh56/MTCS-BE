@@ -74,7 +74,7 @@ namespace MTCS.Service.Services
 
         public async Task<ApiResponse<TractorBasicInfoResultDTO>> GetTractorsBasicInfo(
            PaginationParams paginationParams,
-           string searchKeyword = null,
+           string? searchKeyword = null,
            TractorStatus? status = null,
            bool? maintenanceDueSoon = null,
            bool? registrationExpiringSoon = null,

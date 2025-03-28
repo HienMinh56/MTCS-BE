@@ -35,7 +35,7 @@ namespace MTCS.APIService.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTractorsBasicInfo(
              [FromQuery] PaginationParams paginationParams,
-             [FromQuery] string searchKeyword = null,
+             [FromQuery] string? searchKeyword = null,
              [FromQuery] TractorStatus? status = null,
              [FromQuery] bool? maintenanceDueSoon = null,
              [FromQuery] bool? registrationExpiringSoon = null,
@@ -66,7 +66,7 @@ namespace MTCS.APIService.Controllers
             return Ok(response);
         }
 
-        [HttpPut("inactivate-tractor/{tractorId}")]
+        [HttpPut("deactivate-tractor/{tractorId}")]
         public async Task<IActionResult> InactivateTractor(string tractorId)
         {
             var userId = User.GetUserId();

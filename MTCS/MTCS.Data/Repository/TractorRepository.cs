@@ -43,7 +43,7 @@ namespace MTCS.Data.Repository
 
         public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(
     PaginationParams paginationParams,
-    string searchKeyword = null,
+    string? searchKeyword = null,
     TractorStatus? status = null,
     bool? maintenanceDueSoon = null,
     bool? registrationExpiringSoon = null,
