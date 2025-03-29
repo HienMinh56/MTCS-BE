@@ -67,7 +67,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPut("deactivate-tractor/{tractorId}")]
-        public async Task<IActionResult> InactivateTractor(string tractorId)
+        public async Task<IActionResult> DeactivateTractor(string tractorId)
         {
             var userId = User.GetUserId();
 

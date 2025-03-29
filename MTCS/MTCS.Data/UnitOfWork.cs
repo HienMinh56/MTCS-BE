@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 
@@ -23,12 +24,13 @@ namespace MTCS.Data
         private FuelReportFileRepository fuelReportFileRepository;
         private DeliveryReportRepository deliveryReportRepository;
         private DeliveryReportFileRepository deliveryReportFileRepository;
-        private OrderRepository orderRepository; 
-        private OrderFileRepository orderFileRepository; 
+        private OrderRepository orderRepository;
+        private OrderFileRepository orderFileRepository;
         private CustomerRepository customerRepository;
         private DeliveryStatusRepository deliveryStatusRepository;
         private TripStatusHistoryRepository tripStatusHistoryRepository;
         private PriceTableRepository priceTableRepository;
+        private VehicleHelper vehicleHelper;
 
         public UnitOfWork()
         {
@@ -189,6 +191,14 @@ namespace MTCS.Data
             get
             {
                 return priceTableRepository ??= new PriceTableRepository();
+            }
+        }
+
+        public VehicleHelper VehicleHelper
+        {
+            get
+            {
+                return vehicleHelper ??= new VehicleHelper(context);
             }
         }
 

@@ -55,5 +55,15 @@ namespace MTCS.Data.Repository
             return (activeTrips.Any(), activeTrips);
         }
 
+        public async Task<(bool IsInUse, List<Trip> ActiveTrips)> IsTrailerInUseStatusNow(string trailerId)
+        {
+            var activeTrips = await _context.Trips
+                .Where(t => t.TrailerId == trailerId &&
+                           t.Status != "completed" &&
+                           t.Status != "not_started")
+                .ToListAsync();
+
+            return (activeTrips.Any(), activeTrips);
+        }
     }
 }

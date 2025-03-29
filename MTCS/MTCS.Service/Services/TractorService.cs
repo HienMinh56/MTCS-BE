@@ -26,12 +26,21 @@ namespace MTCS.Service.Services
                     "Registration expiration date must be after registration date");
             }
 
-            if (await _unitOfWork.TractorRepository.LicensePlateExist(tractorDto.LicensePlate))
+            var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(tractorDto.LicensePlate);
+
+            if (exists)
             {
-                return new ApiResponse<TractorResponseDTO>(false, null, "Validation failed", "Biển số đã tồn tại",
-               "License plate already exists");
+                string vehicleTypeVN = _unitOfWork.VehicleHelper.GetVehicleTypeVN(vehicleType);
+
+                return new ApiResponse<TractorResponseDTO>(
+                    false,
+                    null,
+                    "Validation failed",
+                    $"Biển số đã được sử dụng bởi {vehicleTypeVN} {vehicleBrand} (ID: {vehicleId})",
+                    $"License plate already exists on {vehicleType} {vehicleBrand} (ID: {vehicleId})");
             }
-            var tractorId = await _unitOfWork.TractorRepository.GenerateTractorId();
+
+            var tractorId = await _unitOfWork.VehicleHelper.GenerateTractorId();
 
             var createTractor = new Tractor
             {

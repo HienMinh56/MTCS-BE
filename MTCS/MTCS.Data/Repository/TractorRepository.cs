@@ -19,13 +19,6 @@ namespace MTCS.Data.Repository
                 .FirstOrDefaultAsync(t => t.TractorId == tractorId);
         }
 
-        public async Task<bool> LicensePlateExist(string licensePlate)
-        {
-            return await _context.Tractors
-                .AsNoTracking()
-                .AnyAsync(t => t.LicensePlate == licensePlate);
-        }
-
         public async Task<List<Tractor>> GetTractorsByContainerType(int containerType)
         {
             return await _context.Tractors
@@ -41,8 +34,7 @@ namespace MTCS.Data.Repository
         }
 
 
-        public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(
-    PaginationParams paginationParams,
+        public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(PaginationParams paginationParams,
     string? searchKeyword = null,
     TractorStatus? status = null,
     bool? maintenanceDueSoon = null,
@@ -193,28 +185,5 @@ namespace MTCS.Data.Repository
             };
         }
 
-        public async Task<string> GenerateTractorId()
-        {
-            const string prefix = "TRC";
-
-            var highestId = await _context.Tractors
-                .Where(t => t.TractorId.StartsWith(prefix))
-                .Select(t => t.TractorId)
-                .OrderByDescending(id => id)
-                .FirstOrDefaultAsync();
-
-            int nextNumber = 1;
-
-            if (!string.IsNullOrEmpty(highestId) && highestId.Length > prefix.Length)
-            {
-                var numericPart = highestId.Substring(prefix.Length);
-                if (int.TryParse(numericPart, out int currentNumber))
-                {
-                    nextNumber = currentNumber + 1;
-                }
-            }
-
-            return $"{prefix}{nextNumber:D3}";
-        }
     }
 }
