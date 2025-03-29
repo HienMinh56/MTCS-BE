@@ -75,14 +75,8 @@ namespace MTCS.Service.Services
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-            var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByTripId(request.TripId);
-            var Id = incidents.Count + 1;
-            if (_unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == $"{Const.INCIDENTREPORT}{Id.ToString("D6")}") is not null)
-            {
-                Id = await _unitOfWork.IncidentReportsRepository.FindEmptyPositionWithBinarySearch(incidents, 1, Id, Const.INCIDENTREPORT, Const.INCIDENTREPORT_INDEX);
-            }
+            var reportId = await _unitOfWork.IncidentReportsRepository.GetNextIncidentCodeAsync();
 
-            var reportId = $"{Const.INCIDENTREPORT}{Id.ToString("D6")}";
             await _unitOfWork.IncidentReportsRepository.CreateAsync(new IncidentReport
             {
                 ReportId = reportId,

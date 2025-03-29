@@ -41,6 +41,14 @@ namespace MTCS.Data.Repository
             return await query.ToListAsync();
         }
 
+
+        public async Task<string> GetNextIncidentCodeAsync()
+        {
+            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+            return $"INC{timestamp}";
+        }
+
         /// <summary>
         /// Get incident reports by trip id
         /// </summary>
@@ -48,12 +56,14 @@ namespace MTCS.Data.Repository
         /// <returns></returns>
         public async Task<List<IncidentReport>> GetIncidentReportsByTripId(string tripId)
         {
-            return await _context.IncidentReports.Where(i => i.TripId == tripId)
-                                                 .Include(i => i.IncidentReportsFiles)
-                                                 .OrderBy(i => i.ReportId)
-                                                 .AsNoTracking()
-                                                 .ToListAsync();
+            return await _context.IncidentReports
+                                 .Where(i => i.TripId == tripId)
+                                 .Include(i => i.IncidentReportsFiles)
+                                 .OrderBy(i => i.ReportId)
+                                 .AsNoTracking()
+                                 .ToListAsync();
         }
+
 
         /// <summary>
         /// Get images by report id
@@ -65,6 +75,7 @@ namespace MTCS.Data.Repository
             return await _context.IncidentReports
                                  .Where(i => i.ReportId == reportId)
                                  .Include(i => i.IncidentReportsFiles)
+                                 .AsNoTracking()
                                  .SingleOrDefaultAsync();
         }
 
