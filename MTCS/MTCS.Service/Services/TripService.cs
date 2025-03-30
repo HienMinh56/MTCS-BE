@@ -52,6 +52,11 @@ namespace MTCS.Service.Services
 
                 var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
                 var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
+                var beingReport = _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
+                if (beingReport != null)
+                {
+                    return new BusinessResult(400, "Cannot update status as there is an incident report being handled");
+                }
 
                 if (trip == null)
                 {
