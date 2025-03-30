@@ -1,5 +1,6 @@
 ﻿using Google.Cloud.Firestore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
@@ -15,6 +16,8 @@ namespace MTCS.Service.Services
         Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
+        Task<IBusinessResult> AddBillIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
+        Task<IBusinessResult> AddExchangeShipIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
     }
@@ -32,6 +35,7 @@ namespace MTCS.Service.Services
             _notification = notification;
         }
 
+        #region GetFileTypeFromExtension
         // Helper method to determine file type from extension
         private string GetFileTypeFromExtension(string extension)
         {
@@ -47,7 +51,9 @@ namespace MTCS.Service.Services
                     return "Unknown";
             }
         }
+        #endregion
 
+        #region Get Incident Report
         public async Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId)
         {
             try
@@ -64,7 +70,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+        #endregion
 
+        #region Create Incident Report with Incident Image
         /// <summary>
         /// Create incident report for a trip
         /// </summary>
@@ -100,8 +108,7 @@ namespace MTCS.Service.Services
                     int iId = 1;
                     for (int i = 0; i < request.Image.Count; i++)
                     {
-                        var image = request.Image[i];
-                        var imageType = request.ImageType[i];
+                        var image = request.Image[i];                        
                         var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
                         images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
                         iId = images.Count + 1;
@@ -120,7 +127,7 @@ namespace MTCS.Service.Services
                             FileUrl = await _firebaseStorageService.UploadImageAsync(image),
                             UploadDate = DateTime.Now,
                             UploadBy = userName,
-                            Type = imageType // Set the ImageType
+                            Type = 1 // Incident Image
                         });
                     }
                 }
@@ -150,8 +157,111 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, result);
             }
         }
+        #endregion
 
+        #region Add Bill Image for Incident Report
+        public async Task<IBusinessResult> AddBillIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims)
+        {
+            var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
+            string FileId;
+            List<IncidentReportsFile> images;
+            int iId = 1;
+            for (int i = 0; i < request.Image.Count; i++)
+            {
+                var image = request.Image[i];
+                var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
+                iId = images.Count + 1;
+                if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}") is not null)
+                {
+                    iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
+                }
+
+                FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
+                {
+                    FileId = FileId,
+                    ReportId = request.ReportId,
+                    FileName = Path.GetFileName(image.FileName),
+                    FileType = GetFileTypeFromExtension(FileExtension),
+                    FileUrl = await _firebaseStorageService.UploadImageAsync(image),
+                    UploadDate = DateTime.Now,
+                    UploadBy = userName,
+                    Type = 2 // Bill Image
+                });
+            }
+
+            var result = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(request.ReportId);
+            if (result is null)
+            {
+                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
+            }
+
+            if (result is not null)
+            {                
+                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
+            }
+            else
+            {
+                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, result);
+            }
+        }
+        #endregion
+
+        #region Add Exchange Image for Incident Report
+        public async Task<IBusinessResult> AddExchangeShipIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims)
+        {
+            var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
+            string FileId;
+            List<IncidentReportsFile> images;
+            int iId = 1;
+            for (int i = 0; i < request.Image.Count; i++)
+            {
+                var image = request.Image[i];
+                var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
+                iId = images.Count + 1;
+                if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}") is not null)
+                {
+                    iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
+                }
+
+                FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
+                {
+                    FileId = FileId,
+                    ReportId = request.ReportId,
+                    FileName = Path.GetFileName(image.FileName),
+                    FileType = GetFileTypeFromExtension(FileExtension),
+                    FileUrl = await _firebaseStorageService.UploadImageAsync(image),
+                    UploadDate = DateTime.Now,
+                    UploadBy = userName,
+                    Type = 3 // Bill Image
+                });
+            }
+
+            var result = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(request.ReportId);
+            if (result is null)
+            {
+                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
+            }
+
+            if (result is not null)
+            {
+                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
+            }
+            else
+            {
+                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, result);
+            }
+        }
+        #endregion
+
+        #region Update Incident Report
         /// <summary>
         /// Update incident report for a trip
         /// </summary>
@@ -243,7 +353,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
             }
         }
+        #endregion
 
+        #region Add Image Detail Report
         public async Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims)
         {
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -275,7 +387,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+        #endregion
 
+        #region Delete Incident Report
         /// <summary>
         /// Delete incident report by report id
         /// </summary>
@@ -310,5 +424,6 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+        #endregion
     }
 }
