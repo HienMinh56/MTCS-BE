@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
+using MTCS.Data.DTOs;
 using MTCS.Data.Models;
 
 namespace MTCS.Data.Repository
@@ -29,6 +30,25 @@ namespace MTCS.Data.Repository
         {
             var order = await _context.Orders.FirstOrDefaultAsync(o => o.OrderId == orderId);
             return order?.CreatedBy;
+        }
+
+        public async Task<ProfileResponseDTO?> GetUserProfile(string userId)
+        {
+            var profile = await _context.InternalUsers
+                .Where(p => p.UserId == userId && p.DeletedBy == null)
+                .Select(p => new ProfileResponseDTO
+                {
+                    UserId = p.UserId,
+                    FullName = p.FullName,
+                    Email = p.Email,
+                    PhoneNumber = p.PhoneNumber,
+                    Gender = p.Gender,
+                    Birthday = p.Birthday,
+                    CreatedDate = p.CreatedDate,
+                })
+                .FirstOrDefaultAsync();
+
+            return profile;
         }
     }
 }

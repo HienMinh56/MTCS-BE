@@ -74,6 +74,8 @@ namespace MTCS.Data.DTOs
         [Phone]
         [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits and start with 0")]
         public string? PhoneNumber { get; set; }
+        public DateOnly? Birthday { get; set; }
+        public string? Gender { get; set; }
         public string? CurrentPassword { get; set; }
     }
 
@@ -83,6 +85,9 @@ namespace MTCS.Data.DTOs
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
         public string PhoneNumber { get; set; } = null!;
+        public string Gender { get; set; } = null!;
+        public DateOnly? Birthday { get; set; }
+        public DateTime? CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
     }
 }

@@ -4,20 +4,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MTCS.Data.DTOs
 {
-    public class CategoryCreateDTO
-    {
-        [Required]
-        public required string CategoryId { get; set; }
-
-        [Required(ErrorMessage = "Name is required")]
-        [StringLength(30, MinimumLength = 2)]
-        public required string CategoryName { get; set; }
-    }
-
     public class CreateTractorDTO
     {
         [Required(ErrorMessage = "License plate is required")]
-        [StringLength(10, MinimumLength = 8, ErrorMessage = "License plate must be between 9 and 10 characters")]
+        [StringLength(10, MinimumLength = 8, ErrorMessage = "License plate must be between 8 and 10 characters")]
         public required string LicensePlate { get; set; }
 
         [Required(ErrorMessage = "Brand is required")]

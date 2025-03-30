@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Models;
+using System.Security.Claims;
 
 namespace MTCS.Data.Helpers
 {
@@ -36,6 +37,16 @@ namespace MTCS.Data.Helpers
             if (!string.IsNullOrEmpty(deletedBy)) userIds.Add(deletedBy);
 
             return userIds.Distinct().ToList();
+        }
+
+        public static string GetUserId(this ClaimsPrincipal principal)
+        {
+            var claim = principal.FindFirst(ClaimTypes.NameIdentifier);
+            if (claim == null || string.IsNullOrEmpty(claim.Value))
+            {
+                throw new InvalidOperationException("UserId not found in token");
+            }
+            return claim.Value;
         }
     }
 }

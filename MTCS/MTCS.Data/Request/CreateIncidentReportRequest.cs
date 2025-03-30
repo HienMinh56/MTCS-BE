@@ -21,16 +21,12 @@ namespace MTCS.Data.Request
         [StringLength(500, ErrorMessage = "Description must not exceed 500 characters.")]
         public string? Description { get; set; }
 
-        [DataType(DataType.DateTime, ErrorMessage = "Invalid date format.")]
-        public DateTime IncidentTime { get; set; }
-
         [StringLength(200, ErrorMessage = "Location must not exceed 200 characters.")]
         public string? Location { get; set; }
 
         [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
         public int? Type { get; set; }
 
-        [Range(1, 3, ErrorMessage = "Type must be between 1 and 3.")]
         public List<int>? ImageType { get; set; }
 
         [RegularExpression("^(Handling|Resolved)$", ErrorMessage = "Status must be Handling or Resolved")]

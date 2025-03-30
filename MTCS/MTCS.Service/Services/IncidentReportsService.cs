@@ -75,14 +75,8 @@ namespace MTCS.Service.Services
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-            var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentReportsByTripId(request.TripId);
-            var Id = incidents.Count + 1;
-            if (_unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == $"{Const.INCIDENTREPORT}{Id.ToString("D6")}") is not null)
-            {
-                Id = await _unitOfWork.IncidentReportsRepository.FindEmptyPositionWithBinarySearch(incidents, 1, Id, Const.INCIDENTREPORT, Const.INCIDENTREPORT_INDEX);
-            }
+            var reportId = await _unitOfWork.IncidentReportsRepository.GetNextIncidentCodeAsync();
 
-            var reportId = $"{Const.INCIDENTREPORT}{Id.ToString("D6")}";
             await _unitOfWork.IncidentReportsRepository.CreateAsync(new IncidentReport
             {
                 ReportId = reportId,
@@ -90,7 +84,7 @@ namespace MTCS.Service.Services
                 ReportedBy = userName,
                 IncidentType = request.IncidentType,
                 Description = request.Description,
-                IncidentTime = request.IncidentTime,
+                IncidentTime = DateTime.Now,
                 Location = request.Location,
                 Type = request.Type,
                 Status = request.Status,
@@ -178,7 +172,6 @@ namespace MTCS.Service.Services
                 incident.ReportedBy = userName;
                 incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
                 incident.Description = request.Description is null ? incident.Description : request.Description;
-                incident.IncidentTime = request.IncidentTime != default ? request.IncidentTime : incident.IncidentTime;
                 incident.Location = request.Location is null ? incident.Location : request.Location;
                 incident.Type = request.Type is null ? incident.Type : request.Type;
                 incident.Status = request.Status is null ? incident.Status : request.Status;

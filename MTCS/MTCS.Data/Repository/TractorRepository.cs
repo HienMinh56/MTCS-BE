@@ -19,13 +19,6 @@ namespace MTCS.Data.Repository
                 .FirstOrDefaultAsync(t => t.TractorId == tractorId);
         }
 
-        public async Task<bool> LicensePlateExist(string licensePlate)
-        {
-            return await _context.Tractors
-                .AsNoTracking()
-                .AnyAsync(t => t.LicensePlate == licensePlate);
-        }
-
         public async Task<List<Tractor>> GetTractorsByContainerType(int containerType)
         {
             return await _context.Tractors
@@ -40,8 +33,9 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
-        public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(
-    PaginationParams paginationParams,
+
+        public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(PaginationParams paginationParams,
+    string? searchKeyword = null,
     TractorStatus? status = null,
     bool? maintenanceDueSoon = null,
     bool? registrationExpiringSoon = null,
@@ -49,8 +43,15 @@ namespace MTCS.Data.Repository
     int? registrationExpiringDays = null)
         {
             var baseQuery = _context.Tractors
-                .AsNoTracking()
-                .Where(t => t.DeletedDate == null);
+                .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                searchKeyword = searchKeyword.Trim().ToLower();
+                baseQuery = baseQuery.Where(t =>
+                    t.LicensePlate.ToLower().Contains(searchKeyword)
+                );
+            }
 
             // Aggregate counts
             int allCount = await baseQuery.CountAsync();
@@ -183,5 +184,6 @@ namespace MTCS.Data.Repository
                 DeletedBy = users.TryGetValue(tractor.DeletedBy ?? "", out var deletedBy) ? deletedBy : null
             };
         }
+
     }
 }

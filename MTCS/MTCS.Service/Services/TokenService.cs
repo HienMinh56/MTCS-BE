@@ -135,7 +135,7 @@ namespace MTCS.Service.Services
                 new Claim(ClaimTypes.Email, driver.Email ?? ""),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
 
-                //add a default "Driver" role claim for authorization
+                //add a default "Driver" role claim
                 new Claim(ClaimTypes.Role, "Driver")
             };
 
@@ -144,7 +144,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.Now.AddMinutes(_accessExpiryMinutes),
+                expires: DateTime.Now.AddMonths(_accessExpiryMinutes),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
@@ -170,7 +170,7 @@ namespace MTCS.Service.Services
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
-                expires: DateTime.Now.AddDays(_refreshExpiryDays),
+                expires: DateTime.Now.AddYears(_refreshExpiryDays),
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );

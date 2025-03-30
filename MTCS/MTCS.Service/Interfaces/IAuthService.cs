@@ -9,6 +9,7 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<string>> RegisterAdmin(RegisterUserDTO userDto);
         Task<ApiResponse<TokenDTO>> LoginInternalUser(LoginRequestDTO loginDto);
         Task<ApiResponse<TokenDTO>> LoginDriver(LoginRequestDTO loginDto);
+        Task<ApiResponse<ProfileResponseDTO>> GetUserProfile(string userId);
         Task<ApiResponse<ProfileResponseDTO>> UpdateInternalUserProfile(string userId, ProfileDTO profileDto);
     }
 }
