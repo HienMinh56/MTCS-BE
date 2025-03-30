@@ -132,6 +132,8 @@ namespace MTCS.Service.Services
             }
 
             var result = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(reportId);
+            var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(request.TripId);
+            var owner = order.CreatedBy;
             if (result is null)
             {
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
@@ -140,7 +142,7 @@ namespace MTCS.Service.Services
             if (result is not null)
             {
                 // Gửi thông báo sau khi tạo thành công
-                await _notification.SendNotificationAsync(result.ReportedBy, "Incident Report Created", $"New Incident Report Created from {result.ReportedBy}.", result.ReportedBy);
+                await _notification.SendNotificationAsync(owner, "Incident Report Created", $"New Incident Report Created from {result.ReportedBy}.", result.ReportedBy);
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
             }
             else
@@ -228,11 +230,12 @@ namespace MTCS.Service.Services
 
             var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
             var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-
+            var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
+            var owner = order.CreatedBy;
             if (result > 0)
             {
                 // Gửi thông báo sau khi cập nhật thành công
-                await _notification.SendNotificationAsync(data.ReportedBy, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
+                await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
             }
             else
