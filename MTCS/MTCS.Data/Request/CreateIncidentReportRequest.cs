@@ -27,8 +27,6 @@ namespace MTCS.Data.Request
         [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
         public int? Type { get; set; }
 
-        public List<int>? ImageType { get; set; }
-
         [RegularExpression("^(Handling|Resolved)$", ErrorMessage = "Status must be Handling or Resolved")]
         public string? Status { get; set; }
 
