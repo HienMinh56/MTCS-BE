@@ -12,13 +12,14 @@ using System.Security.Claims;
 namespace MTCS.Service.Services
 {
     public interface IIncidentReportsService
-    {        
+    {
         Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddBillIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddExchangeShipIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
+        Task<IBusinessResult> ResolvedReport(string reportId, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
     }
 
@@ -108,7 +109,7 @@ namespace MTCS.Service.Services
                     int iId = 1;
                     for (int i = 0; i < request.Image.Count; i++)
                     {
-                        var image = request.Image[i];                        
+                        var image = request.Image[i];
                         var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
                         images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
                         iId = images.Count + 1;
@@ -200,7 +201,7 @@ namespace MTCS.Service.Services
             }
 
             if (result is not null)
-            {                
+            {
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
             }
             else
@@ -424,6 +425,35 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
-        #endregion
+
+        public async Task<IBusinessResult> ResolvedReport(string reportId, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == reportId);
+                if (incident == null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
+                else
+                {
+                    incident.Status = "Resolved";
+                    incident.HandledBy = userName;
+                    incident.HandledTime = DateTime.Now;
+                    var result = _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+                    if (result.Result > 0)
+                        return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, incident);
+                    else
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+            }
+            #endregion
+        }
     }
 }

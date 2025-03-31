@@ -14,7 +14,7 @@ namespace MTCS.Data.Request
         [StringLength(50, ErrorMessage = "ReportId must not exceed 50 characters.")]
         public string ReportId { get; set; }
 
-        public int? ImageType { get; set; }
+        //public int? ImageType { get; set; }
 
         [MaxLength(5, ErrorMessage = "A maximum of 5 images are allowed.")]
         public IFormFileCollection? Image { get; set; }
