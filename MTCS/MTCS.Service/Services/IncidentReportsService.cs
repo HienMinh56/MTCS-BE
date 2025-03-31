@@ -480,16 +480,16 @@ namespace MTCS.Service.Services
                     incident.Type = updateIncidentReportMO.Type is null ? incident.Type : updateIncidentReportMO.Type;
                 }
 
-                // Xử lý xóa ảnh bị loại bỏ
-                if (updateIncidentReportMO.RemovedImage is not [])
+                
+
+                if (updateIncidentReportMO.RemovedImage != null && updateIncidentReportMO.RemovedImage.Count > 0)
                 {
-                    IncidentReportsFile? image;
-                    foreach (var url in updateIncidentReportMO.RemovedImage)
+                    foreach (var fileId in updateIncidentReportMO.RemovedImage)
                     {
-                        if ((image = await _unitOfWork.IncidentReportsFileRepository.GetImageByUrl(url)) is not null && image.ReportId == incident.ReportId)
+                        var file = _unitOfWork.IncidentReportsFileRepository.Get(f => f.FileId == fileId);
+                        if (file != null)
                         {
-                            await _firebaseStorageService.DeleteImageAsync(_firebaseStorageService.ExtractImageNameFromUrl(url));
-                            await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(image);
+                            await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(file);
                         }
                     }
                 }
@@ -510,7 +510,7 @@ namespace MTCS.Service.Services
                         {
                             id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                         }
-                        FileId = $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}";
+                        FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                         await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                         {
                             FileId = FileId,
