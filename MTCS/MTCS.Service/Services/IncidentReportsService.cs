@@ -19,7 +19,8 @@ namespace MTCS.Service.Services
         Task<IBusinessResult> AddBillIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddExchangeShipIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
-        Task<IBusinessResult> ResolvedReport(string reportId, ClaimsPrincipal claims);
+        Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims);
+        Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
     }
 
@@ -426,13 +427,13 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<IBusinessResult> ResolvedReport(string reportId, ClaimsPrincipal claims)
+        public async Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims)
         {
             try
             {
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-                var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == reportId);
+                var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == incidentReportRequest.reportId);
                 if (incident == null)
                 {
                     return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
@@ -440,6 +441,7 @@ namespace MTCS.Service.Services
                 else
                 {
                     incident.Status = "Resolved";
+                    incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
                     incident.HandledBy = userName;
                     incident.HandledTime = DateTime.Now;
                     var result = _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
@@ -454,6 +456,94 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
             #endregion
+        }
+
+        public async Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
+                var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(updateIncidentReportMO.ReportId);
+                if (incident is null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
+                else
+                {
+                    incident.ReportId = updateIncidentReportMO.ReportId is null ? incident.ReportId : updateIncidentReportMO.ReportId;
+                    incident.ReportedBy = userName;
+                    incident.IncidentType = updateIncidentReportMO.IncidentType is null ? incident.IncidentType : updateIncidentReportMO.IncidentType;
+                    incident.Description = updateIncidentReportMO.Description is null ? incident.Description : updateIncidentReportMO.Description;
+                    incident.Location = updateIncidentReportMO.Location is null ? incident.Location : updateIncidentReportMO.Location;
+                    incident.Type = updateIncidentReportMO.Type is null ? incident.Type : updateIncidentReportMO.Type;
+                }
+
+                // Xử lý xóa ảnh bị loại bỏ
+                if (updateIncidentReportMO.RemovedImage is not [])
+                {
+                    IncidentReportsFile? image;
+                    foreach (var url in updateIncidentReportMO.RemovedImage)
+                    {
+                        if ((image = await _unitOfWork.IncidentReportsFileRepository.GetImageByUrl(url)) is not null && image.ReportId == incident.ReportId)
+                        {
+                            await _firebaseStorageService.DeleteImageAsync(_firebaseStorageService.ExtractImageNameFromUrl(url));
+                            await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(image);
+                        }
+                    }
+                }
+
+                // Xử lý thêm ảnh mới
+                if (updateIncidentReportMO.AddedImage is not null)
+                {
+                    string FileId;
+                    List<IncidentReportsFile> images;
+                    int id;
+                    for (int i = 0; i < updateIncidentReportMO.AddedImage.Count; i++)
+                    {
+                        var image = updateIncidentReportMO.AddedImage[i];
+                        var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                        images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
+                        id = images.Count + 1;
+                        if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}") is not null)
+                        {
+                            id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
+                        }
+                        FileId = $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}";
+                        await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
+                        {
+                            FileId = FileId,
+                            ReportId = incident.ReportId,
+                            FileName = Path.GetFileName(image.FileName),
+                            FileType = GetFileTypeFromExtension(FileExtension),
+                            FileUrl = await _firebaseStorageService.UploadImageAsync(image),
+                            UploadDate = DateTime.Now,
+                            UploadBy = userName,
+                            Type = 1 // Set the ImageType
+                        });
+                    }
+                }
+
+                var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+                var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
+                var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
+                var owner = order.CreatedBy;
+                if (result > 0)
+                {
+                    // Gửi thông báo sau khi cập nhật thành công
+                    await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
+                    return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
+                }
+                else
+                {
+                    return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+            }
         }
     }
 }
