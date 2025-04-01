@@ -2,7 +2,6 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace MTCS.Data.Models;
 
@@ -19,7 +18,6 @@ public partial class DeliveryReport
     public string ReportBy { get; set; }
 
     public virtual ICollection<DeliveryReportsFile> DeliveryReportsFiles { get; set; } = new List<DeliveryReportsFile>();
-    [JsonIgnore]
 
     public virtual Trip Trip { get; set; }
 }

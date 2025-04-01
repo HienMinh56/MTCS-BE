@@ -24,11 +24,27 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
-        [HttpPost]
+        [HttpPost("IncidentImage")]
         public async Task<IBusinessResult> CreateIncidentReport([FromForm] CreateIncidentReportRequest request)
         {
             var currentUser = HttpContext.User;
             var result = await _incidentReportsService.CreateIncidentReport(request, currentUser);
+            return result;
+        }
+
+        [HttpPost("BillImage")]
+        public async Task<IBusinessResult> AddBillIncidentReport([FromForm] AddIncidentReportImageRequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.AddBillIncidentReport(request, currentUser);
+            return result;
+        }
+
+        [HttpPost("ExchangeImage")]
+        public async Task<IBusinessResult> AddExchangeShipIncidentReport([FromForm] AddIncidentReportImageRequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.AddExchangeShipIncidentReport(request, currentUser);
             return result;
         }
 
@@ -45,6 +61,22 @@ namespace MTCS.APIService.Controllers
         {
             var currentUser = HttpContext.User;
             var result = await _incidentReportsService.UpdateIncidentReportFileInfo(request, currentUser);
+            return result;
+        }
+
+        [HttpPatch]
+        public async Task<IBusinessResult> UpdateIncidentReportStatus(ResolvedIncidentReportRequest incidentReportRequest)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.ResolvedReport(incidentReportRequest, currentUser);
+            return result;
+        }
+
+        [HttpPut("mo")]
+        public async Task<IBusinessResult> UpdateIncidentReportMO([FromForm]UpdateIncidentReportMORequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.UpdateIncidentReportMO(request, currentUser);
             return result;
         }
 

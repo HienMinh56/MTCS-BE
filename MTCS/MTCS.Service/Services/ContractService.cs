@@ -161,7 +161,7 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var contracts = await _unitOfWork.ContractRepository.GetAllAsync();
+                var contracts = await _unitOfWork.ContractRepository.GetContractsAsync();
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contracts);
             }
             catch

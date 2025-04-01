@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Request;
@@ -73,7 +74,7 @@ namespace MTCS.Service.Services
                     throw new KeyNotFoundException("Không tìm thấy khách hàng với CompanyName đã nhập.");
                 }
 
-                if (orderRequest.ContainerType != 20 && orderRequest.ContainerType != 40)
+                if (orderRequest.ContainerType != (int)ContainerSize.Feet20 && orderRequest.ContainerType != (int)ContainerSize.Feet40)
                 {
                     throw new ArgumentException("ContainerType chỉ được nhập 20 hoặc 40.");
                 }
@@ -159,18 +160,19 @@ namespace MTCS.Service.Services
 
         #region Get Orders
         public async Task<BusinessResult> GetOrders(
-            string? orderId = null,
-            string? tripId = null,
-            string? customerId = null,
-            int? containerType = null,
-            string? containerNumber = null,
-            string? trackingCode = null,
-            string? status = null,
-            DateOnly? pickUpDate = null,
-            DateOnly? deliveryDate = null)
+    string? orderId = null,
+    string? tripId = null,
+    string? customerId = null,
+    int? containerType = null,
+    string? containerNumber = null,
+    string? trackingCode = null,
+    string? status = null,
+    DateOnly? pickUpDate = null,
+    DateOnly? deliveryDate = null)
         {
             try
             {
+
                 var query = _unitOfWork.OrderRepository.GetQueryable();
 
                 if (!string.IsNullOrEmpty(orderId))
@@ -205,9 +207,9 @@ namespace MTCS.Service.Services
 
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, orders);
             }
-            catch
+            catch (Exception ex)
             {
-                return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+                return new BusinessResult(Const.FAIL_READ_CODE, ex.Message);
             }
         }
         #endregion

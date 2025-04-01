@@ -8,96 +8,188 @@ using MTCS.Service.Interfaces;
 
 namespace MTCS.Service.Services
 {
-    //public class TrailerService : ITrailerService
-    //{
-    //    private readonly UnitOfWork _unitOfWork;
+    public class TrailerService : ITrailerService
+    {
+        private readonly UnitOfWork _unitOfWork;
 
-    //    public TrailerService(UnitOfWork unitOfWork)
-    //    {
-    //        _unitOfWork = unitOfWork;
-    //    }
+        public TrailerService(UnitOfWork unitOfWork)
+        {
+            _unitOfWork = unitOfWork;
+        }
 
-    //    public async Task<ApiResponse<TrailerCategory>> CreateTrailerCategory(CategoryCreateDTO categoryDto)
-    //    {
-    //        var existingCategories = await _unitOfWork.TrailerRepository.GetAllTrailerCategories();
+        public async Task<ApiResponse<TrailerResponseDTO>> CreateTrailer(CreateTrailerDTO trailerDto, string userId)
+        {
+            if (trailerDto.RegistrationExpirationDate <= trailerDto.RegistrationDate)
+            {
+                return new ApiResponse<TrailerResponseDTO>(false, null, "Validation failed",
+                    "Hạn đăng kiểm phải sau ngày đăng kiểm",
+                    "Registration expiration date must be after registration date");
+            }
 
-    //        if (existingCategories.Any(c => c.CategoryName.Equals(categoryDto.CategoryName.Trim(), StringComparison.OrdinalIgnoreCase)))
-    //        {
-    //            return new ApiResponse<TrailerCategory>(false, null, "Category already exists", "A category with this name already exists");
-    //        }
+            var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(trailerDto.LicensePlate);
 
-    //        string categoryId = await CategoryIDGenerator.GenerateTrailerCategoryId(_unitOfWork);
+            if (exists)
+            {
+                string vehicleTypeVN = _unitOfWork.VehicleHelper.GetVehicleTypeVN(vehicleType);
 
-    //        var createTrailerCategory = new TrailerCategory
-    //        {
-    //            TrailerCateId = categoryId,
-    //            CategoryName = categoryDto.CategoryName.Trim()
-    //        };
+                return new ApiResponse<TrailerResponseDTO>(
+                    false,
+                    null,
+                    "Validation failed",
+                    $"Biển số đã được sử dụng bởi {vehicleTypeVN} {vehicleBrand} (ID: {vehicleId})",
+                    $"License plate already exists on {vehicleType} {vehicleBrand} (ID: {vehicleId})");
+            }
 
-    //        await _unitOfWork.TrailerRepository.CreateTrailerCategory(createTrailerCategory);
-    //        return new ApiResponse<TrailerCategory>(true, createTrailerCategory, "Create trailer category successfully", null);
-    //    }
+            var trailerId = await _unitOfWork.VehicleHelper.GenerateTrailerId();
 
-    //    public async Task<ApiResponse<TrailerResponseDTO>> CreateTrailer(CreateTrailerDTO trailerDto, string userId)
-    //    {
-    //        if (trailerDto.RegistrationExpirationDate <= trailerDto.RegistrationDate)
-    //        {
-    //            return new ApiResponse<TrailerResponseDTO>(false, null, "Validation failed",
-    //                "Registration expiration date must be after registration date");
-    //        }
+            var createTrailer = new Trailer
+            {
+                TrailerId = trailerId,
+                LicensePlate = trailerDto.LicensePlate,
+                Brand = trailerDto.Brand,
+                ManufactureYear = trailerDto.ManufactureYear,
+                MaxLoadWeight = trailerDto.MaxLoadWeight,
+                LastMaintenanceDate = trailerDto.LastMaintenanceDate,
+                NextMaintenanceDate = trailerDto.NextMaintenanceDate,
+                RegistrationDate = trailerDto.RegistrationDate,
+                RegistrationExpirationDate = trailerDto.RegistrationExpirationDate,
+                ContainerSize = trailerDto.ContainerSize,
+                Status = TrailerStatus.Active.ToString(),
+                CreatedDate = DateTime.Now,
+                CreatedBy = userId,
+                DeletedDate = null,
+                DeletedBy = null
+            };
 
-    //        var category = await _unitOfWork.TrailerRepository.GetCategoryById(trailerDto.TrailerCateId);
-    //        if (category == null)
-    //        {
-    //            return new ApiResponse<TrailerResponseDTO>(false, null, "Invalid category",
-    //                "Trailer category does not exist");
-    //        }
+            await _unitOfWork.TrailerRepository.CreateAsync(createTrailer);
 
-    //        var createTrailer = new Trailer
-    //        {
-    //            TrailerId = Guid.NewGuid().ToString(),
-    //            LicensePlate = trailerDto.LicensePlate,
-    //            Brand = trailerDto.Brand,
-    //            Model = trailerDto.Model,
-    //            Length = trailerDto.Length,
-    //            ManufactureYear = trailerDto.ManufactureYear,
-    //            MaxLoadWeight = trailerDto.MaxLoadWeight,
-    //            LastMaintenanceDate = trailerDto.LastMaintenanceDate,
-    //            NextMaintenanceDate = trailerDto.NextMaintenanceDate,
-    //            RegistrationDate = trailerDto.RegistrationDate,
-    //            RegistrationExpirationDate = trailerDto.RegistrationExpirationDate,
-    //            TrailerCateId = trailerDto.TrailerCateId,
-    //            Status = VehicleStatus.Active.ToString(),
-    //            CreatedDate = DateTime.Now,
-    //            CreatedBy = userId,
-    //            DeletedDate = null,
-    //            DeletedBy = null
-    //        };
+            var responseDto = new TrailerResponseDTO
+            {
+                TrailerId = createTrailer.TrailerId,
+                LicensePlate = createTrailer.LicensePlate,
+                Brand = createTrailer.Brand,
+                ManufactureYear = createTrailer.ManufactureYear,
+                MaxLoadWeight = createTrailer.MaxLoadWeight,
+                LastMaintenanceDate = createTrailer.LastMaintenanceDate,
+                NextMaintenanceDate = createTrailer.NextMaintenanceDate,
+                RegistrationDate = createTrailer.RegistrationDate,
+                RegistrationExpirationDate = createTrailer.RegistrationExpirationDate,
+                Status = createTrailer.Status,
+                ContainerSize = (ContainerSize)createTrailer.ContainerSize.Value
+            };
 
-    //        await _unitOfWork.TrailerRepository.CreateAsync(createTrailer);
+            return new ApiResponse<TrailerResponseDTO>(true, responseDto, "Create trailer successfully", "Tạo rơ moóc thành công", null);
+        }
 
-    //        var responseDto = new TrailerResponseDTO
-    //        {
-    //            TrailerId = createTrailer.TrailerId,
-    //            LicensePlate = createTrailer.LicensePlate,
-    //            Brand = createTrailer.Brand,
-    //            Model = createTrailer.Model,
-    //            Length = createTrailer.Length,
-    //            ManufactureYear = createTrailer.ManufactureYear,
-    //            MaxLoadWeight = createTrailer.MaxLoadWeight,
-    //            LastMaintenanceDate = createTrailer.LastMaintenanceDate,
-    //            NextMaintenanceDate = createTrailer.NextMaintenanceDate,
-    //            RegistrationDate = createTrailer.RegistrationDate,
-    //            RegistrationExpirationDate = createTrailer.RegistrationExpirationDate,
-    //            Status = createTrailer.Status,
-    //            Category = new TrailerCategoryResponseDTO
-    //            {
-    //                TrailerCateId = category.TrailerCateId,
-    //                CategoryName = category.CategoryName
-    //            }
-    //        };
+        public async Task<ApiResponse<TrailerBasicInfoResultDTO>> GetTrailersBasicInfo(
+           PaginationParams paginationParams,
+           string? searchKeyword = null,
+           TrailerStatus? status = null,
+           bool? maintenanceDueSoon = null,
+           bool? registrationExpiringSoon = null,
+           int? maintenanceDueDays = null,
+           int? registrationExpiringDays = null)
+        {
+            var infoResult = await _unitOfWork.TrailerRepository.GetTrailersBasicInfo(
+                paginationParams,
+                searchKeyword,
+                status,
+                maintenanceDueSoon,
+                registrationExpiringSoon,
+                maintenanceDueDays,
+                registrationExpiringDays);
 
-    //        return new ApiResponse<TrailerResponseDTO>(true, responseDto, "Create trailer successfully", null);
-    //    }
-    //}
+            if (infoResult.Trailers.TotalCount == 0)
+            {
+                return new ApiResponse<TrailerBasicInfoResultDTO>(
+                    true,
+                    infoResult,
+                    "No trailers found",
+                    "Không tìm thấy rơ moóc",
+                    null);
+            }
+
+            return new ApiResponse<TrailerBasicInfoResultDTO>(
+                true,
+                infoResult,
+                $"Retrieved {infoResult.Trailers.Items.Count} trailers of {infoResult.Trailers.TotalCount} total (page {infoResult.Trailers.CurrentPage} of {infoResult.Trailers.TotalPages})",
+                null,
+                null);
+        }
+
+        public async Task<ApiResponse<TrailerDetailsDTO>> GetTrailerDetail(string trailerId)
+        {
+            if (string.IsNullOrEmpty(trailerId))
+            {
+                return new ApiResponse<TrailerDetailsDTO>(
+                    false,
+                    null,
+                    "Invalid trailer ID",
+                    "Mã rơ moóc không hợp lệ",
+                    "Trailer ID cannot be empty");
+            }
+
+            var trailer = await _unitOfWork.TrailerRepository.GetTrailerDetailsById(trailerId);
+
+            if (trailer == null)
+            {
+                return new ApiResponse<TrailerDetailsDTO>(
+                    false,
+                    null,
+                    "Trailer not found",
+                    "Không tìm thấy rơ moóc",
+                    $"No trailer found with ID: {trailerId}");
+            }
+
+            return new ApiResponse<TrailerDetailsDTO>(
+                true,
+                trailer,
+                "Trailer details retrieved successfully",
+                null,
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> DeleteTrailer(string trailerId, string userId)
+        {
+            var trailer = await _unitOfWork.TrailerRepository.GetTrailerById(trailerId);
+            if (trailer == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Trailer not found",
+                    "Không tìm thấy rơ moóc",
+                    $"No trailer found with ID: {trailerId}");
+            }
+
+            var (isInUse, activeTrips) = await _unitOfWork.TripRepository.IsTrailerInUseStatusNow(trailerId);
+
+            if (isInUse)
+            {
+                var tripIds = string.Join(", ", activeTrips.Select(t => t.TripId));
+                var tripInfo = activeTrips.Count == 1
+                    ? $"Trip ID: {tripIds}"
+                    : $"Trip IDs: {tripIds}";
+
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Trailer is in use",
+                    $"Rơ moóc đang trong hành trình: {tripIds}",
+                    $"Cannot delete trailer that is in use in delivery trips: {tripIds}");
+            }
+
+            trailer.Status = TrailerStatus.Inactive.ToString();
+            trailer.DeletedBy = userId;
+            trailer.DeletedDate = DateTime.Now;
+
+            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Trailer deleted successfully",
+                "Xóa rơ moóc thành công",
+                null);
+        }
+    }
 }

@@ -8,6 +8,7 @@ using MTCS.Data.Repository;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
+using static Google.Cloud.Firestore.V1.StructuredQuery.Types;
 
 namespace MTCS.Service.Services
 {
@@ -40,18 +41,19 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, ClaimsPrincipal claims)
+        public async Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, string userId)
         {
             try
             {
-                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                            ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-
                 await _unitOfWork.BeginTransactionAsync();
 
-                var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
                 var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
+                var beingReport = _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
+                if (beingReport != null)
+                {
+                    return new BusinessResult(400, "Cannot update status as there is an incident report being handled");
+                }
 
                 if (trip == null)
                 {
@@ -63,22 +65,82 @@ namespace MTCS.Service.Services
 
                 if (newStatus == null)
                 {
-                    return new BusinessResult(404, "Status not existed"); 
+                    return new BusinessResult(404, "Status not existed");
+                }
+                if(currentStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
+                {
+                    return new BusinessResult(400, "Cannot update completed order");
+                }
+                if (newStatus.StatusIndex == 1)
+                {
+                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
+                    if (order != null)
+                    {
+                        order.Status = "Delivering";
+                        await _unitOfWork.OrderRepository.UpdateAsync(order);
+                    }
+
+                    var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
+                    if (trailer != null)
+                    {
+                        trailer.Status = "On Duty";
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                    }
+
+                    var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
+                    if (tractor != null)
+                    {
+                        tractor.Status = "On Duty";
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    }
+
+                    var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
+                    if (driver != null)
+                    {
+                        driver.Status = 2;
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    }
                 }
 
                 if (currentStatus != null)
                 {
-                    if (newStatus.StatusIndex != currentStatus.StatusIndex + 1)
+                    if (newStatus.StatusIndex != currentStatus.StatusIndex + 1 && newStatus.StatusId != "delaying" && newStatus.StatusId != "canceled")
                     {
-                        return new BusinessResult(400, "Cannot update as over step status"); 
+                        return new BusinessResult(400, "Cannot update as over step status");
                     }
                 }
 
-
                 trip.Status = newStatusId;
-                if(newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
+                if (newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
                 {
                     trip.EndTime = DateTime.UtcNow;
+                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
+                    if (order != null)
+                    {
+                        order.Status = "Completed";
+                        await _unitOfWork.OrderRepository.UpdateAsync(order);
+                    }
+
+                    var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
+                    if (trailer != null)
+                    {
+                        trailer.Status = "Free";
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                    }
+
+                    var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
+                    if (tractor != null)
+                    {
+                        tractor.Status = "Free";
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    }
+
+                    var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
+                    if (driver != null)
+                    {
+                        driver.Status = 1;
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    }
                 }
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
 
@@ -91,6 +153,10 @@ namespace MTCS.Service.Services
                 };
 
                 await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
+
+                
+
+                await _unitOfWork.CommitTransactionAsync();
                 return new BusinessResult(200, "Update Trip Success");
             }
             catch
