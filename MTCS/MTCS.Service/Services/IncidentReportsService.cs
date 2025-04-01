@@ -119,7 +119,7 @@ namespace MTCS.Service.Services
                             iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                         }
 
-                        FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                        FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                         await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                         {
                             FileId = FileId,
@@ -181,7 +181,7 @@ namespace MTCS.Service.Services
                     iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                 }
 
-                FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                 await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                 {
                     FileId = FileId,
@@ -232,7 +232,7 @@ namespace MTCS.Service.Services
                     iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                 }
 
-                FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                 await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                 {
                     FileId = FileId,
@@ -325,7 +325,7 @@ namespace MTCS.Service.Services
                     {
                         id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                     }
-                    FileId = $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}";
+                    FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                     await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                     {
                         FileId = FileId,
