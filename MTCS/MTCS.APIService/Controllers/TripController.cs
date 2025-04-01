@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MTCS.Data.Helpers;
+using MTCS.Data.Request;
 using MTCS.Service.Interfaces;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -36,8 +38,8 @@ namespace MTCS.APIService.Controllers
             [FromRoute] string tripId,
             [FromBody] string newStatusId)
         {
-            var currentUser = HttpContext.User;
-            var result = await _tripService.UpdateStatusTrip(tripId, newStatusId, currentUser);
+            var userId = User.GetUserId();
+            var result = await _tripService.UpdateStatusTrip(tripId, newStatusId, userId);
             return Ok(result);
         }
     }
