@@ -18,7 +18,11 @@ namespace MTCS.Data.Repository
 
         public async Task<TripStatusHistory> GetPreviousStatusOfTrip(string tripId)
         {
-            return await _context.TripStatusHistories.OrderByDescending(ds => ds.StartTime).Skip(1).FirstOrDefaultAsync(o => o.TripId == tripId);
+            return await _context.TripStatusHistories
+        .Where(o => o.TripId == tripId)  // Lọc theo tripId trước
+        .OrderByDescending(ds => ds.StartTime)  // Sắp xếp theo StartTime giảm dần
+        .Skip(1)  // Bỏ qua status hiện tại
+        .FirstOrDefaultAsync();  // Lấy status trước đó
         }
     }
 }

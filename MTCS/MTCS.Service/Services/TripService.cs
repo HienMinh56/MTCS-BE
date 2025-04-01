@@ -67,7 +67,7 @@ namespace MTCS.Service.Services
                 {
                     return new BusinessResult(404, "Status not existed");
                 }
-                if(currentStatus.StatusIndex != higherSecondStatus.StatusIndex + 1)
+                if(currentStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
                 {
                     return new BusinessResult(400, "Cannot update completed order");
                 }
