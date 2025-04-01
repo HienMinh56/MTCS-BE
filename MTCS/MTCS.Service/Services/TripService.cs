@@ -40,14 +40,10 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, ClaimsPrincipal claims)
+        public async Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, string userId)
         {
             try
             {
-                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                            ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-
                 await _unitOfWork.BeginTransactionAsync();
 
                 var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);

@@ -16,7 +16,9 @@ namespace MTCS.Data.Repository
         public TripStatusHistoryRepository(MTCSContext context) => _context = context;
 
 
-
-
+        public async Task<TripStatusHistory> GetPreviousStatusOfTrip(string tripId)
+        {
+            return await _context.TripStatusHistories.OrderByDescending(ds => ds.StartTime).Skip(1).FirstOrDefaultAsync(o => o.TripId == tripId);
+        }
     }
 }
