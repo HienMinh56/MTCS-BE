@@ -47,7 +47,7 @@ namespace MTCS.Service.Services
                     }
                     existingPrice.Status = 0;
                     existingPrice.ModifiedBy = userName;
-                    existingPrice.ModifiedDate = DateTime.UtcNow;
+                    existingPrice.ModifiedDate = DateTime.Now;
                     await _unitOfWork.PriceTableRepository.UpdateAsync(existingPrice);
 
 
@@ -62,7 +62,7 @@ namespace MTCS.Service.Services
                         MaxPricePerKm = price.MaxPricePerKm,
                         Status = 1,
                         CreatedBy = userName,
-                        CreatedDate = DateTime.UtcNow
+                        CreatedDate = DateTime.Now
                     };
                     await _unitOfWork.PriceTableRepository.CreateAsync(newPrice);
                 }
@@ -96,7 +96,7 @@ namespace MTCS.Service.Services
                         MaxPricePerKm = price.MaxPricePerKm,
                         Status = 1,
                         CreatedBy = userName,
-                        CreatedDate = DateTime.UtcNow
+                        CreatedDate = DateTime.Now
                     };
                     await _unitOfWork.PriceTableRepository.CreateAsync(newPricetable);
                 }

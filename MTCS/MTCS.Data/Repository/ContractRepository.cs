@@ -19,7 +19,7 @@ namespace MTCS.Data.Repository
 
         public async Task<string> GetNextContractIdAsync()
         {
-            string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
 
             var existingContracts = await _context.Contracts
                 .Where(c => c.ContractId.StartsWith($"CTR{timestamp}"))
