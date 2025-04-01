@@ -289,7 +289,7 @@ namespace MTCS.Service.Services
             {
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
                 await _unitOfWork.BeginTransactionAsync();
 
