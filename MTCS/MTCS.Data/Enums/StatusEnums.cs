@@ -7,12 +7,21 @@
         Deleted = 3
     }
 
+    public enum DriverStatus
+    {
+        Active = 1,
+        Inactive = 2,
+        OnDuty = 3
+    }
+
     public enum VehicleStatus
     {
         Active = 1,
         Inactive = 2,
-        NeedMaintain = 3,
-        Maintaining = 4,
-        Onduty = 5
+        OnDuty = 3,
+        NeedMaintain = 4,
+        Maintaining = 5,
+        NearRegistrationExpiry = 6,
+        RegistrationExpired = 7
     }
 }

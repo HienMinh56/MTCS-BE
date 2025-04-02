@@ -182,13 +182,58 @@ namespace MTCS.Service.Services
             tractor.Status = VehicleStatus.Inactive.ToString();
             tractor.DeletedBy = userId;
             tractor.DeletedDate = DateTime.Now;
+            tractor.ModifiedBy = userId;
+            tractor.ModifiedDate = DateTime.Now;
 
             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
             return new ApiResponse<bool>(
                 true,
                 true,
                 "Tractor deleted successfully",
-                "Xóa đầu kéo thành công",
+                "Vô hiệu hoá đầu kéo thành công",
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> ActivateTractor(string tractorId, string userId)
+        {
+            var tractor = await _unitOfWork.TractorRepository.GetTractorById(tractorId);
+            if (tractor == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Tractor not found",
+                    "Không tìm thấy đầu kéo",
+                    $"No tractor found with ID: {tractorId}");
+            }
+
+            if (tractor.Status != TractorStatus.Inactive.ToString())
+            {
+                string currentStatus = tractor.Status;
+                string statusVN = currentStatus == TractorStatus.Active.ToString()
+                    ? "đang hoạt động"
+                    : "đang được sử dụng";
+
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    $"Tractor is already {currentStatus.ToLower()}",
+                    $"Đầu kéo đã {statusVN}",
+                    $"Cannot activate a tractor that is already in {currentStatus.ToLower()} state");
+            }
+
+            tractor.Status = VehicleStatus.Active.ToString();
+            tractor.ModifiedBy = userId;
+            tractor.ModifiedDate = DateTime.Now;
+            tractor.DeletedBy = null;
+            tractor.DeletedDate = null;
+
+            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Tractor deleted successfully",
+                "Kích hoạt đầu kéo thành công",
                 null);
         }
 
