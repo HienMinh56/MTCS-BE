@@ -52,5 +52,26 @@ namespace MTCS.APIService.Controllers
             var result = await _orderService.CreateOrder(orderRequest, currentUser, files, descriptions, notes);
             return Ok(result);
         }
+
+        [HttpGet("export-orders")]
+        public async Task<IActionResult> ExportOrdersToExcel()
+        {
+            var orders = await _orderService.GetAllOrders();  
+
+            if (orders.Any()) 
+            {
+                var result = await _orderService.ExportOrdersToExcelAsync(orders);  
+
+                if (result != null)  
+                {
+                    return File(result, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "orders.xlsx");
+                }
+
+                return BadRequest("Export failed");
+            }
+
+            return NotFound("No orders found");
+        }
+
     }
 }

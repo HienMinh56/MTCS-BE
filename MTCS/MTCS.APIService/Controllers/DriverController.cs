@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Helpers;
 using MTCS.Service.Interfaces;
 
@@ -6,6 +7,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DriverController : ControllerBase
     {
         private readonly IDriverService _driverService;
@@ -16,13 +18,13 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDrivers([FromQuery] PaginationParams paginationParams, int? status = null)
+        public async Task<IActionResult> GetDrivers([FromQuery] PaginationParams paginationParams, int? status = null, string? keyword = null)
         {
-            var response = await _driverService.ViewDrivers(paginationParams, status);
+            var response = await _driverService.ViewDrivers(paginationParams, status, keyword);
             return Ok(response);
         }
 
-        [HttpGet("{driverId}/profile")]
+        [HttpGet("profile")]
         public async Task<IActionResult> GetDriverProfile(string driverId)
         {
             var response = await _driverService.GetDriverProfile(driverId);
