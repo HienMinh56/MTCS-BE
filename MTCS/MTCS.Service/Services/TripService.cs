@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using MTCS.Data;
 using MTCS.Data.DTOs;
+using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Response;
@@ -83,21 +84,21 @@ namespace MTCS.Service.Services
                     var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
                     if (trailer != null)
                     {
-                        trailer.Status = "On Duty";
+                        trailer.Status = VehicleStatus.Onduty.ToString();
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
 
                     var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
                     if (tractor != null)
                     {
-                        tractor.Status = "On Duty";
+                        tractor.Status = VehicleStatus.Onduty.ToString();
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                     }
 
                     var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
                     if (driver != null)
                     {
-                        driver.Status = 2;
+                        driver.Status = (int?)DriverStatus.Onduty;
                         await _unitOfWork.DriverRepository.UpdateAsync(driver);
                     }
                 }
@@ -124,21 +125,21 @@ namespace MTCS.Service.Services
                     var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
                     if (trailer != null)
                     {
-                        trailer.Status = "Free";
+                        trailer.Status = VehicleStatus.Active.ToString();
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
 
                     var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
                     if (tractor != null)
                     {
-                        tractor.Status = "Free";
+                        tractor.Status = VehicleStatus.Active.ToString();
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                     }
 
                     var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
                     if (driver != null)
                     {
-                        driver.Status = 1;
+                        driver.Status = (int?)DriverStatus.Active;
                         await _unitOfWork.DriverRepository.UpdateAsync(driver);
                     }
                 }

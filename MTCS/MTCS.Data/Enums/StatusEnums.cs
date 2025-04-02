@@ -15,4 +15,11 @@
         Maintaining = 4,
         Onduty = 5
     }
+
+    public enum DriverStatus
+    {
+        Inactive = 0,
+        Active = 1,
+        Onduty = 2,
+    }
 }
