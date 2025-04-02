@@ -3,9 +3,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.Enums;
 using MTCS.Data.Models;
+using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
+using MTCS.Service.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -30,11 +33,13 @@ namespace MTCS.Service.Services
         private readonly IFirebaseStorageService _firebaseStorageService;
         private readonly INotificationService _notification;
         private readonly FirestoreDb _firestoreDb;
-        public IncidentReportsService(IFirebaseStorageService firebaseStorageService, FirestoreDb firestoreDb, INotificationService notification)
+        private readonly ITripService _tripService;
+        public IncidentReportsService(IFirebaseStorageService firebaseStorageService, FirestoreDb firestoreDb, INotificationService notification, ITripService tripService)
         {
             _unitOfWork ??= new UnitOfWork();
             _firebaseStorageService = firebaseStorageService;
             _notification = notification;
+            _tripService = tripService;
         }
 
         #region GetFileTypeFromExtension
@@ -119,7 +124,7 @@ namespace MTCS.Service.Services
                             iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                         }
 
-                        FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                        FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                         await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                         {
                             FileId = FileId,
@@ -132,6 +137,35 @@ namespace MTCS.Service.Services
                             Type = 1 // Incident Image
                         });
                     }
+                }
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+                if (request.Type == 1)
+                {
+                    trip.Status = "delaying";
+                    await _unitOfWork.TripRepository.UpdateAsync(trip);
+
+                    var tripStatusHistory = new TripStatusHistory
+                    {
+                        HistoryId = Guid.NewGuid().ToString(),
+                        TripId = request.TripId,
+                        StatusId = "delaying",
+                        StartTime = DateTime.Now
+                    };
+                    await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
+                }
+                else if (request.Type == 2)
+                {
+                    trip.Status = "canceled";
+                    await _unitOfWork.TripRepository.UpdateAsync(trip);
+
+                    var tripStatusHistory = new TripStatusHistory
+                    {
+                        HistoryId = Guid.NewGuid().ToString(),
+                        TripId = request.TripId,
+                        StatusId = "canceled",
+                        StartTime = DateTime.Now
+                    };
+                    await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
                 }
             }
             catch (Exception ex)
@@ -181,7 +215,7 @@ namespace MTCS.Service.Services
                     iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                 }
 
-                FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                 await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                 {
                     FileId = FileId,
@@ -232,7 +266,7 @@ namespace MTCS.Service.Services
                     iId = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, iId, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                 }
 
-                FileId = $"{Const.INCIDENTREPORTIMAGE}{iId.ToString("D6")}";
+                FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                 await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                 {
                     FileId = FileId,
@@ -325,7 +359,7 @@ namespace MTCS.Service.Services
                     {
                         id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
                     }
-                    FileId = $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}";
+                    FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
                     await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
                     {
                         FileId = FileId,
@@ -426,6 +460,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+        #endregion
 
         public async Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims)
         {
@@ -434,18 +469,64 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == incidentReportRequest.reportId);
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
+                var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
+                var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
+
                 if (incident == null)
                 {
                     return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
                 }
                 else
                 {
-                    incident.Status = "Resolved";
-                    incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
-                    incident.HandledBy = userName;
-                    incident.HandledTime = DateTime.Now;
-                    var result = _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
-                    if (result.Result > 0)
+                    if (incident.Type == 1) // Delay incident
+                    {
+                        incident.Status = "Resolved";
+                        incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.HandledBy = userName;
+                        incident.HandledTime = DateTime.Now;
+
+                        // Restore the previous status of the trip
+                        var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
+                        if (previousStatus != null)
+                        {
+                            trip.Status = previousStatus.StatusId;
+
+                            // Record the status change in history
+                            await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
+                            {
+                                HistoryId = Guid.NewGuid().ToString(),
+                                TripId = trip.TripId,
+                                StatusId = previousStatus.StatusId,
+                                StartTime = DateTime.Now
+                            });
+                        }
+                        else
+                        {
+                            // If no previous status found, set to a default like "is_delivering"
+                            return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
+                        }
+
+                        await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    }
+                    else if (incident.Type == 2) // Cancellation incident
+                    {
+                        incident.Status = "Resolved";
+                        incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.HandledBy = userName;
+                        incident.HandledTime = DateTime.Now;
+                        driver.Status = 1; // Free
+                        tractor.Status = VehicleStatus.Active.ToString();
+                        trailer.Status = VehicleStatus.Active.ToString();
+
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                    }
+
+                    var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+                    if (result > 0)
                         return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, incident);
                     else
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
@@ -455,7 +536,6 @@ namespace MTCS.Service.Services
             {
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
-            #endregion
         }
 
         public async Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims)
@@ -544,6 +624,6 @@ namespace MTCS.Service.Services
             {
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
-        }
+        }    
     }
 }

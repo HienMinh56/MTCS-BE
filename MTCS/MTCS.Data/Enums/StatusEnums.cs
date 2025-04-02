@@ -13,5 +13,6 @@
         Inactive = 2,
         NeedMaintain = 3,
         Maintaining = 4,
+        Onduty = 5
     }
 }
