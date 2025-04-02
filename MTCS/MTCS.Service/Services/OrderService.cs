@@ -127,12 +127,12 @@ namespace MTCS.Service.Services
                         OrderId = orderId,
                         FileName = fileName,
                         FileType = fileType,
-                        UploadDate = DateTime.UtcNow,
+                        UploadDate = DateTime.Now,
                         UploadBy = userName,
                         Description = descriptions[i],
                         Note = notes[i],
                         FileUrl = fileUrl,
-                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         ModifiedBy = userName,
                     };
 

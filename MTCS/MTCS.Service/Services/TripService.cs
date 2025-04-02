@@ -113,7 +113,7 @@ namespace MTCS.Service.Services
                 trip.Status = newStatusId;
                 if (newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
                 {
-                    trip.EndTime = DateTime.UtcNow;
+                    trip.EndTime = DateTime.Now;
                     var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
                     if (order != null)
                     {
@@ -149,7 +149,7 @@ namespace MTCS.Service.Services
                     HistoryId = Guid.NewGuid().ToString(),
                     TripId = tripId,
                     StatusId = newStatusId,
-                    StartTime = DateTime.UtcNow
+                    StartTime = DateTime.Now
                 };
 
                 await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
