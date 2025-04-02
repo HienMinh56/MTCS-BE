@@ -19,19 +19,15 @@ namespace MTCS.Service.Services
             _passwordHasher = passwordHasher;
         }
 
-        public async Task<ApiResponse<PagedList<ViewDriverDTO>>> ViewDrivers(PaginationParams paginationParams, int? status = null)
+        public async Task<ApiResponse<PagedList<ViewDriverDTO>>> ViewDrivers(PaginationParams paginationParams, int? status = null, string? keyword = null)
         {
             var pagedDrivers = await _unitOfWork.DriverRepository.GetDrivers(
-                paginationParams, status);
-
-            string message = status.HasValue
-                ? $"Drivers with status {(UserStatus)status.Value} retrieved successfully"
-                : "All drivers retrieved successfully";
+                paginationParams, status, keyword);
 
             return new ApiResponse<PagedList<ViewDriverDTO>>(
                 true,
                 pagedDrivers,
-                message,
+                "Get drivers successfully",
                 null,
                 null);
         }
@@ -69,7 +65,7 @@ namespace MTCS.Service.Services
                 throw new InvalidOperationException("Driver not found");
             }
 
-            var (totalWorkingTime, currentWeekWorkingTime, fileUrls) =
+            var (totalWorkingTime, currentWeekWorkingTime, fileUrls, completedOrdersCount) =
                 await _unitOfWork.DriverRepository.GetDriverProfileDetails(driverId);
 
             var driverProfileDetails = new DriverProfileDetailsDTO
@@ -87,6 +83,7 @@ namespace MTCS.Service.Services
 
                 TotalWorkingTime = totalWorkingTime,
                 CurrentWeekWorkingTime = currentWeekWorkingTime,
+                TotalOrder = completedOrdersCount,
 
                 FileUrls = fileUrls
             };
