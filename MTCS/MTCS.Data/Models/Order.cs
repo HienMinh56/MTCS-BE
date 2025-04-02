@@ -55,6 +55,8 @@ public partial class Order
 
     public decimal? Distance { get; set; }
 
+    public int? ContainerSize { get; set; }
+
     public virtual Customer Customer { get; set; }
 
     public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();

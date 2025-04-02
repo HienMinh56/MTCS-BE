@@ -14,9 +14,9 @@ namespace MTCS.Data.Request
 
         public double? MaxKm { get; set; }
 
-        public string ContainerSize { get; set; }
+        public int ContainerSize { get; set; }
 
-        public string ContainerType { get; set; }
+        public int ContainerType { get; set; }
 
         public decimal? MinPricePerKm { get; set; }
 

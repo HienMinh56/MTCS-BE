@@ -87,10 +87,10 @@ namespace MTCS.Service.Services
                         Note = "Fuel Report File",
                         FileName = fileName,
                         FileType = fileType,
-                        UploadDate = DateTime.UtcNow,
+                        UploadDate = DateTime.Now,
                         UploadBy = userName,
                         FileUrl = fileUrl,
-                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         ModifiedBy = userName,
                     };
 
@@ -211,10 +211,10 @@ namespace MTCS.Service.Services
                             Note = "Fuel Report File",
                             FileName = fileName,
                             FileType = fileType,
-                            UploadDate = DateTime.UtcNow,
+                            UploadDate = DateTime.Now,
                             UploadBy = userName,
                             FileUrl = fileUrl,
-                            ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                            ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                             ModifiedBy = userName,
                         });
                     }

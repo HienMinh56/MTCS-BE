@@ -14,13 +14,14 @@ using MTCS.Data.Helpers;
 using MTCS.Service;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
+using OfficeOpenXml;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 Env.Load();
-
+ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 // Add services to the container.
 builder.Services.AddScoped<UnitOfWork>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -36,6 +37,7 @@ builder.Services.AddScoped<IFuelReportService, FuelReportService>();
 builder.Services.AddScoped<IDeliveryReportService, DeliveryReportService>();
 builder.Services.AddScoped<IDeliveryStatusService, DeliveryStatusService>();
 builder.Services.AddScoped<IPriceTableService, PriceTableService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 
 builder.Services.AddScoped<INotificationService, NotificationService>();

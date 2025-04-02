@@ -64,6 +64,22 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
+        [HttpPatch]
+        public async Task<IBusinessResult> UpdateIncidentReportStatus(ResolvedIncidentReportRequest incidentReportRequest)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.ResolvedReport(incidentReportRequest, currentUser);
+            return result;
+        }
+
+        [HttpPut("mo")]
+        public async Task<IBusinessResult> UpdateIncidentReportMO([FromForm]UpdateIncidentReportMORequest request)
+        {
+            var currentUser = HttpContext.User;
+            var result = await _incidentReportsService.UpdateIncidentReportMO(request, currentUser);
+            return result;
+        }
+
         [HttpDelete]
         public async Task<IBusinessResult> DeleteIncidentReport(string reportId)
         {

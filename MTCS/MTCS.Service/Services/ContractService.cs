@@ -93,12 +93,12 @@ namespace MTCS.Service.Services
                         ContractId = contractId,
                         FileName = fileName,
                         FileType = fileType,
-                        UploadDate = DateTime.UtcNow,
+                        UploadDate = DateTime.Now,
                         UploadBy = userName,
                         Description = descriptions[i], // Lấy từ danh sách descriptions
                         Note = notes[i],               // Lấy từ danh sách notes
                         FileUrl = fileUrl,
-                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         ModifiedBy = userName,
                     };
 
@@ -161,7 +161,7 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var contracts = await _unitOfWork.ContractRepository.GetAllAsync();
+                var contracts = await _unitOfWork.ContractRepository.GetContractsAsync();
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contracts);
             }
             catch
@@ -249,12 +249,12 @@ namespace MTCS.Service.Services
                         ContractId = contractId,
                         FileName = fileName,
                         FileType = fileType,
-                        UploadDate = DateTime.UtcNow,
+                        UploadDate = DateTime.Now,
                         UploadBy = userName,
                         Description = descriptions[i], // Gán mô tả tương ứng
                         Note = notes[i],               // Gán ghi chú tương ứng
                         FileUrl = fileUrl,
-                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         ModifiedBy = userName
                     };
 
@@ -338,10 +338,10 @@ namespace MTCS.Service.Services
                             FileUrl = fileUrl,
                             Description = model.Descriptions[i],
                             Note = model.Notes[i],
-                            UploadDate = DateTime.UtcNow,
+                            UploadDate = DateTime.Now,
                             UploadBy = userName,
                             ModifiedBy = userName,
-                            ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                            ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         });
                     }
 

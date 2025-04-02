@@ -13,9 +13,9 @@ public partial class PriceTable
 
     public double? MaxKm { get; set; }
 
-    public string ContainerSize { get; set; }
+    public int? ContainerSize { get; set; }
 
-    public string ContainerType { get; set; }
+    public int? ContainerType { get; set; }
 
     public decimal? MinPricePerKm { get; set; }
 
@@ -30,4 +30,6 @@ public partial class PriceTable
     public DateTime? ModifiedDate { get; set; }
 
     public string ModifiedBy { get; set; }
+
+    public int? DeliveryType { get; set; }
 }

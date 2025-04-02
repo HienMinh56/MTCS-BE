@@ -85,7 +85,7 @@ namespace MTCS.Service.Services
                 UserId = userId,
                 Title = title,
                 Body = body,
-                Timestamp = Timestamp.FromDateTime(DateTime.UtcNow),
+                Timestamp = Timestamp.FromDateTime(DateTime.Now),
                 Sender = userName,
                 isRead = false
             });
@@ -108,7 +108,7 @@ namespace MTCS.Service.Services
                     UserId = userId,
                     Title = title,
                     Body = body,
-                    Timestamp = Timestamp.FromDateTime(DateTime.UtcNow),
+                    Timestamp = Timestamp.FromDateTime(DateTime.Now),
                     Sender = userName,
                     isRead = false
                 });

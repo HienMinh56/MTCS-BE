@@ -49,7 +49,7 @@ namespace MTCS.Service.Services
                         existingStatus.StatusIndex = status.StatusIndex;
                         existingStatus.IsActive = status.IsActive;
                         existingStatus.ModifiedBy = userName;
-                        existingStatus.ModifiedDate = DateTime.UtcNow;
+                        existingStatus.ModifiedDate = DateTime.Now;
                         _unitOfWork.DeliveryStatusRepository.Update(existingStatus);
                     }
                     else
@@ -61,7 +61,7 @@ namespace MTCS.Service.Services
                             StatusIndex = status.StatusIndex,
                             IsActive = status.IsActive,
                             CreatedBy = userName,
-                            CreatedDate = DateTime.UtcNow
+                            CreatedDate = DateTime.Now
                         };
 
                         await _unitOfWork.DeliveryStatusRepository.CreateAsync(newStatus);

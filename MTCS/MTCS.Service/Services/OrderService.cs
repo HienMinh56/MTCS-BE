@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Request;
@@ -69,7 +70,7 @@ namespace MTCS.Service.Services
                     throw new KeyNotFoundException("Không tìm thấy khách hàng với CompanyName đã nhập.");
                 }
 
-                if (orderRequest.ContainerType != 20 && orderRequest.ContainerType != 40)
+                if (orderRequest.ContainerType != (int)ContainerSize.Feet20 && orderRequest.ContainerType != (int)ContainerSize.Feet40)
                 {
                     throw new ArgumentException("ContainerType chỉ được nhập 20 hoặc 40.");
                 }
@@ -104,7 +105,7 @@ namespace MTCS.Service.Services
                     OrderPlacer = userName, 
                     ContainerType = orderRequest.ContainerType, 
                     DeliveryType = orderRequest.DeliveryType, 
-                    CreatedDate = DateTime.UtcNow,
+                    CreatedDate = DateTime.Now,
                     CreatedBy = userId,
                 };
 
@@ -126,12 +127,12 @@ namespace MTCS.Service.Services
                         OrderId = orderId,
                         FileName = fileName,
                         FileType = fileType,
-                        UploadDate = DateTime.UtcNow,
+                        UploadDate = DateTime.Now,
                         UploadBy = userName,
                         Description = descriptions[i],
                         Note = notes[i],
                         FileUrl = fileUrl,
-                        ModifiedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         ModifiedBy = userName,
                     };
 
@@ -155,55 +156,34 @@ namespace MTCS.Service.Services
 
         #region Get Orders
         public async Task<BusinessResult> GetOrders(
-            string? orderId = null,
-            string? tripId = null,
-            string? customerId = null,
-            int? containerType = null,
-            string? containerNumber = null,
-            string? trackingCode = null,
-            string? status = null,
-            DateOnly? pickUpDate = null,
-            DateOnly? deliveryDate = null)
+    string? orderId = null,
+    string? tripId = null,
+    string? customerId = null,
+    int? containerType = null,
+    string? containerNumber = null,
+    string? trackingCode = null,
+    string? status = null,
+    DateOnly? pickUpDate = null,
+    DateOnly? deliveryDate = null)
         {
             try
             {
-                var query = _unitOfWork.OrderRepository.GetQueryable();
-
-                if (!string.IsNullOrEmpty(orderId))
-                    query = query.Where(o => o.OrderId == orderId);
-                if (!string.IsNullOrEmpty(tripId))
-                    query = query.Include(o => o.Trips).Where(o => o.Trips.Any(o => o.TripId == tripId));
-                if (!string.IsNullOrEmpty(customerId))
-                    query = query.Where(o => o.CustomerId == customerId);
-
-                if (containerType.HasValue)
-                    query = query.Where(o => o.ContainerType == containerType.Value);
-
-                if (!string.IsNullOrEmpty(containerNumber))
-                    query = query.Where(o => o.ContainerNumber == containerNumber);
-
-                if (!string.IsNullOrEmpty(trackingCode))
-                    query = query.Where(o => o.TrackingCode == trackingCode);
-
-                if (!string.IsNullOrEmpty(status))
-                    query = query.Where(o => o.Status == status);
-
-                if (pickUpDate.HasValue)
-                    query = query.Where(o => o.PickUpDate == DateOnly.FromDateTime(pickUpDate.Value.ToDateTime(TimeOnly.MinValue)));
-
-                if (deliveryDate.HasValue)
-                    query = query.Where(o => o.DeliveryDate == DateOnly.FromDateTime(deliveryDate.Value.ToDateTime(TimeOnly.MinValue)));
-
-              
-                query = query.OrderBy(o => o.CreatedDate);
-
-                var orders = await query.ToListAsync();
+                var orders = await _unitOfWork.OrderRepository.GetOrdersByFiltersAsync(
+                    orderId,
+                    tripId,
+                    customerId,
+                    containerType,
+                    containerNumber,
+                    trackingCode,
+                    status,
+                    pickUpDate,
+                    deliveryDate);
 
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, orders);
             }
-            catch
+            catch (Exception ex)
             {
-                return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+                return new BusinessResult(Const.FAIL_READ_CODE, ex.Message);
             }
         }
         #endregion

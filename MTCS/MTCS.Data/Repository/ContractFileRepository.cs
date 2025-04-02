@@ -19,7 +19,7 @@ namespace MTCS.Data.Repository
 
         public async Task<string> GetNextFileNumberAsync()
         {
-            string timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
 
             var existingFiles = await _context.ContractFiles
                 .Where(c => c.FileId.StartsWith($"CTR{timestamp}"))
