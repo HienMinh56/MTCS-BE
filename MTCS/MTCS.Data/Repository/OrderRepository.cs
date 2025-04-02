@@ -21,15 +21,15 @@ namespace MTCS.Data.Repository
         }
 
         public async Task<List<Order>> GetOrdersByFiltersAsync(
-    string? orderId = null,
-    string? tripId = null,
-    string? customerId = null,
-    int? containerType = null,
-    string? containerNumber = null,
-    string? trackingCode = null,
-    string? status = null,
-    DateOnly? pickUpDate = null,
-    DateOnly? deliveryDate = null)
+        string? orderId = null,
+        string? tripId = null,
+        string? customerId = null,
+        int? containerType = null,
+        string? containerNumber = null,
+        string? trackingCode = null,
+        string? status = null,
+        DateOnly? pickUpDate = null,
+        DateOnly? deliveryDate = null)
         {
             var query = _context.Orders.Include(o => o.OrderFiles)
                                        .AsNoTracking()                       
@@ -65,6 +65,11 @@ namespace MTCS.Data.Repository
             query = query.OrderBy(o => o.CreatedDate);
 
             return await query.ToListAsync();
+        }
+
+        public async Task<List<Order>> GetAllOrdersAsync()
+        {
+            return await _context.Orders.Include(o => o.Customer).ToListAsync();
         }
     }
 }

@@ -22,7 +22,7 @@ namespace MTCS.Data.Base
         {
             return _context.Set<T>().ToList();
         }
-        public async Task<List<T>> GetAllAsync()
+        public async Task<List<T>> GetAllAsync(Func<object, object> include)
         {
             return await _context.Set<T>().ToListAsync();
         }

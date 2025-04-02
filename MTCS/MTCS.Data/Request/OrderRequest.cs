@@ -14,7 +14,7 @@ namespace MTCS.Data.Request
         public DateOnly? PickUpDate { get; set; }
         public DateOnly? DeliveryDate { get; set; }
         public string? Note { get; set; }
-        public int ContainerType { get; set; } // 20 or 40
+        public int ContainerType { get; set; } //  or 40
         public int DeliveryType { get; set; } // 1 = N, 2 = X
         public string PickUpLocation { get; set; }
         public string DeliveryLocation { get; set; }
@@ -25,5 +25,6 @@ namespace MTCS.Data.Request
         public decimal? Distance { get; set; }
         public string OrderPlacer { get; set; }
         public string ContainerNumber { get; set; }
+        public string ContainerSize { get; set; }
     }
 }
