@@ -507,8 +507,6 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.PriceId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.ContainerSize).HasMaxLength(50);
-            entity.Property(e => e.ContainerType).HasMaxLength(50);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.MaxPricePerKm).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.MinPricePerKm).HasColumnType("decimal(18, 2)");
