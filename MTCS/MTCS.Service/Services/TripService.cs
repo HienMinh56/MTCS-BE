@@ -84,14 +84,14 @@ namespace MTCS.Service.Services
                     var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
                     if (trailer != null)
                     {
-                        trailer.Status = VehicleStatus.Onduty.ToString();
+                        trailer.Status = VehicleStatus.OnDuty.ToString();
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
 
                     var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
                     if (tractor != null)
                     {
-                        tractor.Status = VehicleStatus.Onduty.ToString();
+                        tractor.Status = VehicleStatus.OnDuty.ToString();
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                     }
 
