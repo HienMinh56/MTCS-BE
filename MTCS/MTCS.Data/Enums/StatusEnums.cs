@@ -24,4 +24,11 @@
         NearRegistrationExpiry = 6,
         RegistrationExpired = 7
     }
+
+    public enum DriverStatus
+    {
+        Inactive = 0,
+        Active = 1,
+        Onduty = 2,
+    }
 }
