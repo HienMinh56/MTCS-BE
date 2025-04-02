@@ -48,5 +48,14 @@ namespace MTCS.Data.Helpers
             }
             return claim.Value;
         }
+        public static string GetUserName(this ClaimsPrincipal principal)
+        {
+            var claim = principal.FindFirst(ClaimTypes.Name);
+            if (claim == null || string.IsNullOrEmpty(claim.Value))
+            {
+                throw new InvalidOperationException("UserName not found in token");
+            }
+            return claim.Value;
+        }
     }
 }
