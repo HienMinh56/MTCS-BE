@@ -7,6 +7,7 @@ using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -33,6 +34,10 @@ namespace MTCS.Service.Services
         Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims, List<IFormFile> files, List<string> descriptions, List<string> notes);
         Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> GetOrderFiles(string orderId);
+        Task<byte[]> ExportOrdersToExcelAsync(IEnumerable<Order> orders);
+        Task<IEnumerable<Order>> GetAllOrders();
+
+
     }
 
     public class OrderService : IOrderService
@@ -260,5 +265,75 @@ namespace MTCS.Service.Services
                     return "Unknown";
             }
         }
+
+        public async Task<byte[]> ExportOrdersToExcelAsync(IEnumerable<Order> orders)
+        {
+            try
+            {
+                ExcelPackage.LicenseContext = LicenseContext.Commercial;
+                using (var package = new ExcelPackage())
+                {
+                    var worksheet = package.Workbook.Worksheets.Add("Orders");
+                
+                    worksheet.Cells[1, 1].Value = "TrackingCode";
+                    worksheet.Cells[1, 2].Value = "Customer Name";
+                    worksheet.Cells[1, 3].Value = "Weight";
+                    worksheet.Cells[1, 4].Value = "PickUpDate";
+                    worksheet.Cells[1, 5].Value = "DeliveryDate";
+                    worksheet.Cells[1, 6].Value = "Note";
+                    worksheet.Cells[1, 7].Value = "Container Number";
+                    worksheet.Cells[1, 8].Value = "Container Size";
+                    worksheet.Cells[1, 9].Value = "Container Type";
+                    worksheet.Cells[1, 10].Value = "Delivery Type";
+                    worksheet.Cells[1, 11].Value = "PickUp Location";
+                    worksheet.Cells[1, 12].Value = "Delivery Location";
+                    worksheet.Cells[1, 13].Value = "ConReturn Location";
+                    worksheet.Cells[1, 14].Value = "Price";
+
+               
+                    int row = 2;
+                    foreach (var order in orders)
+                    {
+
+                        var customer = order.Customer;
+                        worksheet.Cells[row, 1].Value = order.TrackingCode;
+                        worksheet.Cells[row, 2].Value = customer.CompanyName;
+                        worksheet.Cells[row, 3].Value = order.Weight;
+                        worksheet.Cells[row, 4].Value = order.PickUpDate?.ToString("yyyy-MM-dd"); 
+                        worksheet.Cells[row, 5].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
+                        worksheet.Cells[row, 6].Value = order.Note;
+                        worksheet.Cells[row, 7].Value = order.ContainerNumber;
+                        worksheet.Cells[row, 8].Value = order.ContainerSize;
+                        worksheet.Cells[row, 9].Value = order.ContainerType;
+                        worksheet.Cells[row, 10].Value = order.DeliveryType;
+                        worksheet.Cells[row, 11].Value = order.PickUpLocation;
+                        worksheet.Cells[row, 12].Value = order.DeliveryLocation;
+                        worksheet.Cells[row, 13].Value = order.ConReturnLocation;
+                        worksheet.Cells[row, 14].Value = order.Price;
+
+                        row++;
+                    }
+
+                    worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+
+                    var stream = new MemoryStream();
+                    await package.SaveAsAsync(stream);
+
+                    return stream.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while exporting orders to Excel", ex);
+            }
+        }
+
+        public async Task<IEnumerable<Order>> GetAllOrders()
+        {
+            
+            var orders = await _unitOfWork.OrderRepository.GetAllOrdersAsync();
+            return orders.ToList();
+        }
+
     }
 }
