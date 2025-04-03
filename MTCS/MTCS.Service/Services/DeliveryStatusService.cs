@@ -30,6 +30,7 @@ namespace MTCS.Service.Services
             _unitOfWork = unitOfWork;
         }
 
+        #region CreateDeliveryStatus
         public async Task<BusinessResult> CreateDeliveryStatus(List<CreateDeliveryStatusRequest> deliveryStatus, ClaimsPrincipal claims)
         {
             try
@@ -77,6 +78,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
+
+        #region GetDeliveryStatusById
         public async Task<BusinessResult> GetDeliveryStatusById(string id)
         {
             try
@@ -93,6 +97,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
+
+        #region GetDeliveryStatusById
         public async Task<BusinessResult> GetDeliveryStatuses()
         {
             try
@@ -105,5 +112,6 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
     }
 }

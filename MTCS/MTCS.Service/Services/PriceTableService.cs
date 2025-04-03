@@ -33,7 +33,7 @@ namespace MTCS.Service.Services
         {
             _unitOfWork = unitOfWork;
         }
-
+        #region UpdatePriceTable
         public async Task<BusinessResult> UpdatePriceTable(List<UpdatePriceTableRequest> priceTable, ClaimsPrincipal claims)
         {
             try
@@ -78,7 +78,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion 
 
+        #region CreatePriceTable
         public async Task<BusinessResult> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName)
         {
             try
@@ -112,7 +114,9 @@ namespace MTCS.Service.Services
             }
 
         }
+        #endregion
 
+        #region GetPriceTable
         public async Task<BusinessResult> GetPriceTables()
         {
             try
@@ -125,7 +129,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
 
+        #region GetPriceTableById
         public async Task<BusinessResult> GetPriceTableById(string id)
         {
             try
@@ -138,7 +144,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
 
+        #region DeletePriceTable
         public Task<BusinessResult> DeletePriceTable(string id)
         {
             try
@@ -157,7 +165,9 @@ namespace MTCS.Service.Services
                 return Task.FromResult(new BusinessResult(500, ex.Message));
             }
         }
+        #endregion
 
+        #region ImportPriceTable
         public async Task<BusinessResult> ImportPriceTable(IFormFile excelFile, string userName)
         {
             try
@@ -206,6 +216,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
+
+        #region DownloadPriceTableTemplate
         public async Task<BusinessResult> DownloadPriceTableTemplate()
         {
             try
@@ -215,13 +228,13 @@ namespace MTCS.Service.Services
                     var worksheet = package.Workbook.Worksheets.Add("PriceTableTemplate");
 
                     // Add headers
-                    worksheet.Cells[1, 1].Value = "MinKm";
-                    worksheet.Cells[1, 2].Value = "MaxKm";
-                    worksheet.Cells[1, 3].Value = "ContainerSize";
-                    worksheet.Cells[1, 4].Value = "ContainerType";
-                    worksheet.Cells[1, 5].Value = "MinPricePerKm";
-                    worksheet.Cells[1, 6].Value = "MaxPricePerKm";
-                    worksheet.Cells[1, 7].Value = "DeliveryType";
+                    worksheet.Cells[1, 1].Value = "Từ Km";
+                    worksheet.Cells[1, 2].Value = "Đến Km";
+                    worksheet.Cells[1, 3].Value = "Kích Thước Container(1 20feet / 2 40 feet)";
+                    worksheet.Cells[1, 4].Value = "Loại Container (1 Khô/ 2 Lạnh)";
+                    worksheet.Cells[1, 5].Value = "Giá nhỏ nhất mỗi km";
+                    worksheet.Cells[1, 6].Value = "Giá lớn nhất mỗi km";
+                    worksheet.Cells[1, 7].Value = "Loại vận chuyển(1 Nhập / 2 Xuất)";
 
                     var stream = new MemoryStream();
                     package.SaveAs(stream);
@@ -236,6 +249,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
 
     }
 }

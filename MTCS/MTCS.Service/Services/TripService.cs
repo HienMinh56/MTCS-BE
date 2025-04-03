@@ -23,6 +23,7 @@ namespace MTCS.Service.Services
 
         }
 
+        #region GetTripsByFilter
         public async Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
         {
             try
@@ -41,121 +42,59 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+        #endregion
 
+        #region UpdateStatusTrip
         public async Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, string userId)
         {
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
-                var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
-                var beingReport = _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
-                if (beingReport != null)
-                {
-                    return new BusinessResult(400, "Cannot update status as there is an incident report being handled");
-                }
+                var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
+                if (trip == null) return new BusinessResult(404, "Trip Not Found");
 
-                if (trip == null)
-                {
-                    return new BusinessResult(404, "Trip Not Found");
-                }
+                var beingReport =  _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
+                if (beingReport != null) return new BusinessResult(400, "Cannot update status as there is an incident report being handled");
 
                 var currentStatus = await _unitOfWork.DeliveryStatusRepository.GetByIdAsync(trip.Status);
                 var newStatus = await _unitOfWork.DeliveryStatusRepository.GetByIdAsync(newStatusId);
+                if (newStatus == null) return new BusinessResult(404, "Status not existed");
 
-                if (newStatus == null)
-                {
-                    return new BusinessResult(404, "Status not existed");
-                }
-                if(currentStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
-                {
+                var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
+
+                if (currentStatus?.StatusIndex == higherSecondStatus.StatusIndex + 1)
                     return new BusinessResult(400, "Cannot update completed order");
+
+                if (currentStatus != null &&
+                    newStatus.StatusIndex != currentStatus.StatusIndex + 1 &&
+                    newStatus.StatusId != "delaying" && newStatus.StatusId != "canceled")
+                {
+                    return new BusinessResult(400, "Cannot update as over step status");
                 }
+
                 if (newStatus.StatusIndex == 1)
                 {
-                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
-                    if (order != null)
-                    {
-                        order.Status = "Delivering";
-                        await _unitOfWork.OrderRepository.UpdateAsync(order);
-                    }
-
-                    var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
-                    if (trailer != null)
-                    {
-                        trailer.Status = VehicleStatus.Onduty.ToString();
-                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
-                    }
-
-                    var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
-                    if (tractor != null)
-                    {
-                        tractor.Status = VehicleStatus.Onduty.ToString();
-                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                    }
-
-                    var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
-                    if (driver != null)
-                    {
-                        driver.Status = (int?)DriverStatus.Onduty;
-                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                    }
-                }
-
-                if (currentStatus != null)
-                {
-                    if (newStatus.StatusIndex != currentStatus.StatusIndex + 1 && newStatus.StatusId != "delaying" && newStatus.StatusId != "canceled")
-                    {
-                        return new BusinessResult(400, "Cannot update as over step status");
-                    }
+                    await UpdateOrderAndVehiclesAsync(trip, "Delivering", VehicleStatus.Onduty, DriverStatus.OnDuty);
                 }
 
                 trip.Status = newStatusId;
+
                 if (newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
                 {
                     trip.EndTime = DateTime.Now;
-                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
-                    if (order != null)
-                    {
-                        order.Status = "Completed";
-                        await _unitOfWork.OrderRepository.UpdateAsync(order);
-                    }
-
-                    var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
-                    if (trailer != null)
-                    {
-                        trailer.Status = VehicleStatus.Active.ToString();
-                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
-                    }
-
-                    var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
-                    if (tractor != null)
-                    {
-                        tractor.Status = VehicleStatus.Active.ToString();
-                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                    }
-
-                    var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
-                    if (driver != null)
-                    {
-                        driver.Status = (int?)DriverStatus.Active;
-                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                    }
+                    await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
                 }
+
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
 
-                var tripStatusHistory = new TripStatusHistory
+                await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
                 {
                     HistoryId = Guid.NewGuid().ToString(),
                     TripId = tripId,
                     StatusId = newStatusId,
                     StartTime = DateTime.Now
-                };
-
-                await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
-
-                
+                });
 
                 await _unitOfWork.CommitTransactionAsync();
                 return new BusinessResult(200, "Update Trip Success");
@@ -166,5 +105,37 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, "Internal Server Error");
             }
         }
+
+        private async Task UpdateOrderAndVehiclesAsync(Trip trip, string orderStatus, VehicleStatus vehicleStatus, DriverStatus driverStatus)
+        {
+            var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
+            if (order != null)
+            {
+                order.Status = orderStatus;
+                await _unitOfWork.OrderRepository.UpdateAsync(order);
+            }
+
+            var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
+            if (trailer != null)
+            {
+                trailer.Status = vehicleStatus.ToString();
+                await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+            }
+
+            var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(trip.TractorId);
+            if (tractor != null)
+            {
+                tractor.Status = vehicleStatus.ToString();
+                await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+            }
+
+            var driver = await _unitOfWork.DriverRepository.GetByIdAsync(trip.DriverId);
+            if (driver != null)
+            {
+                driver.Status = (int?)driverStatus;
+                await _unitOfWork.DriverRepository.UpdateAsync(driver);
+            }
+        }
+        #endregion 
     }
 }

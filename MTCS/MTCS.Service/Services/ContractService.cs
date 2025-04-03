@@ -24,7 +24,6 @@ namespace MTCS.Service.Services
         Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, List<string> descriptions, List<string> notes, ClaimsPrincipal claims);
         Task<BusinessResult> SendSignedContract(string contractId, List<string> descriptions, List<string> notes, List<IFormFile> files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims);
-        Task<BusinessResult> DownloadSelectedFilesAsZip(List<string> fileIds);
         Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims);
     }
 
@@ -42,15 +41,6 @@ namespace MTCS.Service.Services
 
 
         #region Create Contract
-        /// <summary>
-        /// Create Contract
-        /// </summary>
-        /// <param name="contractRequest"></param>
-        /// <param name="files"></param>
-        /// <param name="descriptions"></param>
-        /// <param name="notes"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> CreateContract(ContractRequest contractRequest, List<IFormFile> files, List<string> descriptions, List<string> notes, ClaimsPrincipal claims)
         {
             try
@@ -121,12 +111,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Delete Contract
-        /// <summary>
-        /// Change status of contract
-        /// </summary>
-        /// <param name="contractId"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> DeleteContract(string contractId, ClaimsPrincipal claims)
         {
             try
@@ -153,10 +137,6 @@ namespace MTCS.Service.Services
 
 
         #region Get contract and contract file
-        /// <summary>
-        /// Get all contract
-        /// </summary>
-        /// <returns></returns>
         public async Task<BusinessResult> GetContract()
         {
             try
@@ -204,16 +184,8 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
         #region Send Signed Contract
-        /// <summary>
-        /// add file to contract
-        /// </summary>
-        /// <param name="contractId"></param>
-        /// <param name="descriptions"></param>
-        /// <param name="notes"></param>
-        /// <param name="files"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> SendSignedContract(string contractId, List<string> descriptions, List<string> notes, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
@@ -277,12 +249,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Update Contract
-        /// <summary>
-        /// Update not check logic yet
-        /// </summary>
-        /// <param name="model"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> UpdateContractAsync(UpdateContractRequest model, ClaimsPrincipal claims)
         {
             try
@@ -362,60 +328,7 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        public async Task<BusinessResult> DownloadSelectedFilesAsZip(List<string> fileIds)
-        {
-            try
-            {
-                if (fileIds == null || !fileIds.Any())
-                {
-                    return new BusinessResult(Const.FAIL_READ_CODE, "No file IDs provided.");
-                }
-
-                var contractFiles = await _unitOfWork.ContractFileRepository.GetFilesByIdsAsync(fileIds);
-                if (contractFiles == null || !contractFiles.Any())
-                {
-                    return new BusinessResult(Const.FAIL_READ_CODE, "No matching files found.");
-                }
-
-                using (var memoryStream = new MemoryStream())
-                {
-                    using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
-                    {
-                        foreach (var file in contractFiles)
-                        {
-                            var fileData = await _firebaseService.DownloadFileAsync(file.FileUrl);
-                            if (fileData == null || fileData.Length == 0)
-                                continue;
-
-                            var zipEntry = archive.CreateEntry(file.FileName, CompressionLevel.Fastest);
-                            using (var entryStream = zipEntry.Open())
-                            {
-                                await entryStream.WriteAsync(fileData, 0, fileData.Length);
-                            }
-                        }
-                    }
-
-                    memoryStream.Position = 0;
-                    var zipBytes = memoryStream.ToArray();
-
-                    return new BusinessResult(Const.SUCCESS_READ_CODE, "Files downloaded successfully.", Convert.ToBase64String(zipBytes));
-                }
-            }
-            catch (Exception ex)
-            {
-                return new BusinessResult(Const.FAIL_READ_CODE, $"Error downloading selected files: {ex.Message}");
-            }
-        }
-
-
-
-
         #region Support Read extension file
-        /// <summary>
-        /// Get extension file to assign into field File Type
-        /// </summary>
-        /// <param name="extension"></param>
-        /// <returns></returns>
         private string GetFileTypeFromExtension(string extension)
         {
             switch (extension.ToLowerInvariant())
