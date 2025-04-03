@@ -17,9 +17,9 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet]
-        public async Task<IBusinessResult> GetAllCustomer(string? customerId, string? companyNmae)
+        public async Task<IBusinessResult> GetAllCustomer(string? customerId, string? companyName)
         {
-            var result = await _customerService.GetAllCustomers(customerId, companyNmae);
+            var result = await _customerService.GetAllCustomers(customerId, companyName);
             return result;
         }
     }

@@ -57,6 +57,8 @@ public partial class Order
 
     public int? ContainerSize { get; set; }
 
+    public int? IsPay { get; set; }
+
     public virtual Customer Customer { get; set; }
 
     public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();
