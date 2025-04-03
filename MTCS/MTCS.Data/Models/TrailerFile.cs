@@ -15,8 +15,6 @@ public partial class TrailerFile
 
     public string FileType { get; set; }
 
-    public byte[] FileContent { get; set; }
-
     public DateTime? UploadDate { get; set; }
 
     public string UploadBy { get; set; }
@@ -32,6 +30,8 @@ public partial class TrailerFile
     public DateTime? ModifiedDate { get; set; }
 
     public string ModifiedBy { get; set; }
+
+    public string FileUrl { get; set; }
 
     public virtual Trailer Trailer { get; set; }
 }

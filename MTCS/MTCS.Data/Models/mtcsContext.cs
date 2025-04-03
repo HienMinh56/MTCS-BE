@@ -118,7 +118,6 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
@@ -180,7 +179,6 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
@@ -268,7 +266,6 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.DriverId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
@@ -316,7 +313,6 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
@@ -482,7 +478,6 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
@@ -573,8 +568,8 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.ModifiedBy).HasMaxLength(100);
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
             entity.Property(e => e.Note).HasMaxLength(255);
@@ -628,8 +623,8 @@ public partial class MTCSContext : DbContext
                 .IsUnicode(false);
             entity.Property(e => e.DeletedDate).HasColumnType("datetime");
             entity.Property(e => e.Description).HasMaxLength(255);
-            entity.Property(e => e.FileName).IsUnicode(false);
             entity.Property(e => e.FileType).IsUnicode(false);
+            entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.ModifiedBy).HasMaxLength(100);
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
             entity.Property(e => e.Note).HasMaxLength(255);
