@@ -8,6 +8,7 @@ using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
 using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -34,7 +35,9 @@ namespace MTCS.Service.Services
         Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims, List<IFormFile> files, List<string> descriptions, List<string> notes);
         Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> GetOrderFiles(string orderId);
-        Task<byte[]> ExportOrdersToExcelAsync(IEnumerable<Order> orders);
+        Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<Order> orders);
+        Task<byte[]> ExportOrdersToExcelAsync(DateOnly fromDate, DateOnly toDate);
+
         Task<IEnumerable<Order>> GetAllOrders();
 
 
@@ -266,7 +269,7 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<byte[]> ExportOrdersToExcelAsync(IEnumerable<Order> orders)
+        public async Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<Order> orders)
         {
             try
             {
@@ -274,21 +277,20 @@ namespace MTCS.Service.Services
                 using (var package = new ExcelPackage())
                 {
                     var worksheet = package.Workbook.Worksheets.Add("Orders");
-                
-                    worksheet.Cells[1, 1].Value = "TrackingCode";
-                    worksheet.Cells[1, 2].Value = "Customer Name";
-                    worksheet.Cells[1, 3].Value = "Weight";
-                    worksheet.Cells[1, 4].Value = "PickUpDate";
-                    worksheet.Cells[1, 5].Value = "DeliveryDate";
-                    worksheet.Cells[1, 6].Value = "Note";
-                    worksheet.Cells[1, 7].Value = "Container Number";
-                    worksheet.Cells[1, 8].Value = "Container Size";
-                    worksheet.Cells[1, 9].Value = "Container Type";
-                    worksheet.Cells[1, 10].Value = "Delivery Type";
-                    worksheet.Cells[1, 11].Value = "PickUp Location";
-                    worksheet.Cells[1, 12].Value = "Delivery Location";
-                    worksheet.Cells[1, 13].Value = "ConReturn Location";
-                    worksheet.Cells[1, 14].Value = "Price";
+
+                    worksheet.Cells[1, 1].Value = "Ngày";
+                    worksheet.Cells[1, 2].Value = "Mã đơn hàng";
+                    worksheet.Cells[1, 3].Value = "Khách Hàng";
+                    worksheet.Cells[1, 4].Value = "Khối lượng";
+                    worksheet.Cells[1, 5].Value = "Nhập/Xuất";
+                    worksheet.Cells[1, 6].Value = "Ghi Chú";
+                    worksheet.Cells[1, 7].Value = "Số Cont";
+                    worksheet.Cells[1, 8].Value = "Kích thước cont";
+                    worksheet.Cells[1, 9].Value = "Loại cont";                   
+                    worksheet.Cells[1, 10].Value = "Địa chỉ Lấy Cont";
+                    worksheet.Cells[1, 11].Value = "Địa  chỉ giao";
+                    worksheet.Cells[1, 12].Value = "Địa chỉ trả cont";
+                    worksheet.Cells[1, 13].Value = "Cước vận chuyển";
 
                
                     int row = 2;
@@ -296,20 +298,22 @@ namespace MTCS.Service.Services
                     {
 
                         var customer = order.Customer;
-                        worksheet.Cells[row, 1].Value = order.TrackingCode;
-                        worksheet.Cells[row, 2].Value = customer.CompanyName;
-                        worksheet.Cells[row, 3].Value = order.Weight;
-                        worksheet.Cells[row, 4].Value = order.PickUpDate?.ToString("yyyy-MM-dd"); 
-                        worksheet.Cells[row, 5].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
+                        var priceCell = worksheet.Cells[row, 13];
+                        worksheet.Cells[row, 1, row, 13].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                        worksheet.Cells[row, 1].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
+                        worksheet.Cells[row, 2].Value = order.TrackingCode;
+                        worksheet.Cells[row, 3].Value = customer.CompanyName;
+                        worksheet.Cells[row, 4].Value = order.Weight;
+                        worksheet.Cells[row, 5].Value = order.DeliveryType == 1 ? "N" : order.DeliveryType == 2 ? "X" : "";
                         worksheet.Cells[row, 6].Value = order.Note;
                         worksheet.Cells[row, 7].Value = order.ContainerNumber;
-                        worksheet.Cells[row, 8].Value = order.ContainerSize;
-                        worksheet.Cells[row, 9].Value = order.ContainerType;
-                        worksheet.Cells[row, 10].Value = order.DeliveryType;
-                        worksheet.Cells[row, 11].Value = order.PickUpLocation;
-                        worksheet.Cells[row, 12].Value = order.DeliveryLocation;
-                        worksheet.Cells[row, 13].Value = order.ConReturnLocation;
-                        worksheet.Cells[row, 14].Value = order.Price;
+                        worksheet.Cells[row, 8].Value = order.ContainerSize +"f";
+                        worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.DeliveryType == 2 ? "RE" : ""; //DC - Dry container, RE (Reefer)
+                        worksheet.Cells[row, 10].Value = order.PickUpLocation;
+                        worksheet.Cells[row, 11].Value = order.DeliveryLocation;
+                        worksheet.Cells[row, 12].Value = order.ConReturnLocation;
+                        priceCell.Value = order.Price;
+                        priceCell.Style.Numberformat.Format = "#,##0";
 
                         row++;
                     }
@@ -333,6 +337,12 @@ namespace MTCS.Service.Services
             
             var orders = await _unitOfWork.OrderRepository.GetAllOrdersAsync();
             return orders.ToList();
+        }
+
+        public async Task<byte[]> ExportOrdersToExcelAsync(DateOnly fromDate, DateOnly toDate)
+        {
+            var orders = await _unitOfWork.OrderRepository.GetOrdersByDateRangeAsync(fromDate, toDate);
+            return await ExportOrdersToExcelInternal(orders);
         }
 
     }

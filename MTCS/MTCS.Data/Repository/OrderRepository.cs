@@ -71,5 +71,13 @@ namespace MTCS.Data.Repository
         {
             return await _context.Orders.Include(o => o.Customer).ToListAsync();
         }
+
+        public async Task<List<Order>> GetOrdersByDateRangeAsync(DateOnly fromDate, DateOnly toDate)
+        {
+            return await _context.Orders
+                .Include(o => o.Customer)
+                .Where(o => o.DeliveryDate >= fromDate && o.DeliveryDate <= toDate)
+                .ToListAsync();
+        }
     }
 }

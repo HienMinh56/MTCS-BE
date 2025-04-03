@@ -5,12 +5,14 @@
     {
         Active = 1,
         Inactive = 2,
+        Onduty = 3
     }
 
     public enum TrailerStatus
     {
         Active = 1,
         Inactive = 2,
+        Onduty = 3
     }
 
     public enum ContainerType

@@ -67,6 +67,20 @@ namespace MTCS.APIService.Controllers
             return Ok(response);
         }
 
+        [HttpPut("activate-trailer/{trailerId}")]
+        public async Task<IActionResult> ActivateTrailer(string trailerId)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _trailerService.ActivateTrailer(trailerId, userId);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
         [HttpPut("deactivate-trailer/{trailerId}")]
         public async Task<IActionResult> DeactivateTractor(string trailerId)
         {
