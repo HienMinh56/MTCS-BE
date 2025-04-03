@@ -29,6 +29,6 @@
     {
         Inactive = 0,
         Active = 1,
-        Onduty = 2,
+        OnDuty = 2,
     }
 }

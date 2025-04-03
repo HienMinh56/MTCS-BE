@@ -34,12 +34,6 @@ namespace MTCS.Service.Services
             _notification = notification;
         }
         #region Get Delivery Report
-        /// <summary>
-        /// get following reportId and trip Id
-        /// </summary>
-        /// <param name="reportId"></param>
-        /// <param name="tripId"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> GetDeliveryReport(string? reportId, string? tripId, string? driverId)
         {
             try
@@ -52,7 +46,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, "Get Delivery Report Failed");
             }
         }
+        #endregion
 
+        #region Create Delivery Report
         public async Task<BusinessResult> CreateDeliveryReport(CreateDeliveryReportRequest deliveryReport, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
@@ -117,6 +113,7 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
         #region Support Read extension file
         /// <summary>
         /// Get extension file to assign into field File Type
@@ -153,13 +150,8 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
         #region Update Delivery Report
-        /// <summary>
-        /// update not check logic yet
-        /// </summary>
-        /// <param name="updateDelivery"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> UpdateDeliveryReport(UpdateDeliveryReportRequest updateDelivery, ClaimsPrincipal claims)
         {
             try

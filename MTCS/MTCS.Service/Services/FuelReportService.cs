@@ -35,13 +35,6 @@ namespace MTCS.Service.Services
         }
 
         #region Create Fuel report
-        /// <summary>
-        /// Create Fuel report Basic no check logic
-        /// </summary>
-        /// <param name="createFuel"></param>
-        /// <param name="files"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> CreateFuelReport(CreateFuelReportRequest createFuel, List<IFormFile> files, ClaimsPrincipal claims)
         {
             try
@@ -113,6 +106,7 @@ namespace MTCS.Service.Services
 
         }
         #endregion
+
         #region Support Read extension file
         /// <summary>
         /// Get extension file to assign into field File Type
@@ -151,12 +145,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Update Fuel Report
-        /// <summary>
-        /// Update Fuel Report basic not check logic yet
-        /// </summary>
-        /// <param name="updateFuel"></param>
-        /// <param name="claims"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> UpdateFuelReport(UpdateFuelReportRequest updateFuel, ClaimsPrincipal claims)
         {
             try
@@ -237,12 +225,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Get Fuel Report
-        /// <summary>
-        /// Get follwing trip id and report id
-        /// </summary>
-        /// <param name="reportId"></param>
-        /// <param name="tripId"></param>
-        /// <returns></returns>
         public async Task<BusinessResult> GetFuelReport(string? reportId, string? tripId , string? driverId)
         {
             try
