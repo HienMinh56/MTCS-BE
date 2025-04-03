@@ -191,5 +191,48 @@ namespace MTCS.Service.Services
                 "Xóa rơ moóc thành công",
                 null);
         }
+
+        public async Task<ApiResponse<bool>> ActivateTrailer(string trailerId, string userId)
+        {
+            var trailer = await _unitOfWork.TrailerRepository.GetTrailerById(trailerId);
+            if (trailer == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Trailer not found",
+                    "Không tìm thấy rơ moóc",
+                    $"No trailer found with ID: {trailerId}");
+            }
+
+            if (trailer.Status != TractorStatus.Inactive.ToString())
+            {
+                string currentStatus = trailer.Status;
+                string statusVN = currentStatus == TrailerStatus.Active.ToString()
+                    ? "đang hoạt động"
+                    : "đang được sử dụng";
+
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    $"Trailer is already {currentStatus.ToLower()}",
+                    $"Đầu kéo đã {statusVN}",
+                    $"Cannot activate a tractor that is already in {currentStatus.ToLower()} state");
+            }
+
+            trailer.Status = TrailerStatus.Active.ToString();
+            trailer.DeletedBy = null;
+            trailer.DeletedDate = null;
+            trailer.ModifiedBy = userId;
+            trailer.ModifiedDate = DateTime.Now;
+
+            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Trailer deleted successfully",
+                "Xóa rơ moóc thành công",
+                null);
+        }
     }
 }

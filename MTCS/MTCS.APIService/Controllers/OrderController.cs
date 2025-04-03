@@ -53,25 +53,20 @@ namespace MTCS.APIService.Controllers
             return Ok(result);
         }
 
-        [HttpGet("export-orders")]
-        public async Task<IActionResult> ExportOrdersToExcel()
+        [HttpGet("export-excel")]
+        public async Task<IActionResult> ExportOrdersToExcel([FromQuery] DateOnly fromDate, [FromQuery] DateOnly toDate)
         {
-            var orders = await _orderService.GetAllOrders();  
-
-            if (orders.Any()) 
+            try
             {
-                var result = await _orderService.ExportOrdersToExcelAsync(orders);  
+                var fileContent = await _orderService.ExportOrdersToExcelAsync(fromDate, toDate);
+                var fileName = $"Danh sach don hang_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.xlsx";
 
-                if (result != null)  
-                {
-                    return File(result, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "orders.xlsx");
-                }
-
-                return BadRequest("Export failed");
+                return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
             }
-
-            return NotFound("No orders found");
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi khi xuất file Excel: {ex.Message}");
+            }
         }
-
     }
 }

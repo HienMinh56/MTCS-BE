@@ -18,5 +18,6 @@ namespace MTCS.Service.Interfaces
            int? registrationExpiringDays = null);
         Task<ApiResponse<TrailerDetailsDTO>> GetTrailerDetail(string trailerId);
         Task<ApiResponse<bool>> DeleteTrailer(string trailerId, string userId);
+        Task<ApiResponse<bool>> ActivateTrailer(string trailerId, string userId);
     }
 }

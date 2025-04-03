@@ -66,6 +66,20 @@ namespace MTCS.APIService.Controllers
             return Ok(response);
         }
 
+        [HttpPut("activate-tractor/{tractorId}")]
+        public async Task<IActionResult> ActivateTractor(string tractorId)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _tractorService.ActivateTractor(tractorId, userId);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
         [HttpPut("deactivate-tractor/{tractorId}")]
         public async Task<IActionResult> DeactivateTractor(string tractorId)
         {
