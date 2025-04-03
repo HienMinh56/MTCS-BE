@@ -75,7 +75,7 @@ namespace MTCS.Service.Services
 
                 if (newStatus.StatusIndex == 1)
                 {
-                    await UpdateOrderAndVehiclesAsync(trip, "Delivering", VehicleStatus.Onduty, DriverStatus.OnDuty);
+                    await UpdateOrderAndVehiclesAsync(trip, "Delivering", VehicleStatus.OnDuty, DriverStatus.OnDuty);
                 }
 
                 trip.Status = newStatusId;
