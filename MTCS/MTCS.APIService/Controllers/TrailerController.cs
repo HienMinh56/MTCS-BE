@@ -19,13 +19,15 @@ namespace MTCS.APIService.Controllers
             _trailerService = trailerService;
         }
 
-
-        [HttpPost("create-trailer")]
-        public async Task<IActionResult> CreateTrailer([FromBody] CreateTrailerDTO trailerDto)
+        [HttpPost("create-with-files")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateTrailerWithFiles(
+    [FromForm] CreateTrailerDTO trailerDto,
+    [FromForm] List<TrailerFileUploadDTO> fileUploads)
         {
             var userId = User.GetUserId();
 
-            var response = await _trailerService.CreateTrailer(trailerDto, userId);
+            var response = await _trailerService.CreateTrailerWithFiles(trailerDto, fileUploads, userId);
             if (!response.Success)
             {
                 return BadRequest(response);
@@ -82,7 +84,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPut("deactivate-trailer/{trailerId}")]
-        public async Task<IActionResult> DeactivateTractor(string trailerId)
+        public async Task<IActionResult> DeactivateTrailer(string trailerId)
         {
             var userId = User.GetUserId();
 

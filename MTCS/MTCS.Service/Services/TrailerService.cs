@@ -11,13 +11,18 @@ namespace MTCS.Service.Services
     public class TrailerService : ITrailerService
     {
         private readonly UnitOfWork _unitOfWork;
+        private readonly IFirebaseStorageService _firebaseStorageService;
 
-        public TrailerService(UnitOfWork unitOfWork)
+        public TrailerService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseStorageService)
         {
             _unitOfWork = unitOfWork;
+            _firebaseStorageService = firebaseStorageService;
         }
 
-        public async Task<ApiResponse<TrailerResponseDTO>> CreateTrailer(CreateTrailerDTO trailerDto, string userId)
+        public async Task<ApiResponse<TrailerResponseDTO>> CreateTrailerWithFiles(
+    CreateTrailerDTO trailerDto,
+    List<TrailerFileUploadDTO> fileUploads,
+    string userId)
         {
             if (trailerDto.RegistrationExpirationDate <= trailerDto.RegistrationDate)
             {
@@ -78,8 +83,63 @@ namespace MTCS.Service.Services
                 ContainerSize = (ContainerSize)createTrailer.ContainerSize.Value
             };
 
-            return new ApiResponse<TrailerResponseDTO>(true, responseDto, "Create trailer successfully", "Tạo rơ moóc thành công", null);
+            if (fileUploads != null && fileUploads.Count > 0)
+            {
+                try
+                {
+                    foreach (var fileUpload in fileUploads)
+                    {
+                        if (fileUpload.File != null && fileUpload.File.Length > 0)
+                        {
+                            var fileMetadata = await _firebaseStorageService.UploadFileAsync(fileUpload.File);
+
+                            var trailerFile = new TrailerFile
+                            {
+                                FileId = Guid.NewGuid().ToString(),
+                                TrailerId = trailerId,
+                                FileName = fileUpload.File.FileName,
+                                FileType = fileMetadata.FileType,
+                                FileUrl = fileMetadata.FileUrl,
+                                UploadDate = DateTime.Now,
+                                UploadBy = userId,
+                                Description = fileUpload.Description,
+                                Note = fileUpload.Note,
+                                ModifiedDate = null,
+                                ModifiedBy = null,
+                                DeletedDate = null,
+                                DeletedBy = null
+                            };
+
+                            await _unitOfWork.TrailerFileRepository.CreateAsync(trailerFile);
+                        }
+                    }
+
+                    return new ApiResponse<TrailerResponseDTO>(
+                        true,
+                        responseDto,
+                        "Trailer and files created successfully",
+                        "Đã tạo rơ moóc và tệp đính kèm thành công",
+                        null);
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<TrailerResponseDTO>(
+                        true,
+                        responseDto,
+                        "Trailer created successfully but there was an issue with file uploads",
+                        "Đã tạo rơ moóc thành công nhưng có vấn đề khi upload file",
+                        ex.Message);
+                }
+            }
+
+            return new ApiResponse<TrailerResponseDTO>(
+                true,
+                responseDto,
+                "Create trailer successfully",
+                "Tạo rơ moóc thành công",
+                null);
         }
+
 
         public async Task<ApiResponse<TrailerBasicInfoResultDTO>> GetTrailersBasicInfo(
            PaginationParams paginationParams,
@@ -139,6 +199,22 @@ namespace MTCS.Service.Services
                     "Trailer not found",
                     "Không tìm thấy rơ moóc",
                     $"No trailer found with ID: {trailerId}");
+            }
+            var trailerFiles = await _unitOfWork.TrailerFileRepository.GetFilesByTrailerId(trailerId);
+
+            if (trailerFiles != null && trailerFiles.Any())
+            {
+                trailer.Files = trailerFiles.Select(file => new TrailerFileDTO
+                {
+                    FileId = file.FileId,
+                    FileName = file.FileName,
+                    FileUrl = file.FileUrl,
+                    FileType = file.FileType,
+                    Description = file.Description,
+                    Note = file.Note,
+                    UploadDate = file.UploadDate ?? DateTime.MinValue,
+                    UploadBy = file.UploadBy
+                }).ToList();
             }
 
             return new ApiResponse<TrailerDetailsDTO>(
@@ -205,7 +281,7 @@ namespace MTCS.Service.Services
                     $"No trailer found with ID: {trailerId}");
             }
 
-            if (trailer.Status != TractorStatus.Inactive.ToString())
+            if (trailer.Status != TrailerStatus.Inactive.ToString())
             {
                 string currentStatus = trailer.Status;
                 string statusVN = currentStatus == TrailerStatus.Active.ToString()
@@ -230,8 +306,8 @@ namespace MTCS.Service.Services
             return new ApiResponse<bool>(
                 true,
                 true,
-                "Trailer deleted successfully",
-                "Xóa rơ moóc thành công",
+                "Trailer activated successfully",
+                "Kích hoạt rơ moóc thành công",
                 null);
         }
     }

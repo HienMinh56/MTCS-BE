@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using System.ComponentModel.DataAnnotations;
@@ -92,5 +93,27 @@ namespace MTCS.Data.DTOs
         public DateTime? DeletedDate { get; set; }
         public string? DeletedBy { get; set; }
         public int OrderCount { get; set; }
+        public List<TrailerFileDTO> Files { get; set; } = new List<TrailerFileDTO>();
+
+    }
+
+    public class TrailerFileDTO
+    {
+        public string FileId { get; set; }
+        public string FileName { get; set; }
+        public string FileUrl { get; set; }
+        public string FileType { get; set; }
+        public long FileSize { get; set; }
+        public string? Description { get; set; }
+        public string? Note { get; set; }
+        public DateTime UploadDate { get; set; }
+        public string UploadBy { get; set; }
+    }
+
+    public class TrailerFileUploadDTO
+    {
+        public IFormFile File { get; set; }
+        public string Description { get; set; }
+        public string? Note { get; set; }
     }
 }

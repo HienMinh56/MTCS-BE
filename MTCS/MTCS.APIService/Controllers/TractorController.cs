@@ -19,18 +19,22 @@ namespace MTCS.APIService.Controllers
             _tractorService = tractorService;
         }
 
-        [HttpPost("create-tractor")]
-        public async Task<IActionResult> CreateTractor([FromBody] CreateTractorDTO tractorDto)
+        [HttpPost("create-with-files")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateTractorWithFiles(
+    [FromForm] CreateTractorDTO tractorDto,
+    [FromForm] List<TractorFileUploadDTO> fileUploads)
         {
             var userId = User.GetUserId();
 
-            var response = await _tractorService.CreateTractor(tractorDto, userId);
+            var response = await _tractorService.CreateTractorWithFiles(tractorDto, fileUploads, userId);
             if (!response.Success)
             {
                 return BadRequest(response);
             }
             return Ok(response);
         }
+
 
         [HttpGet]
         public async Task<IActionResult> GetTractorsBasicInfo(

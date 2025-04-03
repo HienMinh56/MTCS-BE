@@ -1,4 +1,5 @@
-﻿using MTCS.Data.Enums;
+﻿using Microsoft.AspNetCore.Http;
+using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using System.ComponentModel.DataAnnotations;
 
@@ -83,6 +84,7 @@ namespace MTCS.Data.DTOs
         public string? ModifiedBy { get; set; }
         public DateTime? DeletedDate { get; set; }
         public string? DeletedBy { get; set; }
+        public List<TractorFileDTO> Files { get; set; } = new List<TractorFileDTO>();
     }
 
     public class TractorBasicInfoResultDTO
@@ -92,5 +94,25 @@ namespace MTCS.Data.DTOs
         public int ActiveCount { get; set; }
         public int MaintenanceDueCount { get; set; }
         public int RegistrationExpiryDueCount { get; set; }
+    }
+
+    public class TractorFileDTO
+    {
+        public string FileId { get; set; }
+        public string FileName { get; set; }
+        public string FileUrl { get; set; }
+        public string FileType { get; set; }
+        public long FileSize { get; set; }
+        public string? Description { get; set; }
+        public string? Note { get; set; }
+        public DateTime UploadDate { get; set; }
+        public string UploadBy { get; set; }
+    }
+
+    public class TractorFileUploadDTO
+    {
+        public IFormFile File { get; set; }
+        public string Description { get; set; }
+        public string? Note { get; set; }
     }
 }

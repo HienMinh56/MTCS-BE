@@ -11,13 +11,18 @@ namespace MTCS.Service.Services
     public class TractorService : ITractorService
     {
         private readonly UnitOfWork _unitOfWork;
+        private readonly IFirebaseStorageService _firebaseStorageService;
 
-        public TractorService(UnitOfWork unitOfWork)
+        public TractorService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseStorageService)
         {
             _unitOfWork = unitOfWork;
+            _firebaseStorageService = firebaseStorageService;
         }
 
-        public async Task<ApiResponse<TractorResponseDTO>> CreateTractor(CreateTractorDTO tractorDto, string userId)
+        public async Task<ApiResponse<TractorResponseDTO>> CreateTractorWithFiles(
+    CreateTractorDTO tractorDto,
+    List<TractorFileUploadDTO> fileUploads,
+    string userId)
         {
             if (tractorDto.RegistrationExpirationDate <= tractorDto.RegistrationDate)
             {
@@ -39,7 +44,6 @@ namespace MTCS.Service.Services
                     $"Biển số đã được sử dụng bởi {vehicleTypeVN} {vehicleBrand} (ID: {vehicleId})",
                     $"License plate already exists on {vehicleType} {vehicleBrand} (ID: {vehicleId})");
             }
-
             var tractorId = await _unitOfWork.VehicleHelper.GenerateTractorId();
 
             var createTractor = new Tractor
@@ -54,7 +58,7 @@ namespace MTCS.Service.Services
                 RegistrationDate = tractorDto.RegistrationDate,
                 RegistrationExpirationDate = tractorDto.RegistrationExpirationDate,
                 ContainerType = tractorDto.ContainerType,
-                Status = VehicleStatus.Active.ToString(),
+                Status = TractorStatus.Active.ToString(),
                 CreatedDate = DateTime.Now,
                 CreatedBy = userId,
                 DeletedDate = null,
@@ -78,7 +82,61 @@ namespace MTCS.Service.Services
                 ContainerType = (ContainerType)createTractor.ContainerType.Value
             };
 
-            return new ApiResponse<TractorResponseDTO>(true, responseDto, "Create tractor successfully", "Tạo đầu kéo thành công", null);
+            if (fileUploads != null && fileUploads.Count > 0)
+            {
+                try
+                {
+                    foreach (var fileUpload in fileUploads)
+                    {
+                        if (fileUpload.File != null && fileUpload.File.Length > 0)
+                        {
+                            var fileMetadata = await _firebaseStorageService.UploadFileAsync(fileUpload.File);
+
+                            var tractorFile = new TractorFile
+                            {
+                                FileId = Guid.NewGuid().ToString(),
+                                TractorsId = tractorId,
+                                FileName = fileUpload.File.FileName,
+                                FileType = fileMetadata.FileType,
+                                FileUrl = fileMetadata.FileUrl,
+                                UploadDate = DateTime.Now,
+                                UploadBy = userId,
+                                Description = fileUpload.Description,
+                                Note = fileUpload.Note,
+                                ModifiedDate = null,
+                                ModifiedBy = null,
+                                DeletedDate = null,
+                                DeletedBy = null
+                            };
+
+                            await _unitOfWork.TractorFileRepository.CreateAsync(tractorFile);
+                        }
+                    }
+
+                    return new ApiResponse<TractorResponseDTO>(
+                        true,
+                        responseDto,
+                        "Tractor and files created successfully",
+                        "Đã tạo đầu kéo và tệp đính kèm thành công",
+                        null);
+                }
+                catch (Exception ex)
+                {
+                    return new ApiResponse<TractorResponseDTO>(
+                        true,
+                        responseDto,
+                        "Tractor created successfully but there was an issue with file uploads",
+                        "Đã tạo đầu kéo thành công nhưng có vấn đề khi upload file",
+                        ex.Message);
+                }
+            }
+
+            return new ApiResponse<TractorResponseDTO>(
+                true,
+                responseDto,
+                "Create tractor successfully",
+                "Tạo đầu kéo thành công",
+                null);
         }
 
         public async Task<ApiResponse<TractorBasicInfoResultDTO>> GetTractorsBasicInfo(
@@ -139,6 +197,23 @@ namespace MTCS.Service.Services
                     "Tractor not found",
                     "Không tìm thấy đầu kéo",
                     $"No tractor found with ID: {tractorId}");
+            }
+
+            var tractorFiles = await _unitOfWork.TractorFileRepository.GetFilesByTractorId(tractorId);
+
+            if (tractorFiles != null && tractorFiles.Any())
+            {
+                tractor.Files = tractorFiles.Select(file => new TractorFileDTO
+                {
+                    FileId = file.FileId,
+                    FileName = file.FileName,
+                    FileUrl = file.FileUrl,
+                    FileType = file.FileType,
+                    Description = file.Description,
+                    Note = file.Note,
+                    UploadDate = file.UploadDate ?? DateTime.MinValue,
+                    UploadBy = file.UploadBy
+                }).ToList();
             }
 
             return new ApiResponse<TractorDetailsDTO>(

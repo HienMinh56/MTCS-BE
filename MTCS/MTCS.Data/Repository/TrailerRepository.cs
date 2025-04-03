@@ -181,7 +181,8 @@ namespace MTCS.Data.Repository
 
                 CreatedBy = users.TryGetValue(trailer.CreatedBy ?? "", out var createdBy) ? createdBy : null,
                 ModifiedBy = users.TryGetValue(trailer.ModifiedBy ?? "", out var modifiedBy) ? modifiedBy : null,
-                DeletedBy = users.TryGetValue(trailer.DeletedBy ?? "", out var deletedBy) ? deletedBy : null
+                DeletedBy = users.TryGetValue(trailer.DeletedBy ?? "", out var deletedBy) ? deletedBy : null,
+                Files = new List<TrailerFileDTO>()
             };
         }
     }

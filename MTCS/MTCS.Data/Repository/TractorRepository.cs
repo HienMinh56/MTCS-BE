@@ -181,7 +181,8 @@ namespace MTCS.Data.Repository
 
                 CreatedBy = users.TryGetValue(tractor.CreatedBy ?? "", out var createdBy) ? createdBy : null,
                 ModifiedBy = users.TryGetValue(tractor.ModifiedBy ?? "", out var modifiedBy) ? modifiedBy : null,
-                DeletedBy = users.TryGetValue(tractor.DeletedBy ?? "", out var deletedBy) ? deletedBy : null
+                DeletedBy = users.TryGetValue(tractor.DeletedBy ?? "", out var deletedBy) ? deletedBy : null,
+                Files = new List<TractorFileDTO>()
             };
         }
 
