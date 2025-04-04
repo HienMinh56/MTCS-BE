@@ -51,6 +51,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[DriverWeeklySummary]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[FuelReport]",
          "ObjectType": 0
       },
