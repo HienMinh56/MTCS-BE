@@ -59,6 +59,8 @@ public partial class Order
 
     public int? IsPay { get; set; }
 
+    public TimeOnly? CompletionTime { get; set; }
+
     public virtual Customer Customer { get; set; }
 
     public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();

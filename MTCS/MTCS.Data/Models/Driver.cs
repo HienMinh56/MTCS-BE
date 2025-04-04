@@ -39,5 +39,7 @@ public partial class Driver
 
     public virtual ICollection<DriverFile> DriverFiles { get; set; } = new List<DriverFile>();
 
+    public virtual ICollection<DriverWeeklySummary> DriverWeeklySummaries { get; set; } = new List<DriverWeeklySummary>();
+
     public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 }
