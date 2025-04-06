@@ -74,10 +74,8 @@ namespace MTCS.APIService.Controllers
         [HttpPut("update/{orderId}")]
         public async Task<IActionResult> UpdateOrderAsync(string orderId, [FromQuery] UpdateOrderRequest model)
         {
-            // Lấy thông tin người dùng từ Claims (token) nếu cần
             var claims = User;
 
-            // Gọi service để cập nhật đơn hàng
             var result = await _orderService.UpdateOrderAsync(orderId, model, claims);
 
             if (result.Status == Const.SUCCESS_UPDATE_CODE)

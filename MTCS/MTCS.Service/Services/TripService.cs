@@ -1,11 +1,13 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
+using MTCS.Data.Request;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
@@ -138,6 +140,67 @@ namespace MTCS.Service.Services
         }
         #endregion 
 
+        public async Task<BusinessResult> UpdateTripAsync(string tripId, UpdateTripRequest model, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
 
+                await _unitOfWork.BeginTransactionAsync();
+                var oldTrip = await _unitOfWork.TripRepository.GetByIdAsync(tripId);
+                if (oldTrip == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
+
+                // check MaxloadWeight xe moi phai >= xe cu
+                if (!string.IsNullOrEmpty(model.TrailerId) && model.TrailerId != oldTrip.TrailerId)
+                {
+                    var oldTrailer = await _unitOfWork.TrailerRepository.GetByIdAsync(oldTrip.TrailerId);
+                    var newTrailer = await _unitOfWork.TrailerRepository.GetByIdAsync(model.TrailerId);
+                    if (newTrailer == null)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Trailer mới không tồn tại");
+                    if (newTrailer.MaxLoadWeight < oldTrailer.MaxLoadWeight)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tải trọng của Trailer mới không phù hợp");
+                }
+
+                // check MaxloadWeight xe moi phai >= xe cu
+                if (!string.IsNullOrEmpty(model.TractorId) && model.TractorId != oldTrip.TractorId)
+                {
+                    var oldTractor = await _unitOfWork.TractorRepository.GetByIdAsync(oldTrip.TractorId);
+                    var newTractor = await _unitOfWork.TractorRepository.GetByIdAsync(model.TractorId);
+                    if (newTractor == null)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tractor mới không tồn tại");
+                    if (newTractor.MaxLoadWeight < oldTractor.MaxLoadWeight)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tải trọng của Tractor mới không phù hợp");
+                }
+
+                var newTrip = new Trip
+                {
+                    TripId = Guid.NewGuid().ToString(), 
+                    OrderId = oldTrip.OrderId,
+                    DriverId = model.DriverId ?? oldTrip.DriverId, 
+                    TractorId = model.TractorId ?? oldTrip.TractorId,  
+                    TrailerId = model.TrailerId ?? oldTrip.TrailerId, 
+                    Status = model.Status ?? oldTrip.Status,
+                    StartTime = DateTime.Now,
+                    MatchType = 2,
+                    MatchBy = userName,
+                    MatchTime = DateTime.Now,                                 
+                };
+
+                await _unitOfWork.TripRepository.CreateAsync(newTrip);
+
+                oldTrip.Status = "cancel";
+                await _unitOfWork.TripRepository.UpdateAsync(oldTrip);
+
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", newTrip);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message);
+            }
+        }
     }
 }
