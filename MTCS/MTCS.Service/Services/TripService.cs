@@ -1,11 +1,13 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
+using MTCS.Data.Request;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
@@ -137,5 +139,129 @@ namespace MTCS.Service.Services
             }
         }
         #endregion 
+
+        public async Task<BusinessResult> UpdateTripAsync(string tripId, UpdateTripRequest model, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+
+                await _unitOfWork.BeginTransactionAsync();
+                var oldTrip = await _unitOfWork.TripRepository.GetByIdAsync(tripId);
+                if (oldTrip == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
+
+                // Validate trailer if being changed
+                if (!string.IsNullOrEmpty(model.TrailerId) && model.TrailerId != oldTrip.TrailerId)
+                {
+                    var oldTrailer = await _unitOfWork.TrailerRepository.GetByIdAsync(oldTrip.TrailerId);
+                    var newTrailer = await _unitOfWork.TrailerRepository.GetByIdAsync(model.TrailerId);
+
+                    // Check if new trailer exists
+                    if (newTrailer == null)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Trailer mới không tồn tại");
+
+                    // Check trailer status - must be Active
+                    if (newTrailer.Status != VehicleStatus.Active.ToString())
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Trailer phải ở trạng thái Active để được chỉ định cho Trip");
+
+                    // Check load weight compatibility
+                    if (newTrailer.MaxLoadWeight < oldTrailer.MaxLoadWeight)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tải trọng của Trailer mới không phù hợp");
+                }
+
+                // Validate tractor if being changed
+                if (!string.IsNullOrEmpty(model.TractorId) && model.TractorId != oldTrip.TractorId)
+                {
+                    var oldTractor = await _unitOfWork.TractorRepository.GetByIdAsync(oldTrip.TractorId);
+                    var newTractor = await _unitOfWork.TractorRepository.GetByIdAsync(model.TractorId);
+
+                    // Check if new tractor exists
+                    if (newTractor == null)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tractor mới không tồn tại");
+
+                    // Check tractor status - must be Active
+                    if (newTractor.Status != VehicleStatus.Active.ToString())
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tractor phải ở trạng thái Active để được chỉ định cho Trip");
+
+                    // Check load weight compatibility
+                    if (newTractor.MaxLoadWeight < oldTractor.MaxLoadWeight)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tải trọng của Tractor mới không phù hợp");
+                }
+
+                // Validate driver if being changed
+                if (!string.IsNullOrEmpty(model.DriverId) && model.DriverId != oldTrip.DriverId)
+                {
+                    var newDriver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(model.DriverId);
+
+                    // Check if new driver exists
+                    if (newDriver == null)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Driver mới không tồn tại");
+
+                    // Check driver status - must be Active (1)
+                    if (newDriver.Status != (int)DriverStatus.Active)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Driver phải ở trạng thái Active để được chỉ định cho Trip");
+                }
+                var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(oldTrip.TripId);
+
+                // Create new trip with updated values
+                var newTrip = new Trip
+                {
+                    TripId = Guid.NewGuid().ToString(),
+                    OrderId = oldTrip.OrderId,
+                    DriverId = model.DriverId ?? oldTrip.DriverId,
+                    TractorId = model.TractorId ?? oldTrip.TractorId,
+                    TrailerId = model.TrailerId ?? oldTrip.TrailerId,
+                    Status = previousStatus.StatusId,
+                    StartTime = DateTime.Now,
+                    MatchType = 2,
+                    MatchBy = userName,
+                    MatchTime = DateTime.Now,
+                };
+
+                // Create the new trip
+                await _unitOfWork.TripRepository.CreateAsync(newTrip);
+
+                // Update vehicle and driver status to OnDuty
+                if (model.TrailerId != null && model.TrailerId != oldTrip.TrailerId)
+                {
+                    var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(model.TrailerId);
+                    trailer.Status = VehicleStatus.OnDuty.ToString();
+                    await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                }
+
+                if (model.TractorId != null && model.TractorId != oldTrip.TractorId)
+                {
+                    var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(model.TractorId);
+                    tractor.Status = VehicleStatus.OnDuty.ToString();
+                    await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                }
+
+                if (model.DriverId != null && model.DriverId != oldTrip.DriverId)
+                {
+                    var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(model.DriverId);
+                    driver.Status = (int)DriverStatus.OnDuty;
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                }
+
+                // Create trip status history entry
+                await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
+                {
+                    HistoryId = Guid.NewGuid().ToString(),
+                    TripId = newTrip.TripId,
+                    StatusId = previousStatus.StatusId,
+                    StartTime = DateTime.Now
+                });
+
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", newTrip);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackTransactionAsync();
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message);
+            }
+        }
     }
 }

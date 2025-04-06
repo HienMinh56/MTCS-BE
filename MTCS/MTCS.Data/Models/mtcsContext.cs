@@ -36,6 +36,8 @@ public partial class MTCSContext : DbContext
 
     public virtual DbSet<DriverFile> DriverFiles { get; set; }
 
+    public virtual DbSet<DriverWeeklySummary> DriverWeeklySummaries { get; set; }
+
     public virtual DbSet<FuelReport> FuelReports { get; set; }
 
     public virtual DbSet<FuelReportFile> FuelReportFiles { get; set; }
@@ -274,6 +276,26 @@ public partial class MTCSContext : DbContext
             entity.HasOne(d => d.Driver).WithMany(p => p.DriverFiles)
                 .HasForeignKey(d => d.DriverId)
                 .HasConstraintName("FK__DriverFil__Drive__628FA481");
+        });
+
+        modelBuilder.Entity<DriverWeeklySummary>(entity =>
+        {
+            entity.HasKey(e => e.SummaryId).HasName("PK__DriverWe__DAB10E2FAD23F49D");
+
+            entity.ToTable("DriverWeeklySummary");
+
+            entity.Property(e => e.SummaryId)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.DriverId)
+                .IsRequired()
+                .HasMaxLength(255)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.Driver).WithMany(p => p.DriverWeeklySummaries)
+                .HasForeignKey(d => d.DriverId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DriverWeeklySummary_Driver");
         });
 
         modelBuilder.Entity<FuelReport>(entity =>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Enums;
@@ -11,6 +12,7 @@ using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -33,7 +35,7 @@ namespace MTCS.Service.Services
                                             DateOnly? deliveryDate = null
                                             );
         Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims, List<IFormFile> files, List<string> descriptions, List<string> notes);
-        Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims);
+        Task<BusinessResult> UpdateOrderAsync(string orderId, UpdateOrderRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> GetOrderFiles(string orderId);
         Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<Order> orders);
         Task<byte[]> ExportOrdersToExcelAsync(DateOnly fromDate, DateOnly toDate);
@@ -115,6 +117,8 @@ namespace MTCS.Service.Services
                     DeliveryType = orderRequest.DeliveryType, 
                     CreatedDate = DateTime.Now,
                     CreatedBy = userId,
+                    IsPay = 0,
+                    CompletionTime = orderRequest.CompletionTime
                 };
 
                 await _unitOfWork.OrderRepository.CreateAsync(order);
@@ -144,7 +148,6 @@ namespace MTCS.Service.Services
                         ModifiedBy = userName,
                     };
 
-                    await _unitOfWork.OrderFileRepository.CreateAsync(orderFile);
                     savedFiles.Add(orderFile);
                 }
 
@@ -156,7 +159,6 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                //await _unitOfWork.RollbackTransactionAsync();
                 return new BusinessResult(Const.FAIL_CREATE_CODE, ex.Message);
             }
         }
@@ -164,15 +166,15 @@ namespace MTCS.Service.Services
 
         #region Get Orders
         public async Task<BusinessResult> GetOrders(
-    string? orderId = null,
-    string? tripId = null,
-    string? customerId = null,
-    int? containerType = null,
-    string? containerNumber = null,
-    string? trackingCode = null,
-    string? status = null,
-    DateOnly? pickUpDate = null,
-    DateOnly? deliveryDate = null)
+        string? orderId = null,
+        string? tripId = null,
+        string? customerId = null,
+        int? containerType = null,
+        string? containerNumber = null,
+        string? trackingCode = null,
+        string? status = null,
+        DateOnly? pickUpDate = null,
+        DateOnly? deliveryDate = null)
         {
             try
             {
@@ -197,30 +199,83 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Update Order
-        public async Task<BusinessResult> UpdateOrderAsync(UpdateOrderRequest model, ClaimsPrincipal claims)
+        public async Task<BusinessResult> UpdateOrderAsync(string orderId, UpdateOrderRequest model, ClaimsPrincipal claims)
         {
             try
             {
-                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
                 await _unitOfWork.BeginTransactionAsync();
-
-                var order = await _unitOfWork.OrderRepository.GetByIdAsync(model.OrderId);
+                var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
                 if (order == null)
                     return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
 
-                order.Price = model.Price ?? order.Price;
-                order.Status = model.Status ?? order.Status;
+                order.Temperature = model.Temperature ?? order.Temperature;  
+                order.Note = model.Note ?? order.Note;  
+                order.Price = model.Price ?? order.Price; 
+                order.Status = model.Status ?? order.Status;  
                 order.ModifiedDate = DateTime.Now;
                 order.ModifiedBy = userName;
+                order.ContactPerson = model.ContactPerson ?? order.ContactPerson; 
+                order.ContainerNumber = model.ContainerNumber ?? order.ContainerNumber;  
+                order.ContactPhone = model.ContactPhone ?? order.ContactPhone; 
+                order.OrderPlacer = model.OrderPlacer ?? order.OrderPlacer; 
+                order.IsPay = model.IsPay ?? order.IsPay;
 
-                await _unitOfWork.OrderRepository.UpdateAsync(order);
 
-                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, order);
+                if (model.FileIdsToRemove?.Any() == true)
+                {
+                    foreach (var fileId in model.FileIdsToRemove)
+                    {
+                        var file = _unitOfWork.ContractFileRepository.GetById(fileId);
+                        if (file != null)
+                        {
+                            await _unitOfWork.ContractFileRepository.RemoveAsync(file);
+                        }
+                    }
+                }
+
+                if (!model.AddedFiles.IsNullOrEmpty() || model.Descriptions.Count != 0 || model.Notes.Count != 0)
+                {
+                    if (model.AddedFiles.Count != model.Descriptions.Count || model.AddedFiles.Count != model.Notes.Count)
+                    {
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Số lượng files, descriptions và notes phải bằng nhau.");
+                    }
+                    for (int i = 0; i < model.AddedFiles.Count; i++)
+                    {
+                        var file = model.AddedFiles[i];
+                        var fileUrl = await _firebaseService.UploadImageAsync(file);
+
+                        var fileName = Path.GetFileName(file.FileName);
+                        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                        string fileType = GetFileTypeFromExtension(fileExtension);
+
+                        order.OrderFiles.Add(new OrderFile
+                        {
+                            FileId = Guid.NewGuid().ToString(),
+                            OrderId = order.OrderId,
+                            FileName = fileName,
+                            FileType = fileType,
+                            FileUrl = fileUrl,
+                            Description = model.Descriptions[i],
+                            Note = model.Notes[i],
+                            UploadDate = DateTime.Now,
+                            UploadBy = userName,
+                            ModifiedBy = userName,
+                            ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
+                        });
+                    }
+
+                    await _unitOfWork.OrderRepository.UpdateAsync(order);
+                }
+
+
+                //await _repository.CommitTransactionAsync();
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
             }
-            catch (Exception ex)
+            catch
             {
-                //await _unitOfWork.RollbackTransactionAsync();
-                return new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message);
+                await _unitOfWork.RollbackTransactionAsync();
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
             }
         }
         #endregion
@@ -229,15 +284,14 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var contractFiles = _unitOfWork.OrderFileRepository.GetList(x => x.OrderId == orderId);
-                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, contractFiles);
+                var orderFile = _unitOfWork.OrderFileRepository.GetList(x => x.OrderId == orderId);
+                return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, orderFile);
             }
             catch
             {
                 return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
             }
         }
-
 
         private string GetFileTypeFromExtension(string extension)
         {

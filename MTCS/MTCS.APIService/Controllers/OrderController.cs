@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MTCS.Common;
 using MTCS.Data.Request;
 using MTCS.Service.Services;
 using static Google.Cloud.Firestore.V1.StructuredQuery.Types;
@@ -67,6 +69,21 @@ namespace MTCS.APIService.Controllers
             {
                 return StatusCode(500, $"Lỗi khi xuất file Excel: {ex.Message}");
             }
+        }
+
+        [HttpPut("update/{orderId}")]
+        public async Task<IActionResult> UpdateOrderAsync(string orderId, [FromQuery] UpdateOrderRequest model)
+        {
+            var claims = User;
+
+            var result = await _orderService.UpdateOrderAsync(orderId, model, claims);
+
+            if (result.Status == Const.SUCCESS_UPDATE_CODE)
+            {
+                return Ok(result); 
+            }
+
+            return BadRequest(result); 
         }
     }
 }

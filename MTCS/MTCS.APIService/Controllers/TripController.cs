@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MTCS.Common;
 using MTCS.Data.Helpers;
 using MTCS.Data.Request;
+using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -41,6 +43,17 @@ namespace MTCS.APIService.Controllers
             var userId = User.GetUserId();
             var result = await _tripService.UpdateStatusTrip(tripId, newStatusId, userId);
             return Ok(result);
+        }
+
+        [HttpPut("update/{tripId}")]
+        public async Task<IActionResult> UpdateTrip(string tripId, [FromQuery] UpdateTripRequest model)
+        {
+           
+            var result = await _tripService.UpdateTripAsync(tripId, model, User);
+            if (result.Status == Const.SUCCESS_UPDATE_CODE)
+                return Ok(result);
+
+            return BadRequest(result);
         }
     }
 }
