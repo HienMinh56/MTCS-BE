@@ -31,6 +31,7 @@ namespace MTCS.Data.DTOs
         public DateOnly? RegistrationDate { get; set; }
 
         [Required(ErrorMessage = "Registration expiration date is required")]
+        [CustomValidation(typeof(DateValidator), "RegistrationExipry")]
         public DateOnly? RegistrationExpirationDate { get; set; }
 
         [Required(ErrorMessage = "Container type is required")]
@@ -113,6 +114,12 @@ namespace MTCS.Data.DTOs
     {
         public IFormFile File { get; set; }
         public string Description { get; set; }
+        public string? Note { get; set; }
+    }
+
+    public class UpdateTractorFileDetailsDTO
+    {
+        public string? Description { get; set; }
         public string? Note { get; set; }
     }
 }

@@ -24,13 +24,6 @@ namespace MTCS.Service.Services
     List<TrailerFileUploadDTO> fileUploads,
     string userId)
         {
-            if (trailerDto.RegistrationExpirationDate <= trailerDto.RegistrationDate)
-            {
-                return new ApiResponse<TrailerResponseDTO>(false, null, "Validation failed",
-                    "Hạn đăng kiểm phải sau ngày đăng kiểm",
-                    "Registration expiration date must be after registration date");
-            }
-
             var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(trailerDto.LicensePlate);
 
             if (exists)
@@ -310,5 +303,182 @@ namespace MTCS.Service.Services
                 "Kích hoạt rơ moóc thành công",
                 null);
         }
+
+        public async Task<ApiResponse<TrailerResponseDTO>> UpdateTrailerWithFiles(
+    string trailerId,
+    CreateTrailerDTO updateDto,
+    List<TrailerFileUploadDTO> newFiles,
+    List<string> fileIdsToRemove,
+    string userId)
+        {
+            var existingTrailer = await _unitOfWork.TrailerRepository.GetTrailerById(trailerId);
+            if (existingTrailer == null)
+            {
+                return new ApiResponse<TrailerResponseDTO>(
+                    false,
+                    null,
+                    "Trailer not found",
+                    "Không tìm thấy rơ moóc",
+                    null);
+            }
+
+            if (existingTrailer.LicensePlate != updateDto.LicensePlate)
+            {
+                var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(updateDto.LicensePlate);
+
+                if (exists)
+                {
+                    string vehicleTypeVN = _unitOfWork.VehicleHelper.GetVehicleTypeVN(vehicleType);
+
+                    return new ApiResponse<TrailerResponseDTO>(
+                        false,
+                        null,
+                        "Validation failed",
+                        $"Biển số đã được sử dụng bởi {vehicleTypeVN} {vehicleBrand} (ID: {vehicleId})",
+                        $"License plate already exists on {vehicleType} {vehicleBrand} (ID: {vehicleId})");
+                }
+            }
+
+            existingTrailer.LicensePlate = updateDto.LicensePlate;
+            existingTrailer.Brand = updateDto.Brand;
+            existingTrailer.ManufactureYear = updateDto.ManufactureYear;
+            existingTrailer.MaxLoadWeight = updateDto.MaxLoadWeight;
+            existingTrailer.LastMaintenanceDate = updateDto.LastMaintenanceDate;
+            existingTrailer.NextMaintenanceDate = updateDto.NextMaintenanceDate;
+            existingTrailer.RegistrationDate = updateDto.RegistrationDate;
+            existingTrailer.RegistrationExpirationDate = updateDto.RegistrationExpirationDate;
+            existingTrailer.ContainerSize = updateDto.ContainerSize;
+            existingTrailer.ModifiedBy = userId;
+            existingTrailer.ModifiedDate = DateTime.Now;
+
+            var filesToAdd = new List<TrailerFile>();
+            if (newFiles != null && newFiles.Any())
+            {
+                foreach (var fileUpload in newFiles)
+                {
+                    if (fileUpload.File != null && fileUpload.File.Length > 0)
+                    {
+                        var fileMetadata = await _firebaseStorageService.UploadFileAsync(fileUpload.File);
+
+                        var trailerFile = new TrailerFile
+                        {
+                            FileId = Guid.NewGuid().ToString(),
+                            TrailerId = trailerId,
+                            FileName = fileUpload.File.FileName,
+                            FileType = fileMetadata.FileType,
+                            FileUrl = fileMetadata.FileUrl,
+                            UploadDate = DateTime.Now,
+                            UploadBy = userId,
+                            Description = fileUpload.Description,
+                            Note = fileUpload.Note,
+                            ModifiedDate = null,
+                            ModifiedBy = null,
+                            DeletedDate = null,
+                            DeletedBy = null
+                        };
+                        filesToAdd.Add(trailerFile);
+                    }
+                }
+            }
+
+            var updateSuccess = await _unitOfWork.TrailerRepository.UpdateTrailerWithFiles(
+                existingTrailer,
+                filesToAdd,
+                fileIdsToRemove);
+
+            if (!updateSuccess)
+            {
+                return new ApiResponse<TrailerResponseDTO>(
+                    false,
+                    null,
+                    "Failed to update trailer",
+                    "Cập nhật rơ moóc thất bại",
+                    null);
+            }
+
+            var responseDto = new TrailerResponseDTO
+            {
+                TrailerId = existingTrailer.TrailerId,
+                LicensePlate = existingTrailer.LicensePlate,
+                Brand = existingTrailer.Brand,
+                ManufactureYear = existingTrailer.ManufactureYear,
+                MaxLoadWeight = existingTrailer.MaxLoadWeight,
+                LastMaintenanceDate = existingTrailer.LastMaintenanceDate,
+                NextMaintenanceDate = existingTrailer.NextMaintenanceDate,
+                RegistrationDate = existingTrailer.RegistrationDate,
+                RegistrationExpirationDate = existingTrailer.RegistrationExpirationDate,
+                Status = existingTrailer.Status,
+                ContainerSize = (ContainerSize)existingTrailer.ContainerSize.Value
+            };
+
+            return new ApiResponse<TrailerResponseDTO>(
+                true,
+                responseDto,
+                "Trailer updated successfully",
+                "Cập nhật rơ moóc thành công",
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> UpdateTrailerFileDetails(
+            string fileId,
+            UpdateTrailerFileDetailsDTO updateDto,
+            string userId)
+        {
+            if (string.IsNullOrEmpty(fileId))
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Invalid file ID",
+                    "Mã tệp tin không hợp lệ",
+                    "File ID cannot be empty");
+            }
+
+            var file = await _unitOfWork.TrailerFileRepository.GetFileById(fileId);
+            if (file == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "File not found",
+                    "Không tìm thấy tệp tin",
+                    $"No file found with ID: {fileId}");
+            }
+
+            var trailer = await _unitOfWork.TrailerRepository.GetTrailerById(file.TrailerId);
+            if (trailer == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Associated trailer not found",
+                    "Không tìm thấy rơ moóc liên kết",
+                    "The file is not associated with a valid trailer");
+            }
+
+            bool result = await _unitOfWork.TrailerRepository.UpdateTrailerFileDetails(
+                fileId,
+                updateDto.Description,
+                updateDto.Note,
+                userId);
+
+            if (!result)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Failed to update file details",
+                    "Cập nhật thông tin tệp tin thất bại",
+                    "Unable to update the file details");
+            }
+
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "File details updated successfully",
+                "Cập nhật thông tin tệp tin thành công",
+                null);
+        }
+
     }
 }

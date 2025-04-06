@@ -70,6 +70,50 @@ namespace MTCS.APIService.Controllers
             return Ok(response);
         }
 
+        [HttpPut("{tractorId}")]
+        public async Task<IActionResult> UpdateTractorWithFiles(
+    string tractorId,
+    [FromForm] CreateTractorDTO updateDto,
+    [FromForm] List<TractorFileUploadDTO>? newFiles = null,
+    [FromForm] List<string>? fileIdsToRemove = null)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _tractorService.UpdateTractorWithFiles(
+                tractorId,
+                updateDto,
+                newFiles ?? new List<TractorFileUploadDTO>(),
+                fileIdsToRemove ?? new List<string>(),
+                userId);
+
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
+        [HttpPut("files/{fileId}")]
+        public async Task<IActionResult> UpdateTractorFileDetails(
+            string fileId,
+            [FromBody] UpdateTractorFileDetailsDTO updateDto)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _tractorService.UpdateTractorFileDetails(
+                fileId,
+                updateDto,
+                userId);
+
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
         [HttpPut("activate-tractor/{tractorId}")]
         public async Task<IActionResult> ActivateTractor(string tractorId)
         {

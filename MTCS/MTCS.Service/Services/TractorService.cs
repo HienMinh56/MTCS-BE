@@ -24,13 +24,6 @@ namespace MTCS.Service.Services
     List<TractorFileUploadDTO> fileUploads,
     string userId)
         {
-            if (tractorDto.RegistrationExpirationDate <= tractorDto.RegistrationDate)
-            {
-                return new ApiResponse<TractorResponseDTO>(false, null, "Validation failed",
-                    "Hạn đăng kiểm phải sau ngày đăng kiểm",
-                    "Registration expiration date must be after registration date");
-            }
-
             var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(tractorDto.LicensePlate);
 
             if (exists)
@@ -307,10 +300,185 @@ namespace MTCS.Service.Services
             return new ApiResponse<bool>(
                 true,
                 true,
-                "Tractor deleted successfully",
+                "Tractor activated successfully",
                 "Kích hoạt đầu kéo thành công",
                 null);
         }
 
+        public async Task<ApiResponse<TractorResponseDTO>> UpdateTractorWithFiles(
+            string tractorId,
+            CreateTractorDTO updateDto,
+            List<TractorFileUploadDTO> newFiles,
+            List<string> fileIdsToRemove,
+            string userId)
+        {
+            var existingTractor = await _unitOfWork.TractorRepository.GetTractorById(tractorId);
+            if (existingTractor == null)
+            {
+                return new ApiResponse<TractorResponseDTO>(
+                    false,
+                    null,
+                    "Tractor not found",
+                    "Không tìm thấy đầu kéo",
+                    null);
+            }
+
+            if (existingTractor.LicensePlate != updateDto.LicensePlate)
+            {
+                var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(updateDto.LicensePlate);
+
+                if (exists)
+                {
+                    string vehicleTypeVN = _unitOfWork.VehicleHelper.GetVehicleTypeVN(vehicleType);
+
+                    return new ApiResponse<TractorResponseDTO>(
+                        false,
+                        null,
+                        "Validation failed",
+                        $"Biển số đã được sử dụng bởi {vehicleTypeVN} {vehicleBrand} (ID: {vehicleId})",
+                        $"License plate already exists on {vehicleType} {vehicleBrand} (ID: {vehicleId})");
+                }
+            }
+
+            existingTractor.LicensePlate = updateDto.LicensePlate;
+            existingTractor.Brand = updateDto.Brand;
+            existingTractor.ManufactureYear = updateDto.ManufactureYear;
+            existingTractor.MaxLoadWeight = updateDto.MaxLoadWeight;
+            existingTractor.LastMaintenanceDate = updateDto.LastMaintenanceDate;
+            existingTractor.NextMaintenanceDate = updateDto.NextMaintenanceDate;
+            existingTractor.RegistrationDate = updateDto.RegistrationDate;
+            existingTractor.RegistrationExpirationDate = updateDto.RegistrationExpirationDate;
+            existingTractor.ContainerType = updateDto.ContainerType;
+            existingTractor.ModifiedBy = userId;
+            existingTractor.ModifiedDate = DateTime.Now;
+
+            var filesToAdd = new List<TractorFile>();
+            if (newFiles != null && newFiles.Any())
+            {
+                foreach (var fileUpload in newFiles)
+                {
+                    if (fileUpload.File != null && fileUpload.File.Length > 0)
+                    {
+                        var fileMetadata = await _firebaseStorageService.UploadFileAsync(fileUpload.File);
+
+                        var tractorFile = new TractorFile
+                        {
+                            FileId = Guid.NewGuid().ToString(),
+                            TractorsId = tractorId,
+                            FileName = fileUpload.File.FileName,
+                            FileType = fileMetadata.FileType,
+                            FileUrl = fileMetadata.FileUrl,
+                            UploadDate = DateTime.Now,
+                            UploadBy = userId,
+                            Description = fileUpload.Description,
+                            Note = fileUpload.Note,
+                            ModifiedDate = null,
+                            ModifiedBy = null,
+                            DeletedDate = null,
+                            DeletedBy = null
+                        };
+                        filesToAdd.Add(tractorFile);
+                    }
+                }
+            }
+
+            var updateSuccess = await _unitOfWork.TractorRepository.UpdateTractorWithFiles(
+                existingTractor,
+                filesToAdd,
+                fileIdsToRemove);
+
+            if (!updateSuccess)
+            {
+                return new ApiResponse<TractorResponseDTO>(
+                    false,
+                    null,
+                    "Failed to update tractor",
+                    "Cập nhật đầu kéo thất bại",
+                    null);
+            }
+
+            var responseDto = new TractorResponseDTO
+            {
+                TractorId = existingTractor.TractorId,
+                LicensePlate = existingTractor.LicensePlate,
+                Brand = existingTractor.Brand,
+                ManufactureYear = existingTractor.ManufactureYear,
+                MaxLoadWeight = existingTractor.MaxLoadWeight,
+                LastMaintenanceDate = existingTractor.LastMaintenanceDate,
+                NextMaintenanceDate = existingTractor.NextMaintenanceDate,
+                RegistrationDate = existingTractor.RegistrationDate,
+                RegistrationExpirationDate = existingTractor.RegistrationExpirationDate,
+                Status = existingTractor.Status,
+                ContainerType = (ContainerType)existingTractor.ContainerType.Value
+            };
+
+            return new ApiResponse<TractorResponseDTO>(
+                true,
+                responseDto,
+                "Tractor updated successfully",
+                "Cập nhật đầu kéo thành công",
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> UpdateTractorFileDetails(
+    string fileId,
+    UpdateTractorFileDetailsDTO updateDto,
+    string userId)
+        {
+            if (string.IsNullOrEmpty(fileId))
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Invalid file ID",
+                    "Mã tệp tin không hợp lệ",
+                    "File ID cannot be empty");
+            }
+
+            var file = await _unitOfWork.TractorFileRepository.GetFileById(fileId);
+            if (file == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "File not found",
+                    "Không tìm thấy tệp tin",
+                    $"No file found with ID: {fileId}");
+            }
+
+            var tractor = await _unitOfWork.TractorRepository.GetTractorById(file.TractorsId);
+            if (tractor == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Associated tractor not found",
+                    "Không tìm thấy đầu kéo liên kết",
+                    "The file is not associated with a valid tractor");
+            }
+
+            bool result = await _unitOfWork.TractorRepository.UpdateTractorFileDetails(
+                fileId,
+                updateDto.Description,
+                updateDto.Note,
+                userId);
+
+            if (!result)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Failed to update file details",
+                    "Cập nhật thông tin tệp tin thất bại",
+                    "Unable to update the file details");
+            }
+
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "File details updated successfully",
+                "Cập nhật thông tin tệp tin thành công",
+                null);
+        }
     }
 }

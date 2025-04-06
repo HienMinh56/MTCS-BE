@@ -19,5 +19,7 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<bool>> DeleteTrailer(string trailerId, string userId);
         Task<ApiResponse<bool>> ActivateTrailer(string trailerId, string userId);
         Task<ApiResponse<TrailerResponseDTO>> CreateTrailerWithFiles(CreateTrailerDTO trailerDto, List<TrailerFileUploadDTO> fileUploads, string userId);
+        Task<ApiResponse<TrailerResponseDTO>> UpdateTrailerWithFiles(string trailerId, CreateTrailerDTO updateDto, List<TrailerFileUploadDTO> newFiles, List<string> fileIdsToRemove, string userId);
+        Task<ApiResponse<bool>> UpdateTrailerFileDetails(string fileId, UpdateTrailerFileDetailsDTO updateDto, string userId);
     }
 }

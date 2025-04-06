@@ -22,5 +22,7 @@ namespace MTCS.Service.Interfaces
     CreateTractorDTO tractorDto,
     List<TractorFileUploadDTO> fileUploads,
     string userId);
+        Task<ApiResponse<TractorResponseDTO>> UpdateTractorWithFiles(string tractorId, CreateTractorDTO updateDto, List<TractorFileUploadDTO> newFiles, List<string> fileIdsToRemove, string userId);
+        Task<ApiResponse<bool>> UpdateTractorFileDetails(string fileId, UpdateTractorFileDetailsDTO updateDto, string userId);
     }
 }

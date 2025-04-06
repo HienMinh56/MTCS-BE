@@ -43,5 +43,26 @@ namespace MTCS.Data.Helpers
                 : new ValidationResult($"You must be at least {minAge} years old");
         }
 
+        public static ValidationResult RegistrationExipry(DateOnly? expirationDate, ValidationContext context)
+        {
+
+            if (!expirationDate.HasValue)
+                return ValidationResult.Success;
+
+            var registrationDateProperty = context.ObjectType.GetProperty("RegistrationDate");
+            if (registrationDateProperty == null)
+                return ValidationResult.Success;
+            var registrationDate = registrationDateProperty.GetValue(context.ObjectInstance) as DateOnly?;
+
+            if (!registrationDate.HasValue)
+                return ValidationResult.Success;
+
+            return expirationDate.Value > registrationDate.Value
+                ? ValidationResult.Success
+                : new ValidationResult("Registration expiration date must be after registration date",
+                    new[] { context.MemberName });
+        }
+
+
     }
 }

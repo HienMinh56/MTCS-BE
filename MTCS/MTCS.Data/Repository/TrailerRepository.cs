@@ -185,5 +185,59 @@ namespace MTCS.Data.Repository
                 Files = new List<TrailerFileDTO>()
             };
         }
+
+        public async Task<bool> UpdateTrailerWithFiles(
+    Trailer updatedTrailer,
+    List<TrailerFile> filesToAdd,
+    List<string> fileIdsToRemove = null)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Trailers.Update(updatedTrailer);
+
+                if (filesToAdd != null && filesToAdd.Any())
+                {
+                    await _context.TrailerFiles.AddRangeAsync(filesToAdd);
+                }
+
+                if (fileIdsToRemove != null && fileIdsToRemove.Any())
+                {
+                    var filesToDelete = await _context.TrailerFiles
+                        .Where(tf => tf.TrailerId == updatedTrailer.TrailerId &&
+                               fileIdsToRemove.Contains(tf.FileId))
+                        .ToListAsync();
+
+                    if (filesToDelete.Any())
+                    {
+                        _context.TrailerFiles.RemoveRange(filesToDelete);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateTrailerFileDetails(string fileId, string description, string note, string userId)
+        {
+            var file = await _context.TrailerFiles.FindAsync(fileId);
+            if (file == null)
+                return false;
+
+            file.Description = description;
+            file.Note = note;
+            file.ModifiedBy = userId;
+            file.ModifiedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
     }
 }

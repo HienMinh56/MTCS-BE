@@ -186,5 +186,60 @@ namespace MTCS.Data.Repository
             };
         }
 
+        public async Task<bool> UpdateTractorWithFiles(
+    Tractor updatedTractor,
+    List<TractorFile> filesToAdd,
+    List<string> fileIdsToRemove = null)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Tractors.Update(updatedTractor);
+
+                if (filesToAdd != null && filesToAdd.Any())
+                {
+                    await _context.TractorFiles.AddRangeAsync(filesToAdd);
+                }
+
+                if (fileIdsToRemove != null && fileIdsToRemove.Any())
+                {
+                    var filesToDelete = await _context.TractorFiles
+                        .Where(tf => tf.TractorsId == updatedTractor.TractorId &&
+                               fileIdsToRemove.Contains(tf.FileId))
+                        .ToListAsync();
+
+                    if (filesToDelete.Any())
+                    {
+                        _context.TractorFiles.RemoveRange(filesToDelete);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateTractorFileDetails(string fileId, string description, string note, string userId)
+        {
+            var file = await _context.TractorFiles.FindAsync(fileId);
+            if (file == null)
+                return false;
+
+            file.Description = description;
+            file.Note = note;
+            file.ModifiedBy = userId;
+            file.ModifiedDate = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+
     }
 }

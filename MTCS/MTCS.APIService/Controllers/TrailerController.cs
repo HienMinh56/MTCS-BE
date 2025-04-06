@@ -96,5 +96,50 @@ namespace MTCS.APIService.Controllers
 
             return Ok(response);
         }
+
+        [HttpPut("{trailerId}")]
+        public async Task<IActionResult> UpdateTrailerWithFiles(
+    string trailerId,
+    [FromForm] CreateTrailerDTO updateDto,
+    [FromForm] List<TrailerFileUploadDTO>? newFiles = null,
+    [FromForm] List<string>? fileIdsToRemove = null)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _trailerService.UpdateTrailerWithFiles(
+                trailerId,
+                updateDto,
+                newFiles ?? new List<TrailerFileUploadDTO>(),
+                fileIdsToRemove ?? new List<string>(),
+                userId);
+
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
+        [HttpPut("files/{fileId}")]
+        public async Task<IActionResult> UpdateTrailerFileDetails(
+            string fileId,
+            [FromBody] UpdateTrailerFileDetailsDTO updateDto)
+        {
+            var userId = User.GetUserId();
+
+            var response = await _trailerService.UpdateTrailerFileDetails(
+                fileId,
+                updateDto,
+                userId);
+
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
     }
 }
