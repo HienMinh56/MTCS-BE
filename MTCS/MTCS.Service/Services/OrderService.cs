@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Google.Rpc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MTCS.Common;
@@ -112,7 +113,7 @@ namespace MTCS.Service.Services
                     Note = orderRequest.Note,
                     Price = orderRequest.Price,
                     Status = "Pending",
-                    OrderPlacer = userName, 
+                    OrderPlacer = orderRequest.OrderPlace, 
                     ContainerType = orderRequest.ContainerType,
                     ContainerSize = orderRequest.ContainerSize,
                     DeliveryType = orderRequest.DeliveryType, 
@@ -210,10 +211,14 @@ namespace MTCS.Service.Services
                 if (order == null)
                     return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
 
+                if (order.Status != "Pending")
+                {
+                    return new BusinessResult(Const.FAIL_UPDATE_CODE, "Chỉ có thể cập nhật đơn hàng khi ở trạng thái Pending.");
+                }
+
                 order.Temperature = model.Temperature ?? order.Temperature;  
                 order.Note = model.Note ?? order.Note;  
                 order.Price = model.Price ?? order.Price; 
-                // order.Status = model.Status ?? order.Status;  bỏ ko cho input
                 order.ModifiedDate = DateTime.Now;
                 order.ModifiedBy = userName;
                 order.ContactPerson = model.ContactPerson ?? order.ContactPerson; 
