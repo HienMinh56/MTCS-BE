@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
+using MTCS.Data.Response;
 using MTCS.Service.Base;
 using OfficeOpenXml;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace MTCS.Service.Services
 {
@@ -24,6 +20,7 @@ namespace MTCS.Service.Services
         public Task<BusinessResult> ImportPriceTable(IFormFile excelFile, string userName);
         public Task<BusinessResult> DownloadPriceTableTemplate();
         public Task<BusinessResult> DeletePriceTable(string id);
+        Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType);
     }
     public class PriceTableService : IPriceTableService
     {
@@ -250,6 +247,47 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
+        public async Task<BusinessResult> GetActivePriceTables()
+        {
+            try
+            {
+                var priceTables = await _unitOfWork.PriceTableRepository.GetActivePriceTables();
+                return new BusinessResult(200, "Get Price Tables successfully", priceTables);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(500, ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType)
+        {
+            var matchedPrice = await _unitOfWork.PriceTableRepository.GetPriceForCalculation(
+            distance, containerType, containerSize, deliveryType);
+
+            if (matchedPrice == null)
+            {
+                return new ApiResponse<CalculatedPriceResponse>(false, null, "No price found ", "Không tìm thấy giá", null);
+            }
+            decimal decimalDistance = (decimal)distance;
+            decimal minPrice = matchedPrice.MinPricePerKm ?? 0;
+            decimal maxPrice = matchedPrice.MaxPricePerKm ?? 0;
+
+            decimal basePrice = minPrice * decimalDistance;
+            decimal averagePrice = ((minPrice + maxPrice) / 2) * decimalDistance;
+            decimal highestPrice = maxPrice * decimalDistance;
+
+            var calculatedPrice = new CalculatedPriceResponse
+            {
+                BasePrice = basePrice,
+                AveragePrice = averagePrice,
+                HighestPrice = highestPrice
+            };
+
+            return new ApiResponse<CalculatedPriceResponse>(true, calculatedPrice, "Price calculated successfully", "Tính giá thành công", null);
+        }
+
 
     }
 }

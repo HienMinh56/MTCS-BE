@@ -26,4 +26,10 @@
         Feet20 = 1,
         Feet40 = 2,
     }
+
+    public enum DeliveryType
+    {
+        Import = 1,
+        Export = 2
+    }
 }

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Helpers;
 using MTCS.Data.Request;
 using MTCS.Service.Services;
@@ -70,6 +69,13 @@ namespace MTCS.APIService.Controllers
         public async Task<IActionResult> DeletePriceTable(string id)
         {
             var result = await _priceTableService.DeletePriceTable(id);
+            return Ok(result);
+        }
+
+        [HttpGet("calculate-price")]
+        public async Task<IActionResult> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType)
+        {
+            var result = await _priceTableService.CalculatePrice(distance, containerType, containerSize, deliveryType);
             return Ok(result);
         }
     }
