@@ -17,6 +17,11 @@ namespace MTCS.Data.Repository
 
         public OrderFileRepository(MTCSContext context) => _context = context;
 
-       
+        public async Task<OrderFile?> GetImageByUrl(string url)
+        {
+            return await _context.OrderFiles
+                .Where(i => i.DeletedBy == null)
+                .SingleOrDefaultAsync(i => i.FileUrl == url);
+        }
     }
 }

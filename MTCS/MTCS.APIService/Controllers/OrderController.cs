@@ -72,7 +72,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPut("update/{orderId}")]
-        public async Task<IActionResult> UpdateOrderAsync(string orderId, [FromQuery] UpdateOrderRequest model)
+        public async Task<IActionResult> UpdateOrderAsync(string orderId, [FromForm] UpdateOrderRequest model)
         {
             var claims = User;
 
