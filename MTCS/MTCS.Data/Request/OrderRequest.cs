@@ -26,5 +26,6 @@ namespace MTCS.Data.Request
         public decimal? Distance { get; set; }
         public string ContainerNumber { get; set; }
         public TimeOnly CompletionTime { get; set; }
+        public string? OrderPlace { get; set; }
     }
 }
