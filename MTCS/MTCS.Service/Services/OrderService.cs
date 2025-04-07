@@ -213,24 +213,24 @@ namespace MTCS.Service.Services
                 order.Temperature = model.Temperature ?? order.Temperature;  
                 order.Note = model.Note ?? order.Note;  
                 order.Price = model.Price ?? order.Price; 
-                order.Status = model.Status ?? order.Status;  
+                // order.Status = model.Status ?? order.Status;  bỏ ko cho input
                 order.ModifiedDate = DateTime.Now;
                 order.ModifiedBy = userName;
                 order.ContactPerson = model.ContactPerson ?? order.ContactPerson; 
                 order.ContainerNumber = model.ContainerNumber ?? order.ContainerNumber;  
                 order.ContactPhone = model.ContactPhone ?? order.ContactPhone; 
-                order.OrderPlacer = model.OrderPlacer ?? order.OrderPlacer; 
+                order.OrderPlacer = model.OrderPlacer ?? order.OrderPlacer;
                 order.IsPay = model.IsPay ?? order.IsPay;
 
 
                 if (model.FileIdsToRemove?.Any() == true)
                 {
-                    foreach (var fileId in model.FileIdsToRemove)
+                    OrderFile? file;
+                    foreach (var url in model.FileIdsToRemove)
                     {
-                        var file = _unitOfWork.ContractFileRepository.GetById(fileId);
-                        if (file != null)
+                        if ((file = await _unitOfWork.OrderFileRepository.GetImageByUrl(url)) is not null)
                         {
-                            await _unitOfWork.ContractFileRepository.RemoveAsync(file);
+                            await _unitOfWork.OrderFileRepository.RemoveAsync(file);
                         }
                     }
                 }
