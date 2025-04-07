@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using MTCS.Data.Enums;
+﻿using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using System.ComponentModel.DataAnnotations;
 
@@ -108,18 +107,5 @@ namespace MTCS.Data.DTOs
         public string? Note { get; set; }
         public DateTime UploadDate { get; set; }
         public string UploadBy { get; set; }
-    }
-
-    public class TractorFileUploadDTO
-    {
-        public IFormFile File { get; set; }
-        public string Description { get; set; }
-        public string? Note { get; set; }
-    }
-
-    public class UpdateTractorFileDetailsDTO
-    {
-        public string? Description { get; set; }
-        public string? Note { get; set; }
     }
 }

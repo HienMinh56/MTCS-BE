@@ -23,7 +23,7 @@ namespace MTCS.APIService.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateTrailerWithFiles(
     [FromForm] CreateTrailerDTO trailerDto,
-    [FromForm] List<TrailerFileUploadDTO> fileUploads)
+    [FromForm] List<FileUploadDTO> fileUploads)
         {
             var userId = User.GetUserId();
 
@@ -101,7 +101,7 @@ namespace MTCS.APIService.Controllers
         public async Task<IActionResult> UpdateTrailerWithFiles(
     string trailerId,
     [FromForm] CreateTrailerDTO updateDto,
-    [FromForm] List<TrailerFileUploadDTO>? newFiles = null,
+    [FromForm] List<FileUploadDTO>? newFiles = null,
     [FromForm] List<string>? fileIdsToRemove = null)
         {
             var userId = User.GetUserId();
@@ -109,7 +109,7 @@ namespace MTCS.APIService.Controllers
             var response = await _trailerService.UpdateTrailerWithFiles(
                 trailerId,
                 updateDto,
-                newFiles ?? new List<TrailerFileUploadDTO>(),
+                newFiles ?? new List<FileUploadDTO>(),
                 fileIdsToRemove ?? new List<string>(),
                 userId);
 
@@ -124,7 +124,7 @@ namespace MTCS.APIService.Controllers
         [HttpPut("files/{fileId}")]
         public async Task<IActionResult> UpdateTrailerFileDetails(
             string fileId,
-            [FromBody] UpdateTrailerFileDetailsDTO updateDto)
+            [FromBody] FileDetailsDTO updateDto)
         {
             var userId = User.GetUserId();
 

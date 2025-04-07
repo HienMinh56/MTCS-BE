@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using System.ComponentModel.DataAnnotations;
@@ -111,16 +110,4 @@ namespace MTCS.Data.DTOs
         public string UploadBy { get; set; }
     }
 
-    public class TrailerFileUploadDTO
-    {
-        public IFormFile File { get; set; }
-        public string Description { get; set; }
-        public string? Note { get; set; }
-    }
-
-    public class UpdateTrailerFileDetailsDTO
-    {
-        public string? Description { get; set; }
-        public string? Note { get; set; }
-    }
 }

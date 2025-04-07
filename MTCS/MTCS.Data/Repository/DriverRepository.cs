@@ -65,7 +65,7 @@ namespace MTCS.Data.Repository
                 projectedQuery, paginationParams.PageNumber, paginationParams.PageSize);
         }
 
-        public async Task<(int TotalWorkingTime, int CurrentWeekWorkingTime, List<string> FileUrls, int CompletedOrdersCount)> GetDriverProfileDetails(string driverId)
+        public async Task<(int TotalWorkingTime, int CurrentWeekWorkingTime, List<DriverFileDTO> Files)> GetDriverProfileDetails(string driverId)
         {
             var driver = await _context.Drivers
                 .AsNoTracking()
@@ -76,7 +76,7 @@ namespace MTCS.Data.Repository
 
             if (driver == null)
             {
-                return (0, 0, new List<string>(), 0);
+                return (0, 0, new List<DriverFileDTO>());
             }
 
             int totalWorkingTime = driver.DriverDailyWorkingTimes
@@ -94,24 +94,24 @@ namespace MTCS.Data.Repository
                             wt.TotalTime.HasValue)
                 .Sum(wt => wt.TotalTime.Value);
 
-            List<string> fileUrls = driver.DriverFiles
-                .Where(f => !string.IsNullOrEmpty(f.FileUrl))
-                .Select(f => f.FileUrl)
+            List<DriverFileDTO> files = driver.DriverFiles
+                .Where(f => f.DeletedDate == null)
+                .Select(f => new DriverFileDTO
+                {
+                    FileId = f.FileId,
+                    FileName = f.FileName,
+                    FileUrl = f.FileUrl,
+                    FileType = f.FileType,
+                    Description = f.Description,
+                    Note = f.Note,
+                    UploadDate = f.UploadDate ?? DateTime.MinValue,
+                    UploadBy = f.UploadBy ?? string.Empty
+                })
                 .ToList();
 
-            int completedOrdersCount = await _context.Trips
-                .AsNoTracking()
-                .Where(t => t.DriverId == driverId)
-                .Join(
-                    _context.Orders.Where(o => o.Status == "Completed"),
-                    trip => trip.OrderId,
-                    order => order.OrderId,
-                    (trip, order) => order
-                )
-                .CountAsync();
-
-            return (totalWorkingTime, currentWeekWorkingTime, fileUrls, completedOrdersCount);
+            return (totalWorkingTime, currentWeekWorkingTime, files);
         }
+
 
     }
 }

@@ -45,11 +45,20 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("create-driver")]
+        [Consumes("multipart/form-data")]
         [Authorize(Policy = "Staff")]
-        public async Task<ActionResult<ApiResponse<string>>> CreateDriver([FromBody] CreateDriverDTO createDriverDTO)
+        public async Task<IActionResult> CreateDriverWithFiles(
+   [FromForm] CreateDriverDTO driverDto,
+   [FromForm] List<FileUploadDTO> fileUploads)
         {
-            var result = await _driverService.CreateDriver(createDriverDTO);
-            return Ok(result);
+            var userId = User.GetUserId();
+
+            var response = await _driverService.CreateDriverWithFiles(driverDto, fileUploads, userId);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
         }
 
         [HttpPost("driver-login")]

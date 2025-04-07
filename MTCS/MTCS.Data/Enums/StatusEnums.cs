@@ -7,13 +7,6 @@
         Deleted = 3
     }
 
-    //public enum DriverStatus
-    //{
-    //    Active = 1,
-    //    Inactive = 2,
-    //    OnDuty = 3
-    //}
-
     public enum VehicleStatus
     {
         Active = 1,

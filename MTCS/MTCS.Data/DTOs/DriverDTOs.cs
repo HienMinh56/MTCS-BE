@@ -9,6 +9,17 @@
         public int? Status { get; set; }
     }
 
+    public class DriverResponseDTO
+    {
+        public required string DriverId { get; set; }
+        public required string FullName { get; set; }
+        public required string Email { get; set; }
+        public required string PhoneNumber { get; set; }
+        public int? Status { get; set; }
+        public DateOnly? DateOfBirth { get; set; }
+        public DateTime? CreatedDate { get; set; }
+    }
+
     public class DriverProfileDetailsDTO
     {
         public required string DriverId { get; set; }
@@ -24,7 +35,18 @@
         public int TotalWorkingTime { get; set; }
         public int CurrentWeekWorkingTime { get; set; }
         public int? TotalOrder { get; set; }
-        public List<string> FileUrls { get; set; } = new List<string>();
+        public List<DriverFileDTO> Files { get; set; } = new List<DriverFileDTO>();
     }
 
+    public class DriverFileDTO
+    {
+        public string FileId { get; set; }
+        public string FileName { get; set; }
+        public string FileUrl { get; set; }
+        public string FileType { get; set; }
+        public string? Description { get; set; }
+        public string? Note { get; set; }
+        public DateTime UploadDate { get; set; }
+        public string UploadBy { get; set; }
+    }
 }

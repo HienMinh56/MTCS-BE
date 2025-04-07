@@ -15,6 +15,7 @@ namespace MTCS.Data
         private UserRepository userRepository;
         private InternalUserRepository internalUserRepository;
         private DriverRepository driverRepository;
+        private DriverFileRepository driverFileRepository;
         private TripRepository tripRepository;
         private TractorRepository tractorRepository;
         private TrailerRepository trailerRepository;
@@ -61,6 +62,15 @@ namespace MTCS.Data
                 return driverRepository ??= new DriverRepository();
             }
         }
+
+        public DriverFileRepository DriverFileRepository
+        {
+            get
+            {
+                return driverFileRepository ??= new DriverFileRepository();
+            }
+        }
+
         public TripRepository TripRepository
         {
             get

@@ -20,9 +20,9 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<bool>> ActivateTractor(string tractorId, string userId);
         Task<ApiResponse<TractorResponseDTO>> CreateTractorWithFiles(
     CreateTractorDTO tractorDto,
-    List<TractorFileUploadDTO> fileUploads,
+    List<FileUploadDTO> fileUploads,
     string userId);
-        Task<ApiResponse<TractorResponseDTO>> UpdateTractorWithFiles(string tractorId, CreateTractorDTO updateDto, List<TractorFileUploadDTO> newFiles, List<string> fileIdsToRemove, string userId);
-        Task<ApiResponse<bool>> UpdateTractorFileDetails(string fileId, UpdateTractorFileDetailsDTO updateDto, string userId);
+        Task<ApiResponse<TractorResponseDTO>> UpdateTractorWithFiles(string tractorId, CreateTractorDTO updateDto, List<FileUploadDTO> newFiles, List<string> fileIdsToRemove, string userId);
+        Task<ApiResponse<bool>> UpdateTractorFileDetails(string fileId, FileDetailsDTO updateDto, string userId);
     }
 }

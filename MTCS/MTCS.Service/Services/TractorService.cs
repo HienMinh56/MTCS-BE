@@ -21,7 +21,7 @@ namespace MTCS.Service.Services
 
         public async Task<ApiResponse<TractorResponseDTO>> CreateTractorWithFiles(
     CreateTractorDTO tractorDto,
-    List<TractorFileUploadDTO> fileUploads,
+    List<FileUploadDTO> fileUploads,
     string userId)
         {
             var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(tractorDto.LicensePlate);
@@ -308,7 +308,7 @@ namespace MTCS.Service.Services
         public async Task<ApiResponse<TractorResponseDTO>> UpdateTractorWithFiles(
             string tractorId,
             CreateTractorDTO updateDto,
-            List<TractorFileUploadDTO> newFiles,
+            List<FileUploadDTO> newFiles,
             List<string> fileIdsToRemove,
             string userId)
         {
@@ -422,7 +422,7 @@ namespace MTCS.Service.Services
 
         public async Task<ApiResponse<bool>> UpdateTractorFileDetails(
     string fileId,
-    UpdateTractorFileDetailsDTO updateDto,
+    FileDetailsDTO updateDto,
     string userId)
         {
             if (string.IsNullOrEmpty(fileId))

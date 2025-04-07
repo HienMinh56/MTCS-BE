@@ -23,7 +23,7 @@ namespace MTCS.APIService.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> CreateTractorWithFiles(
     [FromForm] CreateTractorDTO tractorDto,
-    [FromForm] List<TractorFileUploadDTO> fileUploads)
+    [FromForm] List<FileUploadDTO> fileUploads)
         {
             var userId = User.GetUserId();
 
@@ -34,7 +34,6 @@ namespace MTCS.APIService.Controllers
             }
             return Ok(response);
         }
-
 
         [HttpGet]
         public async Task<IActionResult> GetTractorsBasicInfo(
@@ -74,7 +73,7 @@ namespace MTCS.APIService.Controllers
         public async Task<IActionResult> UpdateTractorWithFiles(
     string tractorId,
     [FromForm] CreateTractorDTO updateDto,
-    [FromForm] List<TractorFileUploadDTO>? newFiles = null,
+    [FromForm] List<FileUploadDTO>? newFiles = null,
     [FromForm] List<string>? fileIdsToRemove = null)
         {
             var userId = User.GetUserId();
@@ -82,7 +81,7 @@ namespace MTCS.APIService.Controllers
             var response = await _tractorService.UpdateTractorWithFiles(
                 tractorId,
                 updateDto,
-                newFiles ?? new List<TractorFileUploadDTO>(),
+                newFiles ?? new List<FileUploadDTO>(),
                 fileIdsToRemove ?? new List<string>(),
                 userId);
 
@@ -97,7 +96,7 @@ namespace MTCS.APIService.Controllers
         [HttpPut("files/{fileId}")]
         public async Task<IActionResult> UpdateTractorFileDetails(
             string fileId,
-            [FromBody] UpdateTractorFileDetailsDTO updateDto)
+            [FromBody] FileDetailsDTO updateDto)
         {
             var userId = User.GetUserId();
 
