@@ -36,11 +36,30 @@ namespace MTCS.Service.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var existingCustomer =  _unitOfWork.CustomerRepository.Get(c => c.Email == customer.Email || c.PhoneNumber == customer.PhoneNumber || c.TaxNumber == customer.TaxNumber);
+                var existingCompanyName = _unitOfWork.CustomerRepository.Get(c => c.CompanyName == customer.CompanyName && c.DeletedBy == null);
+                if (existingCompanyName != null)
+                {
+                    return new BusinessResult(400, "Company name already exists");
+                }
+
+                var existingCustomer = _unitOfWork.CustomerRepository.Get(c => c.TaxNumber == customer.TaxNumber && c.DeletedBy == null);
                 if (existingCustomer != null)
                 {
-                    return new BusinessResult(400, "Email, Phone number, Tax number had used");
+                    return new BusinessResult(400, "Tax number already exists");
                 }
+
+                var existingEmail = _unitOfWork.CustomerRepository.Get(c => c.Email == customer.Email && c.DeletedBy == null);
+                if (existingEmail != null)
+                {
+                    return new BusinessResult(400, "Email already exists");
+                }
+
+                var existingPhone = _unitOfWork.CustomerRepository.Get(c => c.PhoneNumber == customer.PhoneNumber && c.DeletedBy == null);
+                if (existingPhone != null)
+                {
+                    return new BusinessResult(400, "Phone number already exists");
+                }
+
                 var cusId = await _unitOfWork.CustomerRepository.GenerateCustomerIdAsync();
                 var newCustomer = new Customer
                 {
@@ -109,6 +128,33 @@ namespace MTCS.Service.Services
                 if (existingCustomer == null)
                 {
                     return new BusinessResult(400, "Customer not found");
+                }
+
+                if (existingCustomer.Email != customer.Email)
+                {
+                    var emailExists =  _unitOfWork.CustomerRepository.Get(c => c.Email == customer.Email && c.DeletedBy == null);
+                    if (emailExists != null)
+                    {
+                        return new BusinessResult(400, "Email already exists");
+                    }
+                }
+
+                if (existingCustomer.PhoneNumber != customer.PhoneNumber)
+                {
+                    var phoneExists = _unitOfWork.CustomerRepository.Get(c => c.PhoneNumber == customer.PhoneNumber && c.DeletedBy == null);
+                    if (phoneExists != null)
+                    {
+                        return new BusinessResult(400, "Phone number already exists");
+                    }
+                }
+
+                if (existingCustomer.TaxNumber != customer.TaxNumber)
+                {
+                    var taxExists = _unitOfWork.CustomerRepository.Get(c => c.TaxNumber == customer.TaxNumber && c.DeletedBy == null);
+                    if (taxExists != null)
+                    {
+                        return new BusinessResult(400, "Tax number already exists");
+                    }
                 }
 
                 await _unitOfWork.BeginTransactionAsync();
