@@ -184,20 +184,47 @@ namespace MTCS.Service.Services
                     null);
             }
 
-            if (existingDriver.Email != updateDto.Email || existingDriver.PhoneNumber != updateDto.PhoneNumber)
-            {
-                var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
-                    updateDto.Email,
-                    updateDto.PhoneNumber,
-                    driverId);
+            //if (existingDriver.Email != updateDto.Email || existingDriver.PhoneNumber != updateDto.PhoneNumber)
+            //{
+            //    var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
+            //        updateDto.Email,
+            //        updateDto.PhoneNumber,
+            //        driverId);
 
-                if (!contactValidation.Success)
+            //    if (!contactValidation.Success)
+            //    {
+            //        return new ApiResponse<DriverResponseDTO>(
+            //            false,
+            //            null,
+            //            contactValidation.Message,
+            //            contactValidation.MessageVN,
+            //            null);
+            //    }
+            //}
+            if (existingDriver.Email != updateDto.Email)
+            {
+                var existingEmail = _unitOfWork.DriverRepository.Get(d => d.Email == updateDto.Email);
+                if (existingEmail != null)
                 {
                     return new ApiResponse<DriverResponseDTO>(
                         false,
                         null,
-                        contactValidation.Message,
-                        contactValidation.MessageVN,
+                        "Email already exists",
+                        "Email đã tồn tại",
+                        null);
+                }
+            }
+
+            if (existingDriver.PhoneNumber != updateDto.PhoneNumber)
+            {
+                var existingPhone = _unitOfWork.DriverRepository.Get(d => d.PhoneNumber == updateDto.PhoneNumber);
+                if (existingPhone != null)
+                {
+                    return new ApiResponse<DriverResponseDTO>(
+                        false,
+                        null,
+                        "Phone number already exists",
+                        "Số điện thoại đã tồn tại",
                         null);
                 }
             }
