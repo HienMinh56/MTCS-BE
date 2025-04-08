@@ -1,5 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Google.Api;
 using Microsoft.EntityFrameworkCore;
 using MTCS.Common;
 using MTCS.Data;
@@ -26,11 +27,11 @@ namespace MTCS.Service.Services
         }
 
         #region GetTripsByFilter
-        public async Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
+        public async Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId, string? trackingCode, string? tractorlicensePlate, string? trailerlicensePlate)
         {
             try
             {
-                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(tripId,driverId, status, tractorId, trailerId, orderId);
+                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(tripId,driverId, status, tractorId, trailerId, orderId, trackingCode, tractorlicensePlate, trailerlicensePlate);
 
                 if (trips == null)
                 {
@@ -268,5 +269,83 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message);
             }
         }
+
+        public async Task<Trip> CreateTripAsync(CreateTripRequestModel tripRequestModel, ClaimsPrincipal claims)
+        {
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
+            // GetOrder
+            var order = await _unitOfWork.OrderRepository.GetByIdAsync(tripRequestModel.OrderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng!");
+
+            //check status Tractor 
+            var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(tripRequestModel.TractorId);
+            if (tractor == null || (tractor.Status != "OnDuty" && tractor.Status != "Active"))
+                throw new Exception("Tractor không không khả dụng!");
+
+            //check status Trailer 
+            var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(tripRequestModel.TrailerId);
+            if (trailer == null || (trailer.Status != "OnDuty" && trailer.Status != "Active"))
+                throw new Exception("Trailer không khả dụng!");
+
+            //check status Driver
+            var driver = await _unitOfWork.DriverRepository.GetByIdAsync(tripRequestModel.DriverId);
+            if (driver == null || (driver.Status != 1 && driver.Status != 2))
+                throw new Exception("Tài xế không khả dụng!");
+
+            double containerWeight = 0;
+            int? configId = order.ContainerType switch
+            {
+                1 when order.ContainerSize == 20 => 1,
+                1 when order.ContainerSize == 40 => 2,
+                2 when order.ContainerSize == 20 => 3,
+                2 when order.ContainerSize == 40 => 4,
+                _ => null
+            };
+
+            if (configId.HasValue)
+            {
+                var config = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(configId.Value);
+                if (config == null || !double.TryParse(config.ConfigValue, out containerWeight))
+                    throw new Exception("Không tìm thấy dữ liệu!");
+            }
+
+            double totalWeight = (double)(order.Weight ?? 0) + (containerWeight / 1000);
+
+            if ((double)(trailer.MaxLoadWeight ?? 0) < totalWeight)
+                throw new Exception("Tải trọng của rơ-moóc không đủ!");
+
+            if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
+            {
+                throw new Exception("Tải trọng vượt quá khả năng kéo của đầu kéo!");
+            }
+
+            var trip = new Trip
+            {
+                TripId = Guid.NewGuid().ToString(),
+                OrderId = tripRequestModel.OrderId,
+                DriverId = tripRequestModel.DriverId,
+                TractorId = tripRequestModel.TractorId,
+                TrailerId = tripRequestModel.TrailerId,
+                Status = "not_started",
+                MatchType = 1,
+                MatchBy = userName,
+                MatchTime = DateTime.Now
+            };
+
+            try
+            {
+                await _unitOfWork.TripRepository.CreateAsync(trip);
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                throw new Exception($"Lỗi khi tạo trip: {errorMessage}");
+            }
+
+            return trip;
+        }
     }
 }
+

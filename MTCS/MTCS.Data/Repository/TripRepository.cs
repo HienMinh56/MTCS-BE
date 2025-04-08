@@ -11,7 +11,7 @@ namespace MTCS.Data.Repository
         public TripRepository(MTCSContext context) : base(context) { }
 
 
-        public async Task<IEnumerable<Trip>> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId)
+        public async Task<IEnumerable<Trip>> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId, string? trackingCode, string? tractorlicensePlate, string? trailerlicensePlate)
         {
             var query = _context.Trips.Include(t => t.TripStatusHistories)
                                       .Include(i => i.IncidentReports)
@@ -46,6 +46,20 @@ namespace MTCS.Data.Repository
                 query = query.Where(t => t.OrderId == orderId);
             }
 
+            if (!string.IsNullOrEmpty(trackingCode))
+            {
+                query = query.Where(t => t.Order.TrackingCode == trackingCode);
+            }
+
+            if (!string.IsNullOrEmpty(tractorlicensePlate))
+            {
+                query = query.Where(t => t.Tractor.LicensePlate == tractorlicensePlate);
+            }
+
+            if (!string.IsNullOrEmpty(trailerlicensePlate))
+            {
+                query = query.Where(t => t.Trailer.LicensePlate == trailerlicensePlate);
+            }
             return await query.ToListAsync();
         }
 
