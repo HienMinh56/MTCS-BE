@@ -56,6 +56,9 @@ namespace MTCS.Service.Services
                 var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
                 if (trip == null) return new BusinessResult(404, "Trip Not Found");
 
+                var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
+                if (driver == null) return new BusinessResult(404, "Driver Not Found");
+
                 var beingReport =  _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
                 if (beingReport != null) return new BusinessResult(400, "Cannot update status as there is an incident report being handled");
 
@@ -85,7 +88,9 @@ namespace MTCS.Service.Services
                 if (newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
                 {
                     trip.EndTime = DateTime.Now;
+                    driver.TotalProcessedOrders++;
                     await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
                 }
 
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
