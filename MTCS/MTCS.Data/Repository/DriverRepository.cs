@@ -24,6 +24,11 @@ namespace MTCS.Data.Repository
                 .AnyAsync(d => d.Email == email);
         }
 
+        public async Task<bool> PhoneNumberExistsAsync(string phoneNumber)
+        {
+            return await _context.Drivers.AnyAsync(d => d.PhoneNumber == phoneNumber);
+        }
+
         public async Task<Driver?> GetDriverByIdAsync(string driverId)
         {
             return await _context.Drivers.FirstOrDefaultAsync(d => d.DriverId == driverId);
@@ -112,6 +117,65 @@ namespace MTCS.Data.Repository
             return (totalWorkingTime, currentWeekWorkingTime, files);
         }
 
+        public async Task<bool> UpdateDriverWithFiles(
+    Driver updatedDriver,
+    List<DriverFile> filesToAdd,
+    List<string> fileIdsToRemove = null)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Drivers.Update(updatedDriver);
 
+                if (filesToAdd != null && filesToAdd.Any())
+                {
+                    await _context.DriverFiles.AddRangeAsync(filesToAdd);
+                }
+
+                if (fileIdsToRemove != null && fileIdsToRemove.Any())
+                {
+                    var filesToDelete = await _context.DriverFiles
+                        .Where(df => df.DriverId == updatedDriver.DriverId &&
+                               fileIdsToRemove.Contains(df.FileId))
+                        .ToListAsync();
+
+                    if (filesToDelete.Any())
+                    {
+                        _context.DriverFiles.RemoveRange(filesToDelete);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateDriverFileDetails(string fileId, string description, string note, string userId)
+        {
+            var file = await _context.DriverFiles.FindAsync(fileId);
+            if (file == null)
+                return false;
+
+            file.Description = description;
+            file.Note = note;
+            file.ModifiedBy = userId;
+            file.ModifiedDate = DateOnly.FromDateTime(DateTime.Now);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
     }
 }

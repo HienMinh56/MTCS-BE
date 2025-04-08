@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Models;
+using MTCS.Data.Response;
 using System.Security.Claims;
 
 namespace MTCS.Data.Helpers
@@ -57,5 +58,111 @@ namespace MTCS.Data.Helpers
             }
             return claim.Value;
         }
+    }
+
+    public class ContactHelper
+    {
+        private readonly MTCSContext _context;
+
+        public ContactHelper(MTCSContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<bool> IsEmailInUseAsync(
+    string email,
+    string? excludeUserId = null)
+        {
+            if (string.IsNullOrEmpty(email))
+                return false;
+
+            email = email.Trim().ToLower();
+
+            var driverExists = await _context.Drivers
+                .AsNoTracking()
+                .AnyAsync(d => d.Email.ToLower() == email &&
+                              (excludeUserId == null || d.DriverId != excludeUserId));
+
+            if (driverExists)
+                return true;
+
+            var internalUserExists = await _context.InternalUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Email.ToLower() == email &&
+                              (excludeUserId == null || u.UserId != excludeUserId));
+
+            return internalUserExists;
+        }
+
+        public async Task<bool> IsPhoneNumberInUseAsync(
+            string phoneNumber,
+            string? excludeUserId = null)
+        {
+            if (string.IsNullOrEmpty(phoneNumber))
+                return false;
+
+            phoneNumber = phoneNumber.Trim();
+
+            var driverExists = await _context.Drivers
+                .AsNoTracking()
+                .AnyAsync(d => d.PhoneNumber == phoneNumber &&
+                              (excludeUserId == null || d.DriverId != excludeUserId));
+
+            if (driverExists)
+                return true;
+
+            var internalUserExists = await _context.InternalUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.PhoneNumber == phoneNumber &&
+                              (excludeUserId == null || u.UserId != excludeUserId));
+
+            return internalUserExists;
+        }
+
+
+        public async Task<ApiResponse<bool>> ValidateContact(
+    string email,
+    string phoneNumber,
+    string? excludeUserId = null)
+        {
+            var emailInUse = await IsEmailInUseAsync(email, excludeUserId);
+            var phoneInUse = await IsPhoneNumberInUseAsync(phoneNumber, excludeUserId);
+
+            if (emailInUse && phoneInUse)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Both email and phone number are already in use",
+                    "Cả email và số điện thoại đều đã được sử dụng",
+                    null);
+            }
+            else if (emailInUse)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Email is already in use",
+                    "Email đã được sử dụng",
+                    null);
+            }
+            else if (phoneInUse)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Phone number is already in use",
+                    "Số điện thoại đã được sử dụng",
+                    null);
+            }
+
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Contact information is valid and unique",
+                "Thông tin liên hệ hợp lệ và chưa được sử dụng",
+                null);
+        }
+
     }
 }

@@ -34,6 +34,7 @@ namespace MTCS.Data
         private TripStatusHistoryRepository tripStatusHistoryRepository;
         private PriceTableRepository priceTableRepository;
         private VehicleHelper vehicleHelper;
+        private ContactHelper contactHelper;
 
         public UnitOfWork()
         {
@@ -227,6 +228,14 @@ namespace MTCS.Data
             get
             {
                 return vehicleHelper ??= new VehicleHelper(context);
+            }
+        }
+
+        public ContactHelper ContactHelper
+        {
+            get
+            {
+                return contactHelper ??= new ContactHelper(context);
             }
         }
 

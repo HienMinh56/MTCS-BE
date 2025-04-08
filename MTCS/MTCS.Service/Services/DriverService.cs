@@ -37,9 +37,18 @@ namespace MTCS.Service.Services
         public async Task<ApiResponse<DriverResponseDTO>> CreateDriverWithFiles(CreateDriverDTO driverDto, List<FileUploadDTO> fileUploads,
     string userId)
         {
-            if (await _unitOfWork.DriverRepository.EmailExistsAsync(driverDto.Email))
+            var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
+         driverDto.Email,
+         driverDto.PhoneNumber);
+
+            if (!contactValidation.Success)
             {
-                throw new InvalidOperationException("Email already exists");
+                return new ApiResponse<DriverResponseDTO>(
+                    false,
+                    null,
+                    contactValidation.Message,
+                    contactValidation.MessageVN,
+                    null);
             }
             var driverId = Guid.NewGuid().ToString();
 
@@ -102,7 +111,7 @@ namespace MTCS.Service.Services
                     return new ApiResponse<DriverResponseDTO>(
                         true,
                         responseDto,
-                        "Tractor and files created successfully",
+                        "Driver and files created successfully",
                         "Đã tạo tài xế và tệp đính kèm thành công",
                         null);
                 }
@@ -111,7 +120,7 @@ namespace MTCS.Service.Services
                     return new ApiResponse<DriverResponseDTO>(
                         true,
                         responseDto,
-                        "Tractor created successfully but there was an issue with file uploads",
+                        "Driver created successfully but there was an issue with file uploads",
                         "Đã tạo tài xế thành công nhưng có vấn đề khi upload file",
                         ex.Message);
                 }
@@ -154,6 +163,179 @@ namespace MTCS.Service.Services
                 driverProfileDetails,
                 "Driver profile details retrieved successfully",
                 null,
+                null);
+        }
+
+        public async Task<ApiResponse<DriverResponseDTO>> UpdateDriverWithFiles(
+    string driverId,
+    UpdateDriverDTO updateDto,
+    List<FileUploadDTO> newFiles,
+    List<string> fileIdsToRemove,
+    string userId)
+        {
+            var existingDriver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(driverId);
+            if (existingDriver == null)
+            {
+                return new ApiResponse<DriverResponseDTO>(
+                    false,
+                    null,
+                    "Driver not found",
+                    "Không tìm thấy tài xế",
+                    null);
+            }
+
+            if (existingDriver.Email != updateDto.Email || existingDriver.PhoneNumber != updateDto.PhoneNumber)
+            {
+                var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
+                    updateDto.Email,
+                    updateDto.PhoneNumber,
+                    driverId);
+
+                if (!contactValidation.Success)
+                {
+                    return new ApiResponse<DriverResponseDTO>(
+                        false,
+                        null,
+                        contactValidation.Message,
+                        contactValidation.MessageVN,
+                        null);
+                }
+            }
+
+            existingDriver.FullName = updateDto.FullName;
+            existingDriver.Email = updateDto.Email;
+            existingDriver.PhoneNumber = updateDto.PhoneNumber;
+            existingDriver.DateOfBirth = updateDto.DateOfBirth;
+            existingDriver.ModifiedBy = userId;
+            existingDriver.ModifiedDate = DateTime.Now;
+
+            if (!string.IsNullOrEmpty(updateDto.Password))
+            {
+                existingDriver.Password = _passwordHasher.HashPassword(updateDto.Password);
+            }
+
+            var filesToAdd = new List<DriverFile>();
+            if (newFiles != null && newFiles.Any())
+            {
+                foreach (var fileUpload in newFiles)
+                {
+                    if (fileUpload.File != null && fileUpload.File.Length > 0)
+                    {
+                        var fileMetadata = await _firebaseStorageService.UploadFileAsync(fileUpload.File);
+
+                        var driverFile = new DriverFile
+                        {
+                            FileId = Guid.NewGuid().ToString(),
+                            DriverId = driverId,
+                            FileName = fileUpload.File.FileName,
+                            FileType = fileMetadata.FileType,
+                            FileUrl = fileMetadata.FileUrl,
+                            UploadDate = DateTime.Now,
+                            UploadBy = userId,
+                            Description = fileUpload.Description,
+                            Note = fileUpload.Note,
+                            ModifiedDate = null,
+                            ModifiedBy = null,
+                            DeletedDate = null,
+                            DeletedBy = null
+                        };
+                        filesToAdd.Add(driverFile);
+                    }
+                }
+            }
+
+            var result = await _unitOfWork.DriverRepository.UpdateDriverWithFiles(
+                existingDriver,
+                filesToAdd,
+                fileIdsToRemove);
+
+            if (!result)
+            {
+                return new ApiResponse<DriverResponseDTO>(
+                    false,
+                    null,
+                    "Failed to update driver",
+                    "Cập nhật tài xế thất bại",
+                    null);
+            }
+
+            var responseDto = new DriverResponseDTO
+            {
+                DriverId = existingDriver.DriverId,
+                FullName = existingDriver.FullName,
+                Email = existingDriver.Email,
+                PhoneNumber = existingDriver.PhoneNumber,
+                Status = existingDriver.Status,
+                DateOfBirth = existingDriver.DateOfBirth,
+                CreatedDate = existingDriver.CreatedDate
+            };
+
+            return new ApiResponse<DriverResponseDTO>(
+                true,
+                responseDto,
+                "Driver updated successfully",
+                "Cập nhật tài xế thành công",
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> UpdateDriverFileDetails(
+            string fileId,
+            FileDetailsDTO updateDto,
+            string userId)
+        {
+            if (string.IsNullOrEmpty(fileId))
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Invalid file ID",
+                    "Mã tệp tin không hợp lệ",
+                    "File ID cannot be empty");
+            }
+
+            var file = await _unitOfWork.DriverFileRepository.GetFileById(fileId);
+            if (file == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "File not found",
+                    "Không tìm thấy tệp tin",
+                    $"No file found with ID: {fileId}");
+            }
+
+            var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(file.DriverId);
+            if (driver == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Associated driver not found",
+                    "Không tìm thấy tài xế liên kết",
+                    "The file is not associated with a valid driver");
+            }
+
+            var result = await _unitOfWork.DriverRepository.UpdateDriverFileDetails(
+                fileId,
+                updateDto.Description,
+                updateDto.Note,
+                userId);
+
+            if (!result)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Failed to update file details",
+                    "Cập nhật thông tin tệp tin thất bại",
+                    "Unable to update the file details");
+            }
+
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "File details updated successfully",
+                "Cập nhật thông tin tệp tin thành công",
                 null);
         }
     }

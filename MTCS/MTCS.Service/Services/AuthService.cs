@@ -26,9 +26,18 @@ namespace MTCS.Service.Services
 
         public async Task<ApiResponse<string>> RegisterStaff(RegisterUserDTO userDto)
         {
-            if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(userDto.Email))
+            var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
+        userDto.Email,
+        userDto.PhoneNumber);
+
+            if (!contactValidation.Success)
             {
-                throw new InvalidOperationException("Email already exists");
+                return new ApiResponse<string>(
+                    false,
+                    null,
+                    contactValidation.Message,
+                    contactValidation.MessageVN,
+                    null);
             }
 
             var internalUser = new InternalUser
@@ -50,9 +59,18 @@ namespace MTCS.Service.Services
 
         public async Task<ApiResponse<string>> RegisterAdmin(RegisterUserDTO userDto)
         {
-            if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(userDto.Email))
+            var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
+        userDto.Email,
+        userDto.PhoneNumber);
+
+            if (!contactValidation.Success)
             {
-                throw new InvalidOperationException("Email already exists");
+                return new ApiResponse<string>(
+                    false,
+                    null,
+                    contactValidation.Message,
+                    contactValidation.MessageVN,
+                    null);
             }
 
             var internalUser = new InternalUser
@@ -109,10 +127,10 @@ namespace MTCS.Service.Services
                 throw new KeyNotFoundException("User not found");
             }
 
-            user.FullName = profileDto.FullName ?? user.FullName;
-            user.PhoneNumber = profileDto.PhoneNumber ?? user.PhoneNumber;
+            bool emailChanged = profileDto.Email != null && profileDto.Email != user.Email;
+            bool phoneChanged = profileDto.PhoneNumber != null && profileDto.PhoneNumber != user.PhoneNumber;
 
-            if (profileDto.Email != null && profileDto.Email != user.Email)
+            if (emailChanged)
             {
                 if (string.IsNullOrEmpty(profileDto.CurrentPassword))
                 {
@@ -126,18 +144,32 @@ namespace MTCS.Service.Services
                     return new ApiResponse<ProfileResponseDTO>(false, null, "Invalid password", "Mật khẩu hiện tại không đúng",
                         "Current password is incorrect");
                 }
-
-                if (await _unitOfWork.InternalUserRepository.EmailExistsAsync(profileDto.Email))
-                {
-                    return new ApiResponse<ProfileResponseDTO>(false, null, "Email unavailable", "Email đã tồn tại",
-                        "This email is already in use");
-                }
-                user.Email = profileDto.Email;
-                user.ModifiedBy = userId;
             }
+
+            if (emailChanged || phoneChanged)
+            {
+                string emailToCheck = emailChanged ? profileDto.Email : user.Email;
+                string phoneToCheck = phoneChanged ? profileDto.PhoneNumber : user.PhoneNumber;
+
+                var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(emailToCheck, phoneToCheck, userId);
+
+                if (!contactValidation.Success)
+                {
+                    return new ApiResponse<ProfileResponseDTO>(
+                        false,
+                        null,
+                        contactValidation.Message,
+                        contactValidation.MessageVN,
+                        null);
+                }
+            }
+            user.FullName = profileDto.FullName ?? user.FullName;
+            if (emailChanged) user.Email = profileDto.Email;
+            if (phoneChanged) user.PhoneNumber = profileDto.PhoneNumber;
             user.Gender = profileDto.Gender;
             user.Birthday = profileDto.Birthday;
             user.ModifiedDate = DateTime.Now;
+            user.ModifiedBy = userId;
 
             await _unitOfWork.InternalUserRepository.UpdateAsync(user);
 
