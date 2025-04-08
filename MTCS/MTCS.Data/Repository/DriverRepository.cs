@@ -29,6 +29,33 @@ namespace MTCS.Data.Repository
             return await _context.Drivers.FirstOrDefaultAsync(d => d.DriverId == driverId);
         }
 
+        public async Task<string> GenerateDriverIdAsync()
+        {
+            const string prefix = "DRI";
+
+            // Get the highest DriverId that starts with the prefix
+            var highestId = await _context.Drivers
+                .Where(d => d.DriverId.StartsWith(prefix))
+                .Select(d => d.DriverId)
+                .OrderByDescending(id => id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (!string.IsNullOrEmpty(highestId) && highestId.Length > prefix.Length)
+            {
+                var numericPart = highestId.Substring(prefix.Length);
+                if (int.TryParse(numericPart, out int currentNumber))
+                {
+                    nextNumber = currentNumber + 1;
+                }
+            }
+
+            // Return the new DriverId with the next number, formatted to 3 digits
+            return $"{prefix}{nextNumber:D3}";
+        }
+
+
         public async Task<PagedList<ViewDriverDTO>> GetDrivers(PaginationParams paginationParams, int? status = null, string? keyword = null)
         {
             var query = _context.Drivers

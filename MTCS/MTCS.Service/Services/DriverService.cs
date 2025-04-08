@@ -41,7 +41,7 @@ namespace MTCS.Service.Services
             {
                 throw new InvalidOperationException("Email already exists");
             }
-            var driverId = Guid.NewGuid().ToString();
+            var driverId = await _unitOfWork.DriverRepository.GenerateDriverIdAsync();
 
             var driver = new Driver
             {

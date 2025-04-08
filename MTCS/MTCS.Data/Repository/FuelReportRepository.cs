@@ -44,7 +44,8 @@ namespace MTCS.Data.Repository
         {
             IQueryable<FuelReport> query = _context.FuelReports
                 .Include(f => f.Trip)
-                .Include(f => f.FuelReportFiles);
+                .Include(f => f.FuelReportFiles)
+                .OrderByDescending(f => f.ReportTime);
 
             if (!string.IsNullOrEmpty(reportId))
             {

@@ -20,6 +20,7 @@ namespace MTCS.Data.Repository
             var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)
                                                 .Include(i => i.Trip)
                                                 .ThenInclude(t => t.Driver)
+                                                .OrderByDescending(i => i.CreatedDate)
                                                 .AsNoTracking()
                                                 .AsQueryable();
 
