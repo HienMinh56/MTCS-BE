@@ -58,7 +58,6 @@ namespace MTCS.Data.DTOs
         [MaxLength(25)]
         public required string FullName { get; set; }
 
-        [Required]
         [EmailAddress]
         public required string Email { get; set; }
 
