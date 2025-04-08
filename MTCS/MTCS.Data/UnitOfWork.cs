@@ -34,7 +34,8 @@ namespace MTCS.Data
         private TripStatusHistoryRepository tripStatusHistoryRepository;
         private PriceTableRepository priceTableRepository;
         private VehicleHelper vehicleHelper;
-        private ContactHelper contactHelper;
+        private ContactHelper contactHelper; 
+        private SystemConfigurationRepository systemConfigurationRepository;
 
         public UnitOfWork()
         {
@@ -239,6 +240,13 @@ namespace MTCS.Data
             }
         }
 
+        public SystemConfigurationRepository SystemConfigurationRepository
+        {
+            get
+            {
+                return systemConfigurationRepository ??= new SystemConfigurationRepository();
+            }
+        }
         //    ////TO-DO CODE HERE/////////////////
 
         //    #region Set transaction isolation levels

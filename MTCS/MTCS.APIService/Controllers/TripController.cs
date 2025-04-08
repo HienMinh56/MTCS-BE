@@ -4,6 +4,7 @@ using MTCS.Data.Helpers;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
+using Sprache;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -28,9 +29,13 @@ namespace MTCS.APIService.Controllers
             [FromQuery] string? tractorId,
             [FromQuery] string? trailerId,
             [FromQuery] string? status,
-            [FromQuery] string? orderId)
+            [FromQuery] string? orderId,
+            [FromQuery] string? trackingCode,
+            [FromQuery] string? tractorlicensePlate,
+            [FromQuery] string? trailerlicensePlate
+            )
         {
-            var result = await _tripService.GetTripsByFilterAsync(tripId, driverId, status, tractorId, trailerId, orderId);
+            var result = await _tripService.GetTripsByFilterAsync(tripId, driverId, status, tractorId, trailerId, orderId, trackingCode, tractorlicensePlate, trailerlicensePlate);
             return Ok(result);
         }
 
@@ -54,6 +59,23 @@ namespace MTCS.APIService.Controllers
                 return Ok(result);
 
             return BadRequest(result);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateTrip([FromForm] CreateTripRequestModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var trip = await _tripService.CreateTripAsync(model, User);
+                return Ok(trip); 
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }
