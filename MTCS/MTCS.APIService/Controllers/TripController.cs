@@ -46,7 +46,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPut("update/{tripId}")]
-        public async Task<IActionResult> UpdateTrip(string tripId, [FromQuery] UpdateTripRequest model)
+        public async Task<IActionResult> UpdateTrip(string tripId, [FromForm] UpdateTripRequest model)
         {
            
             var result = await _tripService.UpdateTripAsync(tripId, model, User);

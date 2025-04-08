@@ -83,7 +83,7 @@ namespace MTCS.Service.Services
 
                 if (orderRequest.ContainerType != (int)ContainerSize.Feet20 && orderRequest.ContainerType != (int)ContainerSize.Feet40)
                 {
-                    throw new ArgumentException("ContainerType chỉ được nhập 20 hoặc 40.");
+                    throw new ArgumentException("ContainerSize chỉ được nhập 20f hoặc 40f.");
                 }
 
                 if (orderRequest.DeliveryType != 1 && orderRequest.DeliveryType != 2)
@@ -91,7 +91,12 @@ namespace MTCS.Service.Services
                     throw new ArgumentException("DeliveryType chỉ được nhập 1 (Nhập) hoặc 2 (Xuất).");
                 }
 
-                await _unitOfWork.BeginTransactionAsync();
+                if (orderRequest.ContainerType != 1 && orderRequest.ContainerType != 2)
+                {
+                    throw new ArgumentException("ContainerType chỉ được nhập 1 (Lạnh) hoặc 2 (Khô).");
+                }
+
+                //await _unitOfWork.BeginTransactionAsync();
                 var trackingCode = await _unitOfWork.OrderRepository.GetNextCodeAsync();
                 var orderId = Guid.NewGuid().ToString();
                 var order = new Order
@@ -150,6 +155,7 @@ namespace MTCS.Service.Services
                         ModifiedBy = userName,
                     };
 
+                    await _unitOfWork.OrderFileRepository.CreateAsync(orderFile);
                     savedFiles.Add(orderFile);
                 }
 
@@ -228,6 +234,8 @@ namespace MTCS.Service.Services
                 order.IsPay = model.IsPay ?? order.IsPay;
 
 
+
+
                 if (model.FileIdsToRemove?.Any() == true)
                 {
                     OrderFile? file;
@@ -246,6 +254,8 @@ namespace MTCS.Service.Services
                     {
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, "Số lượng files, descriptions và notes phải bằng nhau.");
                     }
+
+                    //var savedFiles = new List<OrderFile>();
                     for (int i = 0; i < model.AddedFiles.Count; i++)
                     {
                         var file = model.AddedFiles[i];
@@ -270,12 +280,12 @@ namespace MTCS.Service.Services
                             ModifiedDate = DateOnly.FromDateTime(DateTime.Now),
                         });
                     }
-
-                    await _unitOfWork.OrderRepository.UpdateAsync(order);
                 }
 
+                await _unitOfWork.OrderRepository.UpdateAsync(order);
 
-                //await _repository.CommitTransactionAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
             }
             catch
