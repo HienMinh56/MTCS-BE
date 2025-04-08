@@ -50,7 +50,7 @@ namespace MTCS.Service.Services
                     contactValidation.MessageVN,
                     null);
             }
-            var driverId = Guid.NewGuid().ToString();
+            var driverId = await _unitOfWork.DriverRepository.GenerateDriverIdAsync();
 
             var driver = new Driver
             {

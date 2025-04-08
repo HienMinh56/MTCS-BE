@@ -31,7 +31,8 @@ namespace MTCS.Data.Repository
         {
             IQueryable<DeliveryReport> query = _context.DeliveryReports
                 .Include(d => d.Trip)
-                .Include(d => d.DeliveryReportsFiles);
+                .Include(d => d.DeliveryReportsFiles)
+                .OrderByDescending(d => d.ReportTime);
 
             if (!string.IsNullOrEmpty(reportId))
             {
