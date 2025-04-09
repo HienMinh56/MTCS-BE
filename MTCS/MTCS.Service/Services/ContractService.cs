@@ -55,7 +55,7 @@ namespace MTCS.Service.Services
                 var contract = new Data.Models.Contract
                 {
                     ContractId = contractId,
-                    CustomerId = customerId,
+                    CustomerId = contractRequest.CustomerId,
                     Summary = contractRequest.Summary,
                     SignedBy = contractRequest.SignedBy,
                     SignedTime = contractRequest.SignedTime,

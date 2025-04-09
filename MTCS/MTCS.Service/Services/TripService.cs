@@ -81,6 +81,8 @@ namespace MTCS.Service.Services
 
                 if (newStatus.StatusIndex == 1)
                 {
+                    trip.StartTime = DateTime.Now;
+                    await _unitOfWork.TripRepository.UpdateAsync(trip);
                     await UpdateOrderAndVehiclesAsync(trip, "Delivering", VehicleStatus.OnDuty, DriverStatus.OnDuty);
                 }
 

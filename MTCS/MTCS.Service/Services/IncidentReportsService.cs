@@ -519,6 +519,7 @@ namespace MTCS.Service.Services
                         driver.Status = 1; // Free
                         tractor.Status = VehicleStatus.Active.ToString();
                         trailer.Status = VehicleStatus.Active.ToString();
+                        trip.EndTime = DateTime.Now;
 
                         await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
