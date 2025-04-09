@@ -118,6 +118,7 @@ namespace MTCS.Data.Repository
                 LicensePlate = t.LicensePlate,
                 Brand = t.Brand,
                 Status = t.Status,
+                MaxLoadWeight = t.MaxLoadWeight,
                 ContainerType = t.ContainerType.HasValue ? (ContainerType)t.ContainerType.Value : null,
                 NextMaintenanceDate = t.NextMaintenanceDate,
                 RegistrationExpirationDate = t.RegistrationExpirationDate

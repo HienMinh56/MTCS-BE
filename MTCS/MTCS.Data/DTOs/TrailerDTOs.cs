@@ -59,6 +59,7 @@ namespace MTCS.Data.DTOs
         public string LicensePlate { get; set; }
         public string Brand { get; set; }
         public string Status { get; set; }
+        public decimal? MaxLoadWeight { get; set; }
         public ContainerSize? ContainerSize { get; set; }
         public DateTime? NextMaintenanceDate { get; set; }
         public DateOnly? RegistrationExpirationDate { get; set; }

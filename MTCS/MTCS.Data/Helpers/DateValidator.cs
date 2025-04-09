@@ -4,9 +4,12 @@ namespace MTCS.Data.Helpers
 {
     public static class DateValidator
     {
-        public static ValidationResult NotFutureDateTime(DateTime date, ValidationContext context)
+        public static ValidationResult NotFutureDateTime(DateTime? date, ValidationContext context)
         {
-            return date <= DateTime.Now
+            if (!date.HasValue)
+                return ValidationResult.Success;
+
+            return date.Value <= DateTime.Now
                 ? ValidationResult.Success
                 : new ValidationResult("Date cannot be in the future");
         }
