@@ -21,6 +21,7 @@ namespace MTCS.Data.Repository
         public async Task<List<Customer>> GetAllCustomer(string? customerId, string? companyName)
         {
             var query = _context.Customers.Include(i => i.Contracts)
+                                          .ThenInclude(f => f.ContractFiles)
                                           .Include(i => i.Orders)
                                           .AsNoTracking()
                                           .AsQueryable();

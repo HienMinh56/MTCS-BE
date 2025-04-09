@@ -8,6 +8,7 @@ namespace MTCS.Data.Request
 {
     public class ContractRequest
     {
+        public string CustomerId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string Summary { get; set; }
