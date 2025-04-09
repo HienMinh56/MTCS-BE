@@ -91,9 +91,9 @@ namespace MTCS.Service.Services
                     await _unitOfWork.FuelReportFileRepository.CreateAsync(fuelReportFile);
                     savedFiles.Add(fuelReportFile);
                 }
-                var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(createFuel.TripId);
-                var userReceiver = order.CreatedBy;
-                await _notification.SendNotificationAsync(userReceiver, "Fuel Report", $"New Fuel Report from {userName}", userName);
+                //var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(createFuel.TripId);
+                //var userReceiver = order.CreatedBy;
+                //await _notification.SendNotificationAsync(userReceiver, "Fuel Report", $"New Fuel Report from {userName}", userName);
 
                 return new BusinessResult(200, "Create Fuel Report Successfully", savedFiles);
             }
@@ -209,9 +209,9 @@ namespace MTCS.Service.Services
 
                     await _unitOfWork.FuelReportRepository.UpdateAsync(fuelReport);
                 }
-                var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(fuelReport.TripId);
-                var userReceiver = order.CreatedBy;
-                await _notification.SendNotificationAsync(userReceiver, "Fuel Report", $"New Update Fuel Report from {userName}", userName);
+                //var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(fuelReport.TripId);
+                //var userReceiver = order.CreatedBy;
+                //await _notification.SendNotificationAsync(userReceiver, "Fuel Report", $"New Update Fuel Report from {userName}", userName);
 
 
                 return new BusinessResult(200, "Update Fuel Report Successfully", savedFiles);

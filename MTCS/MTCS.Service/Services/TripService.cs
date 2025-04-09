@@ -19,11 +19,12 @@ namespace MTCS.Service.Services
     public class TripService : ITripService
     {
         private readonly UnitOfWork _unitOfWork;
+        private readonly NotificationService _notificationService;
 
-        public TripService(UnitOfWork unitOfWork)
+        public TripService(UnitOfWork unitOfWork, NotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
-
+            _notificationService = notificationService;
         }
 
         #region GetTripsByFilter
@@ -107,6 +108,8 @@ namespace MTCS.Service.Services
                 });
 
                 await _unitOfWork.CommitTransactionAsync();
+                var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
+                await _notificationService.SendNotificationAsync(order.CreatedBy, "Trip Status Update", $"Your trip status has been updated to {newStatus.StatusName}", driver.FullName);
                 return new BusinessResult(200, "Update Trip Success");
             }
             catch
