@@ -36,7 +36,8 @@ namespace MTCS.Data
         private VehicleHelper vehicleHelper;
         private ContactHelper contactHelper; 
         private SystemConfigurationRepository systemConfigurationRepository;
-
+        private DriverDailyWorkingTimeRepository driverDailyWorkingTimeRepository;
+        private DriverWeeklySummaryRepository driverWeeklySummaryRepository;
         public UnitOfWork()
         {
             context ??= new MTCSContext();
@@ -245,6 +246,22 @@ namespace MTCS.Data
             get
             {
                 return systemConfigurationRepository ??= new SystemConfigurationRepository();
+            }
+        }
+
+        public DriverDailyWorkingTimeRepository DriverDailyWorkingTimeRepository
+        {
+            get
+            {
+                return driverDailyWorkingTimeRepository ??= new DriverDailyWorkingTimeRepository();
+            }
+        }
+
+        public DriverWeeklySummaryRepository DriverWeeklySummaryRepository
+        {
+            get
+            {
+                return driverWeeklySummaryRepository ??= new DriverWeeklySummaryRepository();
             }
         }
         //    ////TO-DO CODE HERE/////////////////
