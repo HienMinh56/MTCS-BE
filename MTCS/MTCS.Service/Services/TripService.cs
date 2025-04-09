@@ -19,9 +19,9 @@ namespace MTCS.Service.Services
     public class TripService : ITripService
     {
         private readonly UnitOfWork _unitOfWork;
-        private readonly NotificationService _notificationService;
+        private readonly INotificationService _notificationService;
 
-        public TripService(UnitOfWork unitOfWork, NotificationService notificationService)
+        public TripService(UnitOfWork unitOfWork, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
