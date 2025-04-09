@@ -231,10 +231,6 @@ namespace MTCS.Service.Services
             {
                 var fuelReports = _unitOfWork.FuelReportRepository.GetFuelReports(reportId, tripId, driverId);
 
-                if (!fuelReports.Any())
-                {
-                    return new BusinessResult(404, "Cannot find Fuel Report!!!");
-                }
 
                 return new BusinessResult(200, "Get Fuel Report Successfully", fuelReports);
             }
