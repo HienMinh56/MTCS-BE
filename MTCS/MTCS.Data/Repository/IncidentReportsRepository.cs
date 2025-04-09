@@ -17,9 +17,11 @@ namespace MTCS.Data.Repository
 
         public async Task<List<IncidentReport>> GetAllIncidentReport(string? driverId, string? tripId, string? reportId)
         {
-            var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)
+            var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)                                       
                                                 .Include(i => i.Trip)
                                                 .ThenInclude(t => t.Driver)
+                                                .Include(i => i.Trip)
+                                                .ThenInclude(i => i.Order)
                                                 .OrderByDescending(i => i.CreatedDate)
                                                 .AsNoTracking()
                                                 .AsQueryable();
