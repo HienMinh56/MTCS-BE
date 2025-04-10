@@ -524,6 +524,7 @@ namespace MTCS.Service.Services
                         await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                        await _unitOfWork.TripRepository.UpdateAsync(trip);
                     }
 
                     var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
