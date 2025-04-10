@@ -132,11 +132,17 @@ namespace MTCS.Data.Repository
                 dailyWorkingTimeHours = todayWorkingTimeRecord.TotalTime.Value / 60;
             }
 
-            // Get current week's working hours from weekly summary
-            int? currentWeekWorkingTimeHours = driver.DriverWeeklySummaries
-                .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
-                .Select(ws => ws.TotalHours)
-                .FirstOrDefault();
+            int? currentWeekWorkingTimeMinutes = driver.DriverWeeklySummaries
+         .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
+         .Select(ws => ws.TotalHours) // TotalHours is actually storing minutes
+         .FirstOrDefault();
+
+            // Convert minutes to hours
+            int currentWeekWorkingTimeHours = 0;
+            if (currentWeekWorkingTimeMinutes.HasValue)
+            {
+                currentWeekWorkingTimeHours = currentWeekWorkingTimeMinutes.Value / 60;
+            }
 
             List<DriverFileDTO> files = driver.DriverFiles
                 .Where(f => f.DeletedDate == null)
@@ -166,7 +172,7 @@ namespace MTCS.Data.Repository
                 ModifiedDate = driver.ModifiedDate,
                 ModifiedBy = driver.ModifiedBy,
                 DailyWorkingTime = dailyWorkingTimeHours,
-                CurrentWeekWorkingTime = currentWeekWorkingTimeHours ?? 0,
+                CurrentWeekWorkingTime = currentWeekWorkingTimeHours,
                 TotalOrder = driver.TotalProcessedOrders,
                 Files = files
             };
