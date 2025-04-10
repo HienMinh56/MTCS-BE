@@ -287,6 +287,12 @@ namespace MTCS.Service.Services
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng!");
 
+            // Kiểm tra DeliveryDate
+            if (!order.DeliveryDate.HasValue)
+                throw new Exception("Đơn hàng không có ngày giao hàng (DeliveryDate)!");
+
+            var deliveryDate = order.DeliveryDate.Value;
+
             // Kiểm tra Tractor
             var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(tripRequestModel.TractorId);
             if (tractor == null || (tractor.Status != "OnDuty" && tractor.Status != "Active"))
@@ -328,11 +334,11 @@ namespace MTCS.Service.Services
             if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
                 throw new Exception("Tải trọng vượt quá khả năng kéo của đầu kéo!");
 
-            // Kiểm tra thời gian làm việc
-            var today = DateOnly.FromDateTime(DateTime.Today);
+            // Tính thời gian hoàn thành đơn
             var completionTimeSpan = order.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
             int completionMinutes = (int)completionTimeSpan.TotalMinutes;
 
+            // Lấy cấu hình giới hạn thời gian
             var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
             var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
 
@@ -345,17 +351,17 @@ namespace MTCS.Service.Services
             if (!int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
                 throw new Exception("Giá trị cấu hình giới hạn tuần không hợp lệ!");
 
-            // Check day
+            // Check thời gian làm việc theo ngày
             var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
-                .GetByDriverIdAndDateAsync(driver.DriverId, today);
+                .GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
 
             int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
             if (totalDailyTime > dailyHourLimit * 60)
                 throw new Exception($"Tài xế đã vượt quá thời gian làm việc trong ngày ({dailyHourLimit} giờ)!");
 
-            // Check week
-            DateOnly weekStart = today.AddDays(-(int)today.DayOfWeek);
-            DateOnly weekEnd = weekStart.AddDays(6);
+            // Check thời gian làm việc theo tuần
+            var weekStart = deliveryDate.AddDays(-(int)deliveryDate.DayOfWeek);
+            var weekEnd = weekStart.AddDays(6);
 
             var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
                 .GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
@@ -364,7 +370,7 @@ namespace MTCS.Service.Services
             if (totalWeeklyTimeSpan.TotalMinutes > weeklyHourLimit * 60)
                 throw new Exception($"Tài xế đã vượt quá thời gian làm việc trong tuần ({weeklyHourLimit} giờ)!");
 
-            // Create
+            // Tạo trip
             var trip = new Trip
             {
                 TripId = Guid.NewGuid().ToString(),
@@ -382,11 +388,11 @@ namespace MTCS.Service.Services
             {
                 await _unitOfWork.TripRepository.CreateAsync(trip);
 
-                // Update Order
+                // Cập nhật trạng thái đơn hàng
                 order.Status = "scheduled";
                 await _unitOfWork.OrderRepository.UpdateAsync(order);
 
-                // update Daily Time
+                // Cập nhật thời gian làm việc ngày
                 if (dailyRecord != null)
                 {
                     dailyRecord.TotalTime += completionMinutes;
@@ -400,7 +406,7 @@ namespace MTCS.Service.Services
                     {
                         RecordId = Guid.NewGuid().ToString(),
                         DriverId = driver.DriverId,
-                        WorkDate = today,
+                        WorkDate = deliveryDate,
                         TotalTime = completionMinutes,
                         CreatedBy = userName,
                         ModifiedDate = DateTime.Now,
@@ -409,7 +415,7 @@ namespace MTCS.Service.Services
                     await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
                 }
 
-                // update Weekly Time
+                // Cập nhật thời gian làm việc tuần
                 if (weeklyRecord != null)
                 {
                     var updatedWeeklyTime = (weeklyRecord.TotalHours?.ToTimeSpan() ?? TimeSpan.Zero) + completionTimeSpan;
