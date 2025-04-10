@@ -8,6 +8,8 @@ namespace MTCS.Data.DTOs
         public required string FullName { get; set; }
         public required string Email { get; set; }
         public required string PhoneNumber { get; set; }
+        public int? CurrentWeekHours { get; set; }
+        public int? TotalOrders { get; set; }
         public int? Status { get; set; }
     }
 
@@ -34,7 +36,7 @@ namespace MTCS.Data.DTOs
         public string? CreatedBy { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public string? ModifiedBy { get; set; }
-        public int TotalWorkingTime { get; set; }
+        public int DailyWorkingTime { get; set; }
         public int CurrentWeekWorkingTime { get; set; }
         public int? TotalOrder { get; set; }
         public List<DriverFileDTO> Files { get; set; } = new List<DriverFileDTO>();

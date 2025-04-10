@@ -38,7 +38,6 @@ namespace MTCS.Data.Repository
         {
             const string prefix = "DRI";
 
-            // Get the highest DriverId that starts with the prefix
             var highestId = await _context.Drivers
                 .Where(d => d.DriverId.StartsWith(prefix))
                 .Select(d => d.DriverId)
@@ -56,23 +55,23 @@ namespace MTCS.Data.Repository
                 }
             }
 
-            // Return the new DriverId with the next number, formatted to 3 digits
             return $"{prefix}{nextNumber:D3}";
         }
 
 
         public async Task<PagedList<ViewDriverDTO>> GetDrivers(PaginationParams paginationParams, int? status = null, string? keyword = null)
         {
-            var query = _context.Drivers
-                .AsNoTracking();
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            var query = _context.Drivers.AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
                 keyword = keyword.Trim().ToLower();
                 query = query.Where(d =>
-                d.FullName.Contains(keyword) ||
-                d.Email.Contains(keyword) ||
-                d.PhoneNumber.Contains(keyword));
+                    d.FullName.Contains(keyword) ||
+                    d.Email.Contains(keyword) ||
+                    d.PhoneNumber.Contains(keyword));
             }
 
             if (status.HasValue)
@@ -84,47 +83,60 @@ namespace MTCS.Data.Repository
                 query = query.OrderByDescending(x => x.Status);
             }
 
-            var projectedQuery = query.Select(d => new ViewDriverDTO
+            var queryWithInclude = query.Include(d => d.DriverWeeklySummaries);
+
+            var projectedQuery = queryWithInclude.Select(d => new ViewDriverDTO
             {
                 DriverId = d.DriverId,
                 FullName = d.FullName,
                 Email = d.Email,
                 PhoneNumber = d.PhoneNumber,
-                Status = d.Status
+                Status = d.Status,
+                TotalOrders = d.TotalProcessedOrders,
+                CurrentWeekHours = d.DriverWeeklySummaries
+                    .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
+                    .Select(ws => ws.TotalHours)
+                    .FirstOrDefault()
             });
 
             return await PagedList<ViewDriverDTO>.CreateAsync(
                 projectedQuery, paginationParams.PageNumber, paginationParams.PageSize);
         }
 
-        public async Task<(int TotalWorkingTime, int CurrentWeekWorkingTime, List<DriverFileDTO> Files)> GetDriverProfileDetails(string driverId)
+        public async Task<DriverProfileDetailsDTO> GetDriverProfileDetails(string driverId)
         {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
             var driver = await _context.Drivers
                 .AsNoTracking()
                 .Where(d => d.DriverId == driverId)
                 .Include(d => d.DriverDailyWorkingTimes)
+                .Include(d => d.DriverWeeklySummaries)
                 .Include(d => d.DriverFiles.Where(f => f.DeletedDate == null))
                 .FirstOrDefaultAsync();
 
             if (driver == null)
             {
-                return (0, 0, new List<DriverFileDTO>());
+                return null;
             }
 
-            int totalWorkingTime = driver.DriverDailyWorkingTimes
-                .Where(wt => wt.TotalTime.HasValue)
-                .Sum(wt => wt.TotalTime.Value);
+            // Get today's working time record (not sum)
+            var todayWorkingTimeRecord = driver.DriverDailyWorkingTimes
+                .FirstOrDefault(wt => wt.WorkDate == today);
 
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            var startOfWeek = DateOnly.FromDateTime(DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek));
-            var endOfWeek = startOfWeek.AddDays(6);
+            // Get today's working time in hours (or 0 if no record found)
+            int dailyWorkingTimeHours = 0;
+            if (todayWorkingTimeRecord != null && todayWorkingTimeRecord.TotalTime.HasValue)
+            {
+                // Convert minutes to hours
+                dailyWorkingTimeHours = todayWorkingTimeRecord.TotalTime.Value / 60;
+            }
 
-            int currentWeekWorkingTime = driver.DriverDailyWorkingTimes
-                .Where(wt => wt.WorkDate.HasValue &&
-                            wt.WorkDate.Value >= startOfWeek &&
-                            wt.WorkDate.Value <= endOfWeek &&
-                            wt.TotalTime.HasValue)
-                .Sum(wt => wt.TotalTime.Value);
+            // Get current week's working hours from weekly summary
+            int? currentWeekWorkingTimeHours = driver.DriverWeeklySummaries
+                .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
+                .Select(ws => ws.TotalHours)
+                .FirstOrDefault();
 
             List<DriverFileDTO> files = driver.DriverFiles
                 .Where(f => f.DeletedDate == null)
@@ -141,7 +153,23 @@ namespace MTCS.Data.Repository
                 })
                 .ToList();
 
-            return (totalWorkingTime, currentWeekWorkingTime, files);
+            return new DriverProfileDetailsDTO
+            {
+                DriverId = driver.DriverId,
+                FullName = driver.FullName,
+                Email = driver.Email,
+                DateOfBirth = driver.DateOfBirth,
+                PhoneNumber = driver.PhoneNumber,
+                Status = driver.Status,
+                CreatedDate = driver.CreatedDate,
+                CreatedBy = driver.CreatedBy,
+                ModifiedDate = driver.ModifiedDate,
+                ModifiedBy = driver.ModifiedBy,
+                DailyWorkingTime = dailyWorkingTimeHours,
+                CurrentWeekWorkingTime = currentWeekWorkingTimeHours ?? 0,
+                TotalOrder = driver.TotalProcessedOrders,
+                Files = files
+            };
         }
 
         public async Task<bool> UpdateDriverWithFiles(

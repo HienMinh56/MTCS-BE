@@ -140,25 +140,12 @@ namespace MTCS.Service.Services
                 throw new InvalidOperationException("Driver not found");
             }
 
-            var (totalWorkingTime, currentWeekWorkingTime, files) =
-                await _unitOfWork.DriverRepository.GetDriverProfileDetails(driverId);
+            var driverProfileDetails = await _unitOfWork.DriverRepository.GetDriverProfileDetails(driverId);
 
-            var driverProfileDetails = new DriverProfileDetailsDTO
+            if (driverProfileDetails == null)
             {
-                DriverId = driver.DriverId,
-                FullName = driver.FullName,
-                Email = driver.Email,
-                DateOfBirth = driver.DateOfBirth,
-                PhoneNumber = driver.PhoneNumber,
-                Status = driver.Status,
-                CreatedDate = driver.CreatedDate,
-                CreatedBy = driver.CreatedBy,
-                ModifiedDate = driver.ModifiedDate,
-                ModifiedBy = driver.ModifiedBy,
-                TotalWorkingTime = totalWorkingTime,
-                CurrentWeekWorkingTime = currentWeekWorkingTime,
-                Files = files
-            };
+                throw new InvalidOperationException("Failed to retrieve driver profile details");
+            }
 
             return new ApiResponse<DriverProfileDetailsDTO>(
                 true,
