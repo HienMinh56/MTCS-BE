@@ -25,5 +25,12 @@ namespace MTCS.Data.Repository
             return await _context.DriverDailyWorkingTimes
                 .FirstOrDefaultAsync(x => x.DriverId == driverId && x.WorkDate == workDate);
         }
+
+        public async Task<List<DriverDailyWorkingTime>> GetByDriverIdAndDateRangeAsync(string driverId, DateOnly fromDate, DateOnly toDate)
+        {
+            return await _context.DriverDailyWorkingTimes
+                .Where(x => x.DriverId == driverId && x.WorkDate >= fromDate && x.WorkDate <= toDate)
+                .ToListAsync();
+        }
     }
 }

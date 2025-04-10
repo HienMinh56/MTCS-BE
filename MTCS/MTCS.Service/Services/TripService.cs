@@ -282,26 +282,27 @@ namespace MTCS.Service.Services
         {
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-            // GetOrder
+            // Lấy Order
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(tripRequestModel.OrderId);
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng!");
 
-            //check status Tractor 
+            // Kiểm tra Tractor
             var tractor = await _unitOfWork.TractorRepository.GetByIdAsync(tripRequestModel.TractorId);
             if (tractor == null || (tractor.Status != "OnDuty" && tractor.Status != "Active"))
-                throw new Exception("Tractor không không khả dụng!");
+                throw new Exception("Tractor không khả dụng!");
 
-            //check status Trailer 
+            // Kiểm tra Trailer
             var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(tripRequestModel.TrailerId);
             if (trailer == null || (trailer.Status != "OnDuty" && trailer.Status != "Active"))
                 throw new Exception("Trailer không khả dụng!");
 
-            //check status Driver
+            // Kiểm tra Driver
             var driver = await _unitOfWork.DriverRepository.GetByIdAsync(tripRequestModel.DriverId);
             if (driver == null || (driver.Status != 1 && driver.Status != 2))
                 throw new Exception("Tài xế không khả dụng!");
 
+            // Tính toán trọng lượng
             double containerWeight = 0;
             int? configId = order.ContainerType switch
             {
@@ -316,7 +317,7 @@ namespace MTCS.Service.Services
             {
                 var config = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(configId.Value);
                 if (config == null || !double.TryParse(config.ConfigValue, out containerWeight))
-                    throw new Exception("Không tìm thấy dữ liệu!");
+                    throw new Exception("Không tìm thấy dữ liệu trọng lượng container!");
             }
 
             double totalWeight = (double)(order.Weight ?? 0) + (containerWeight / 1000);
@@ -325,18 +326,15 @@ namespace MTCS.Service.Services
                 throw new Exception("Tải trọng của rơ-moóc không đủ!");
 
             if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
-            {
                 throw new Exception("Tải trọng vượt quá khả năng kéo của đầu kéo!");
-            }
 
-            // check time of driver
+            // Kiểm tra thời gian làm việc
             var today = DateOnly.FromDateTime(DateTime.Today);
-            var completionTime = order.CompletionTime?.Hour ?? 0;
+            var completionTimeSpan = order.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
+            int completionMinutes = (int)completionTimeSpan.TotalMinutes;
+
             var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
             var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
-
-            var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
-                .GetByDriverIdAndDateAsync(driver.DriverId, today);
 
             if (dailyLimitConfig == null || weeklyLimitConfig == null)
                 throw new Exception("Không tìm thấy cấu hình giới hạn thời gian làm việc!");
@@ -347,21 +345,23 @@ namespace MTCS.Service.Services
             if (!int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
                 throw new Exception("Giá trị cấu hình giới hạn tuần không hợp lệ!");
 
-            //check daily
-            int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionTime;
-            if (totalDailyTime > dailyHourLimit)
+            // Check day
+            var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                .GetByDriverIdAndDateAsync(driver.DriverId, today);
+
+            int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
+            if (totalDailyTime > dailyHourLimit * 60)
                 throw new Exception($"Tài xế đã vượt quá thời gian làm việc trong ngày ({dailyHourLimit} giờ)!");
 
-            // check week
+            // Check week
             DateOnly weekStart = today.AddDays(-(int)today.DayOfWeek);
             DateOnly weekEnd = weekStart.AddDays(6);
 
             var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
                 .GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
 
-            int totalWeeklyTime = (weeklyRecord?.TotalHours?.Hour ?? 0) + completionTime;
-
-            if (totalWeeklyTime > weeklyHourLimit)
+            var totalWeeklyTimeSpan = (weeklyRecord?.TotalHours?.ToTimeSpan() ?? TimeSpan.Zero) + completionTimeSpan;
+            if (totalWeeklyTimeSpan.TotalMinutes > weeklyHourLimit * 60)
                 throw new Exception($"Tài xế đã vượt quá thời gian làm việc trong tuần ({weeklyHourLimit} giờ)!");
 
             // Create
@@ -382,14 +382,14 @@ namespace MTCS.Service.Services
             {
                 await _unitOfWork.TripRepository.CreateAsync(trip);
 
-                // Update status order
+                // Update Order
                 order.Status = "scheduled";
                 await _unitOfWork.OrderRepository.UpdateAsync(order);
 
-                // update daily time
+                // update Daily Time
                 if (dailyRecord != null)
                 {
-                    dailyRecord.TotalTime += completionTime;
+                    dailyRecord.TotalTime += completionMinutes;
                     dailyRecord.ModifiedDate = DateTime.Now;
                     dailyRecord.ModifiedBy = userName;
                     await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
@@ -401,7 +401,7 @@ namespace MTCS.Service.Services
                         RecordId = Guid.NewGuid().ToString(),
                         DriverId = driver.DriverId,
                         WorkDate = today,
-                        TotalTime = completionTime,
+                        TotalTime = completionMinutes,
                         CreatedBy = userName,
                         ModifiedDate = DateTime.Now,
                         ModifiedBy = userName
@@ -409,11 +409,11 @@ namespace MTCS.Service.Services
                     await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
                 }
 
-                // update weekly time
+                // update Weekly Time
                 if (weeklyRecord != null)
                 {
-                    weeklyRecord.TotalHours = (weeklyRecord.TotalHours ?? TimeOnly.MinValue)
-                        .Add(TimeSpan.FromHours(completionTime));
+                    var updatedWeeklyTime = (weeklyRecord.TotalHours?.ToTimeSpan() ?? TimeSpan.Zero) + completionTimeSpan;
+                    weeklyRecord.TotalHours = TimeOnly.FromTimeSpan(updatedWeeklyTime);
                     await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
                 }
                 else
@@ -424,11 +424,11 @@ namespace MTCS.Service.Services
                         DriverId = driver.DriverId,
                         WeekStart = weekStart,
                         WeekEnd = weekEnd,
-                        TotalHours = TimeOnly.FromTimeSpan(TimeSpan.FromHours(completionTime))
+                        TotalHours = TimeOnly.FromTimeSpan(completionTimeSpan)
                     };
                     await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
-                   
                 }
+
                 return new BusinessResult(1, "Tạo trip thành công!", trip);
             }
             catch (Exception ex)
@@ -437,6 +437,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(-1, $"Lỗi khi tạo trip: {errorMessage}");
             }
         }
+
         #endregion
     }
 }
