@@ -2,6 +2,7 @@
 using MTCS.Data.Base;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
+using MTCS.Data.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,9 +17,9 @@ namespace MTCS.Data.Repository
         {
         }
 
-        public async Task<List<IncidentReport>> GetAllIncidentReport(string? driverId, string? tripId, string? reportId)
+        public async Task<List<IncidentReportsData>> GetAllIncidentReport(string? driverId, string? tripId, string? reportId)
         {
-            var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)                                       
+            var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)
                                                 .Include(i => i.Trip)
                                                 .ThenInclude(t => t.Driver)
                                                 .Include(i => i.Trip)
@@ -42,9 +43,29 @@ namespace MTCS.Data.Repository
                 query = query.Where(i => i.ReportId == reportId);
             }
 
-            return await query.ToListAsync();
-        }
+            var incidentReports = await query.ToListAsync();
 
+            // Map the IncidentReport entities to IncidentReportsData objects
+            return incidentReports.Select(i => new IncidentReportsData
+            {
+                ReportId = i.ReportId,
+                TripId = i.TripId,
+                TrackingCode = i.Trip?.Order?.TrackingCode,
+                ReportedBy = i.ReportedBy,
+                IncidentType = i.IncidentType,
+                Description = i.Description,
+                IncidentTime = i.IncidentTime,
+                Location = i.Location,
+                Type = i.Type,
+                Status = i.Status,
+                ResolutionDetails = i.ResolutionDetails,
+                HandledBy = i.HandledBy,
+                HandledTime = i.HandledTime,
+                CreatedDate = i.CreatedDate,
+                IncidentReportsFiles = i.IncidentReportsFiles,
+                Trip = i.Trip
+            }).ToList();
+        }
 
         public async Task<string> GetNextIncidentCodeAsync()
         {
