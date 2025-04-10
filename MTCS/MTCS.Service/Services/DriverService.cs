@@ -35,7 +35,7 @@ namespace MTCS.Service.Services
         }
 
         public async Task<ApiResponse<DriverResponseDTO>> CreateDriverWithFiles(CreateDriverDTO driverDto, List<FileUploadDTO> fileUploads,
-    string userId)
+            string userId)
         {
             var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(
          driverDto.Email,
@@ -62,7 +62,8 @@ namespace MTCS.Service.Services
                 PhoneNumber = driverDto.PhoneNumber,
                 Status = (int)UserStatus.Active,
                 TotalProcessedOrders = 0,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.Now,
+                CreatedBy = userId
             };
 
 
@@ -366,5 +367,77 @@ namespace MTCS.Service.Services
                 "Cập nhật thông tin tệp tin thành công",
                 null);
         }
+
+        public async Task<ApiResponse<bool>> DeactivateDriver(string driverId, string userName)
+        {
+            var driver = await _unitOfWork.DriverRepository.GetByIdAsync(driverId);
+            if (driver == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Driver not found",
+                    "Không tìm thấy tài xế",
+                    null);
+            }
+            if (driver.Status == (int)DriverStatus.OnDuty)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Cannot delete driver while on duty",
+                    "Không thể xóa tài xế khi đang làm việc",
+                    null);
+            }
+            driver.Status = (int)DriverStatus.Inactive;
+            driver.DeletedBy = userName;
+            driver.DeletedDate = DateTime.Now;
+            await _unitOfWork.DriverRepository.UpdateAsync(driver);
+
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Driver deleted successfully",
+                "Vô hiệu hóa tài xế thành công",
+                null);
+        }
+
+        public async Task<ApiResponse<bool>> ActivateDriver(string driverId, string userName)
+        {
+            var driver = await _unitOfWork.DriverRepository.GetByIdAsync(driverId);
+            if (driver == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Driver not found",
+                    "Không tìm thấy tài xế",
+                    null);
+            }
+            if (driver.Status != (int)DriverStatus.Inactive)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Cannot delete driver while on duty",
+                    "Không thể kích hoạt tài xế",
+                    null);
+            }
+            driver.Status = (int)DriverStatus.Active;
+            driver.DeletedBy = null;
+            driver.DeletedDate = null;
+            driver.ModifiedBy = userName;
+            driver.ModifiedDate = DateTime.Now;
+            await _unitOfWork.DriverRepository.UpdateAsync(driver);
+
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Driver deleted successfully",
+                "Kích hoạt tài xế thành công",
+                null);
+        }
+
+
     }
 }

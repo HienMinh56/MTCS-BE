@@ -63,5 +63,29 @@ namespace MTCS.APIService.Controllers
 
             return Ok(response);
         }
+
+        [HttpPut("activate-driver/{driverId}")]
+        public async Task<IActionResult> ActivateDriver(string driverId)
+        {
+            var userName = User.GetUserName();
+            var response = await _driverService.ActivateDriver(driverId, userName);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
+
+        [HttpPut("deactivate-driver/{driverId}")]
+        public async Task<IActionResult> DeactivateDriver(string driverId)
+        {
+            var userName = User.GetUserName();
+            var response = await _driverService.DeactivateDriver(driverId, userName);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
     }
 }

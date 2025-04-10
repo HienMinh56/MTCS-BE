@@ -51,9 +51,9 @@ namespace MTCS.APIService.Controllers
    [FromForm] CreateDriverDTO driverDto,
    [FromForm] List<FileUploadDTO> fileUploads)
         {
-            var userId = User.GetUserId();
+            var userName = User.GetUserName();
 
-            var response = await _driverService.CreateDriverWithFiles(driverDto, fileUploads, userId);
+            var response = await _driverService.CreateDriverWithFiles(driverDto, fileUploads, userName);
             if (!response.Success)
             {
                 return BadRequest(response);
