@@ -94,9 +94,9 @@ namespace MTCS.Data.Repository
                 Status = d.Status,
                 TotalOrders = d.TotalProcessedOrders,
                 CurrentWeekHours = d.DriverWeeklySummaries
-                    .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
-                    .Select(ws => ws.TotalHours)
-                    .FirstOrDefault()
+            .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
+            .Select(ws => ws.TotalHours.HasValue ? ws.TotalHours.Value / 60 : (int?)null)
+            .FirstOrDefault()
             });
 
             return await PagedList<ViewDriverDTO>.CreateAsync(
