@@ -32,7 +32,8 @@ namespace MTCS.Data.Repository
         DateOnly? deliveryDate = null)
         {
             var query = _context.Orders.Include(o => o.OrderFiles)
-                                       .AsNoTracking()                       
+                                       .OrderByDescending(i => i.CreatedDate)
+                                       .AsNoTracking()
                                        .AsQueryable();
 
             if (!string.IsNullOrEmpty(orderId))
@@ -61,8 +62,6 @@ namespace MTCS.Data.Repository
 
             if (deliveryDate.HasValue)
                 query = query.Where(o => o.DeliveryDate == DateOnly.FromDateTime(deliveryDate.Value.ToDateTime(TimeOnly.MinValue)));
-
-            query = query.OrderBy(o => o.CreatedDate);
 
             return await query.ToListAsync();
         }

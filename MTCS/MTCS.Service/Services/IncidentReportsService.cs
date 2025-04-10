@@ -68,7 +68,7 @@ namespace MTCS.Service.Services
                 var incidents = await _unitOfWork.IncidentReportsRepository.GetAllIncidentReport(driverId, tripId, reportId);
                 if (incidents == null || !incidents.Any())
                 {
-                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new List<IncidentReport>());
+                    return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, new List<IncidentReport>());
                 }
                 return new BusinessResult(Const.SUCCESS_READ_CODE, Const.SUCCESS_READ_MSG, incidents);
             }
