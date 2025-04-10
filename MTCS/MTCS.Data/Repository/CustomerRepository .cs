@@ -23,6 +23,7 @@ namespace MTCS.Data.Repository
             var query = _context.Customers.Include(i => i.Contracts)
                                           .ThenInclude(f => f.ContractFiles)
                                           .Include(i => i.Orders)
+                                          .OrderByDescending(i => i.CreatedDate)
                                           .AsNoTracking()
                                           .AsQueryable();
 
