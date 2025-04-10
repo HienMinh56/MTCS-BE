@@ -389,7 +389,7 @@ namespace MTCS.Service.Services
                 await _unitOfWork.TripRepository.CreateAsync(trip);
 
                 // Cập nhật trạng thái đơn hàng
-                order.Status = "scheduled";
+                order.Status = "Scheduled";
                 await _unitOfWork.OrderRepository.UpdateAsync(order);
 
                 // Cập nhật thời gian làm việc ngày
