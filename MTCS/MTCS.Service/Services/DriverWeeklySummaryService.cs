@@ -33,12 +33,12 @@ namespace MTCS.Service.Services
             var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
                 .GetByDriverIdAndWeekAsync(driverId, weekStart, weekEnd);
 
-            if (weeklyRecord == null || weeklyRecord.TotalHours == null)
+            if (weeklyRecord == null || weeklyRecord.TotalHours == 0)
                 return new BusinessResult(Const.SUCCESS_READ_CODE, "Không có dữ liệu tuần này", "0 giờ 0 phút");
 
-            var totalTime = weeklyRecord.TotalHours.Value;
-            var hours = totalTime.Hour;
-            var minutes = totalTime.Minute;
+            int totalMinutes = weeklyRecord.TotalHours ?? 0;
+            int hours = totalMinutes / 60;
+            int minutes = totalMinutes % 60;
 
             var data = $"{hours} giờ {minutes} phút";
 

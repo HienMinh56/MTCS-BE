@@ -277,7 +277,7 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        #region Creat Trip manual
+        #region Create Trip Manual
         public async Task<BusinessResult> CreateTripAsync(CreateTripRequestModel tripRequestModel, ClaimsPrincipal claims)
         {
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
@@ -287,7 +287,6 @@ namespace MTCS.Service.Services
             if (order == null)
                 throw new Exception("Không tìm thấy đơn hàng!");
 
-            // Kiểm tra DeliveryDate
             if (!order.DeliveryDate.HasValue)
                 throw new Exception("Đơn hàng không có ngày giao hàng (DeliveryDate)!");
 
@@ -308,7 +307,7 @@ namespace MTCS.Service.Services
             if (driver == null || (driver.Status != 1 && driver.Status != 2))
                 throw new Exception("Tài xế không khả dụng!");
 
-            // Tính toán trọng lượng
+            // Tính trọng lượng container (kg)
             double containerWeight = 0;
             int? configId = order.ContainerType switch
             {
@@ -326,7 +325,7 @@ namespace MTCS.Service.Services
                     throw new Exception("Không tìm thấy dữ liệu trọng lượng container!");
             }
 
-            double totalWeight = (double)(order.Weight ?? 0) + (containerWeight / 1000);
+            double totalWeight = (double)(order.Weight ?? 0) + (containerWeight / 1000.0);
 
             if ((double)(trailer.MaxLoadWeight ?? 0) < totalWeight)
                 throw new Exception("Tải trọng của rơ-moóc không đủ!");
@@ -334,24 +333,24 @@ namespace MTCS.Service.Services
             if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
                 throw new Exception("Tải trọng vượt quá khả năng kéo của đầu kéo!");
 
-            // Tính thời gian hoàn thành đơn
+            // Tính thời gian hoàn thành đơn hàng (phút)
             var completionTimeSpan = order.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
             int completionMinutes = (int)completionTimeSpan.TotalMinutes;
 
-            // Lấy cấu hình giới hạn thời gian
+            // Lấy cấu hình thời gian giới hạn ngày & tuần
             var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
             var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
 
             if (dailyLimitConfig == null || weeklyLimitConfig == null)
-                throw new Exception("Không tìm thấy cấu hình giới hạn thời gian làm việc!");
+                throw new Exception("Không tìm thấy cấu hình giới hạn thời gian!");
 
             if (!int.TryParse(dailyLimitConfig.ConfigValue, out int dailyHourLimit))
-                throw new Exception("Giá trị cấu hình giới hạn ngày không hợp lệ!");
+                throw new Exception("Cấu hình giới hạn thời gian ngày không hợp lệ!");
 
             if (!int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
-                throw new Exception("Giá trị cấu hình giới hạn tuần không hợp lệ!");
+                throw new Exception("Cấu hình giới hạn thời gian tuần không hợp lệ!");
 
-            // Check thời gian làm việc theo ngày
+            // Kiểm tra giới hạn theo ngày
             var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
                 .GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
 
@@ -359,18 +358,19 @@ namespace MTCS.Service.Services
             if (totalDailyTime > dailyHourLimit * 60)
                 throw new Exception($"Tài xế đã vượt quá thời gian làm việc trong ngày ({dailyHourLimit} giờ)!");
 
-            // Check thời gian làm việc theo tuần
-            var weekStart = deliveryDate.AddDays(-(int)deliveryDate.DayOfWeek);
+            // Tính tuần: từ chủ nhật -> thứ bảy
+            var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+            var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
             var weekEnd = weekStart.AddDays(6);
 
             var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
                 .GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
 
-            var totalWeeklyTimeSpan = (weeklyRecord?.TotalHours?.ToTimeSpan() ?? TimeSpan.Zero) + completionTimeSpan;
-            if (totalWeeklyTimeSpan.TotalMinutes > weeklyHourLimit * 60)
+            int totalWeeklyTime = (weeklyRecord?.TotalHours ?? 0) + completionMinutes;
+            if (totalWeeklyTime > weeklyHourLimit * 60)
                 throw new Exception($"Tài xế đã vượt quá thời gian làm việc trong tuần ({weeklyHourLimit} giờ)!");
 
-            // Tạo trip
+            // Tạo Trip
             var trip = new Trip
             {
                 TripId = Guid.NewGuid().ToString(),
@@ -418,8 +418,7 @@ namespace MTCS.Service.Services
                 // Cập nhật thời gian làm việc tuần
                 if (weeklyRecord != null)
                 {
-                    var updatedWeeklyTime = (weeklyRecord.TotalHours?.ToTimeSpan() ?? TimeSpan.Zero) + completionTimeSpan;
-                    weeklyRecord.TotalHours = TimeOnly.FromTimeSpan(updatedWeeklyTime);
+                    weeklyRecord.TotalHours = (weeklyRecord.TotalHours ?? 0) + completionMinutes;
                     await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
                 }
                 else
@@ -430,7 +429,7 @@ namespace MTCS.Service.Services
                         DriverId = driver.DriverId,
                         WeekStart = weekStart,
                         WeekEnd = weekEnd,
-                        TotalHours = TimeOnly.FromTimeSpan(completionTimeSpan)
+                        TotalHours = completionMinutes,
                     };
                     await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
                 }
@@ -443,7 +442,6 @@ namespace MTCS.Service.Services
                 return new BusinessResult(-1, $"Lỗi khi tạo trip: {errorMessage}");
             }
         }
-
         #endregion
     }
 }
