@@ -15,7 +15,7 @@ public partial class DriverWeeklySummary
 
     public DateOnly? WeekEnd { get; set; }
 
-    public TimeOnly? TotalHours { get; set; }
+    public int? TotalHours { get; set; }
 
     public virtual Driver Driver { get; set; }
 }
