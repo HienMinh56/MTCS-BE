@@ -1,4 +1,5 @@
 ﻿using DotNetEnv;
+using Google.Api;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 using Google.Cloud.Firestore.V1;
@@ -19,6 +20,7 @@ using MTCS.Service.Services;
 using OfficeOpenXml;
 using System.Security.Claims;
 using System.Text;
+using static MTCS.Service.Services.DriverWeeklySummaryService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +49,8 @@ builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddSingleton<IFCMService, FCMService>();
 builder.Services.AddScoped<ISystemConfigurationServices, SystemConfigurationServices>();
+builder.Services.AddScoped<IDriverDailyWorkingTimeService, DriverDailyWorkingTimeService>();
+builder.Services.AddScoped<IDriverWeeklySummaryService, DriverWeeklySummaryService>();
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json")));
 
