@@ -25,5 +25,7 @@ namespace MTCS.Data.Repository
             return await _context.DriverWeeklySummaries
                 .FirstOrDefaultAsync(x => x.DriverId == driverId && x.WeekStart == weekStart && x.WeekEnd == weekEnd);
         }
+
+
     }
 }
