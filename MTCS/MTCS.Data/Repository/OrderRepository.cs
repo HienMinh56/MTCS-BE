@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.Models;
+using MTCS.Data.Response;
 
 namespace MTCS.Data.Repository
 {
@@ -20,7 +21,7 @@ namespace MTCS.Data.Repository
             return $"TRAK_{timestamp}_{randomNumber}";
         }
 
-        public async Task<List<Order>> GetOrdersByFiltersAsync(
+        public async Task<List<OrderData>> GetOrdersByFiltersAsync(
         string? orderId = null,
         string? tripId = null,
         string? customerId = null,
@@ -32,6 +33,7 @@ namespace MTCS.Data.Repository
         DateOnly? deliveryDate = null)
         {
             var query = _context.Orders.Include(o => o.OrderFiles)
+                                       .Include(o => o.Customer)
                                        .OrderByDescending(i => i.CreatedDate)
                                        .AsNoTracking()
                                        .AsQueryable();
@@ -63,7 +65,41 @@ namespace MTCS.Data.Repository
             if (deliveryDate.HasValue)
                 query = query.Where(o => o.DeliveryDate == DateOnly.FromDateTime(deliveryDate.Value.ToDateTime(TimeOnly.MinValue)));
 
-            return await query.ToListAsync();
+            var orders = await query.ToListAsync();
+
+            // Map the IncidentReport entities to IncidentReportsData objects
+            return orders.Select(o => new OrderData
+            {
+                OrderId = o.OrderId,
+                TrackingCode = o.TrackingCode,
+                CustomerId = o.CustomerId,
+                CompanyName = o.Customer?.CompanyName,
+                Temperature = o.Temperature,
+                Weight = o.Weight,
+                PickUpDate = o.PickUpDate,
+                DeliveryDate = o.DeliveryDate,
+                Status = o.Status,
+                Note = o.Note,
+                CreatedDate = o.CreatedDate,
+                CreatedBy = o.CreatedBy,
+                ModifiedDate = o.ModifiedDate,
+                ModifiedBy = o.ModifiedBy,
+                ContainerType = o.ContainerType,
+                PickUpLocation = o.PickUpLocation,
+                DeliveryLocation = o.DeliveryLocation,
+                ConReturnLocation = o.ConReturnLocation,
+                DeliveryType = o.DeliveryType,
+                Price = o.Price,
+                ContainerNumber = o.ContainerNumber,
+                ContactPerson = o.ContactPerson,
+                ContactPhone = o.ContactPhone,
+                OrderPlacer = o.OrderPlacer,
+                Distance = o.Distance,
+                ContainerSize = o.ContainerSize,
+                IsPay = o.IsPay,
+                CompletionTime = o.CompletionTime,
+                OrderFiles = o.OrderFiles,
+            }).ToList();
         }
 
         public async Task<List<Order>> GetAllOrdersAsync()
