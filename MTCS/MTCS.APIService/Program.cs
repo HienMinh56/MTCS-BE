@@ -15,6 +15,7 @@ using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Service;
+using MTCS.Service.Handler;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using OfficeOpenXml;
@@ -51,6 +52,7 @@ builder.Services.AddSingleton<IFCMService, FCMService>();
 builder.Services.AddScoped<ISystemConfigurationServices, SystemConfigurationServices>();
 builder.Services.AddScoped<IDriverDailyWorkingTimeService, DriverDailyWorkingTimeService>();
 builder.Services.AddScoped<IDriverWeeklySummaryService, DriverWeeklySummaryService>();
+builder.Services.AddSingleton<WebSocketHandler>();
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\driverapp-3845f-firebase-adminsdk-fbsvc-19a996d823.json")));
 
@@ -202,7 +204,27 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("AllowSpecificOrigin");
+app.UseWebSockets();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/ws")
+    {
+        if (context.WebSockets.IsWebSocketRequest)
+        {
+            var socket = await context.WebSockets.AcceptWebSocketAsync();
+            await WebSocketHandler.Handle(context, socket);
+        }
+        else
+        {
+            context.Response.StatusCode = 400;
+        }
+    }
+    else
+    {
+        await next();
+    }
+});
 
 app.UseRouting();
 app.UseHttpsRedirection();
