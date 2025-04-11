@@ -8,10 +8,9 @@ namespace MTCS.APIService.Controllers
     [ApiController]
     public class LocationController : ControllerBase
     {
-        private readonly WebSocketHandler _webSocketHandler;
-        public LocationController(WebSocketHandler webSocketHandler)
+        public LocationController()
         {
-            _webSocketHandler = webSocketHandler;
+            
         }
         [HttpGet("location/{userId}")]
         public IActionResult GetLocation(string userId)
