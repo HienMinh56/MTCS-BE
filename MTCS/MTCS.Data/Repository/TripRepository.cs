@@ -18,6 +18,7 @@ namespace MTCS.Data.Repository
                                       .Include(t => t.Order)
                                       .Include(i => i.IncidentReports)
                                       .Include(t => t.FuelReports)
+                                      .ThenInclude(t => t.FuelReportFiles)
                                       .Include(t => t.DeliveryReports)
                                       .Include(t => t.InspectionLogs)
                                       .AsQueryable();
