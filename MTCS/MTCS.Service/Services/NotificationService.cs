@@ -34,11 +34,6 @@ namespace MTCS.Service.Services
 
         public async Task<BusinessResult> SendNotificationAsync(string userId, string title, string body, string userName)
         {
-            var userExisted = _unitOfWork.DriverRepository.Get(d => d.DriverId == userId);
-            if (userExisted == null)
-            {
-                return new BusinessResult(404, "Cannot find user");
-            }
 
             var userDoc = await _firestoreDb.Collection("users").Document(userId).GetSnapshotAsync();
             if (!userDoc.Exists || !userDoc.ContainsField("fcmToken"))

@@ -93,8 +93,10 @@ namespace MTCS.Service.Services
                 {
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
+                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
                     await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _notificationService.SendNotificationAsync(order.CreatedBy, "Trip Status Update", $"Your trip status has been updated to {newStatus.StatusName} by {driver.FullName} at {trip.EndTime}", driver.FullName);
                 }
 
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
@@ -108,8 +110,8 @@ namespace MTCS.Service.Services
                 });
 
                 await _unitOfWork.CommitTransactionAsync();
-                var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
-                await _notificationService.SendNotificationAsync(order.CreatedBy, "Trip Status Update", $"Your trip status has been updated to {newStatus.StatusName}", driver.FullName);
+
+
                 return new BusinessResult(200, "Update Trip Success");
             }
             catch
