@@ -43,6 +43,7 @@ builder.Services.AddScoped<IDeliveryReportService, DeliveryReportService>();
 builder.Services.AddScoped<IDeliveryStatusService, DeliveryStatusService>();
 builder.Services.AddScoped<IPriceTableService, PriceTableService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 
 builder.Services.AddScoped<INotificationService, NotificationService>();

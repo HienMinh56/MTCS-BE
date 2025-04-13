@@ -24,4 +24,12 @@
         Active = 1,
         OnDuty = 2,
     }
+
+    public enum RevenuePeriodType
+    {
+        Weekly,
+        Monthly,
+        Yearly,
+        Custom
+    }
 }

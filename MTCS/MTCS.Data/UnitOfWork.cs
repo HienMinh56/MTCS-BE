@@ -33,6 +33,7 @@ namespace MTCS.Data
         private DeliveryStatusRepository deliveryStatusRepository;
         private TripStatusHistoryRepository tripStatusHistoryRepository;
         private PriceTableRepository priceTableRepository;
+        private FinancialRepository financialRepository;
         private VehicleHelper vehicleHelper;
         private ContactHelper contactHelper; 
         private SystemConfigurationRepository systemConfigurationRepository;
@@ -222,6 +223,14 @@ namespace MTCS.Data
             get
             {
                 return priceTableRepository ??= new PriceTableRepository();
+            }
+        }
+
+        public FinancialRepository FinancialRepository
+        {
+            get
+            {
+                return financialRepository ??= new FinancialRepository();
             }
         }
 
