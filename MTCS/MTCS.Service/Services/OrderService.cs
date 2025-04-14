@@ -1,4 +1,5 @@
-﻿using Google.Rpc;
+﻿using Google.Api;
+using Google.Rpc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -70,7 +71,7 @@ namespace MTCS.Service.Services
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-               
+
 
                 if (string.IsNullOrEmpty(orderRequest.CompanyName))
                 {
@@ -121,10 +122,10 @@ namespace MTCS.Service.Services
                     Note = orderRequest.Note,
                     Price = orderRequest.Price,
                     Status = "Pending",
-                    OrderPlacer = orderRequest.OrderPlace, 
+                    OrderPlacer = orderRequest.OrderPlace,
                     ContainerType = orderRequest.ContainerType,
                     ContainerSize = orderRequest.ContainerSize,
-                    DeliveryType = orderRequest.DeliveryType, 
+                    DeliveryType = orderRequest.DeliveryType,
                     CreatedDate = DateTime.Now,
                     CreatedBy = userId,
                     IsPay = 0,
@@ -225,14 +226,14 @@ namespace MTCS.Service.Services
                     return new BusinessResult(Const.FAIL_UPDATE_CODE, "Chỉ có thể cập nhật đơn hàng khi ở trạng thái Pending.");
                 }
 
-                order.Temperature = model.Temperature ?? order.Temperature;  
-                order.Note = model.Note ?? order.Note;  
-                order.Price = model.Price ?? order.Price; 
+                order.Temperature = model.Temperature ?? order.Temperature;
+                order.Note = model.Note ?? order.Note;
+                order.Price = model.Price ?? order.Price;
                 order.ModifiedDate = DateTime.Now;
                 order.ModifiedBy = userName;
-                order.ContactPerson = model.ContactPerson ?? order.ContactPerson; 
-                order.ContainerNumber = model.ContainerNumber ?? order.ContainerNumber;  
-                order.ContactPhone = model.ContactPhone ?? order.ContactPhone; 
+                order.ContactPerson = model.ContactPerson ?? order.ContactPerson;
+                order.ContainerNumber = model.ContainerNumber ?? order.ContainerNumber;
+                order.ContactPhone = model.ContactPhone ?? order.ContactPhone;
                 order.OrderPlacer = model.OrderPlacer ?? order.OrderPlacer;
                 order.IsPay = model.IsPay ?? order.IsPay;
 
@@ -359,7 +360,7 @@ namespace MTCS.Service.Services
                     worksheet.Cells[1, 6].Value = "Ghi Chú";
                     worksheet.Cells[1, 7].Value = "Số Cont";
                     worksheet.Cells[1, 8].Value = "Kích thước cont";
-                    worksheet.Cells[1, 9].Value = "Loại cont";                   
+                    worksheet.Cells[1, 9].Value = "Loại cont";
                     worksheet.Cells[1, 10].Value = "Địa chỉ Lấy Cont";
                     worksheet.Cells[1, 11].Value = "Địa  chỉ giao";
                     worksheet.Cells[1, 12].Value = "Địa chỉ trả cont";
@@ -374,40 +375,48 @@ namespace MTCS.Service.Services
                     int row = 2;
                     foreach (var order in orders)
                     {
-
                         var customer = order.Customer;
-                        var driver = order.Trips.FirstOrDefault()?.Driver;
-                        var tractor = order.Trips.FirstOrDefault()?.Tractor;
-                        var trailer = order.Trips.FirstOrDefault()?.Trailer;
-                        var priceCell = worksheet.Cells[row, 13];
+                        var trip = order.Trips.FirstOrDefault();
+
+                        var driver = trip?.Driver;
+                        var tractor = trip?.Tractor;
+                        var trailer = trip?.Trailer;
+
                         var staff = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(order.CreatedBy);
-                        if (staff != null)
+                        if (staff == null)
                         {
-                            string fullName = staff.FullName;
+                            throw new Exception($"Không tìm thấy người tạo đơn hàng với ID: {order.CreatedBy}");
                         }
-                        else
-                        {
-                            throw new Exception("Không tìm thấy người tạo đơn hàng!");
-                        }
-                        worksheet.Cells[row, 1, row, 13].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+
+                        // Format chung cho dòng
+                        worksheet.Cells[row, 1, row, 18].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+
+                        // Gán giá trị
                         worksheet.Cells[row, 1].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
                         worksheet.Cells[row, 2].Value = order.TrackingCode;
-                        worksheet.Cells[row, 3].Value = customer.CompanyName;
+                        worksheet.Cells[row, 3].Value = customer?.CompanyName ?? "";
                         worksheet.Cells[row, 4].Value = order.Weight;
                         worksheet.Cells[row, 5].Value = order.DeliveryType == 1 ? "N" : order.DeliveryType == 2 ? "X" : "";
                         worksheet.Cells[row, 6].Value = order.Note;
                         worksheet.Cells[row, 7].Value = order.ContainerNumber;
-                        worksheet.Cells[row, 8].Value = order.ContainerSize +"f";
-                        worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.DeliveryType == 2 ? "RE" : ""; //DC - Dry container, RE (Reefer)
+                        worksheet.Cells[row, 8].Value = $"{order.ContainerSize}f";
+
+                        // Loại cont: 1 = DC, 2 = RE
+                        worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.ContainerType == 2 ? "RE" : "";
+
                         worksheet.Cells[row, 10].Value = order.PickUpLocation;
                         worksheet.Cells[row, 11].Value = order.DeliveryLocation;
                         worksheet.Cells[row, 12].Value = order.ConReturnLocation;
+
+                        var priceCell = worksheet.Cells[row, 13];
                         priceCell.Value = order.Price;
                         priceCell.Style.Numberformat.Format = "#,##0";
+
                         worksheet.Cells[row, 14].Value = order.IsPay == 0 ? "Chưa thanh toán" : order.IsPay == 1 ? "Đã thanh toán" : "";
-                        worksheet.Cells[row, 15].Value = driver.FullName;
-                        worksheet.Cells[row, 16].Value = tractor.LicensePlate;
-                        worksheet.Cells[row, 17].Value = trailer.LicensePlate;
+
+                        worksheet.Cells[row, 15].Value = driver?.FullName ?? "";
+                        worksheet.Cells[row, 16].Value = tractor?.LicensePlate ?? "";
+                        worksheet.Cells[row, 17].Value = trailer?.LicensePlate ?? "";
                         worksheet.Cells[row, 18].Value = staff.FullName;
 
                         row++;
@@ -415,10 +424,11 @@ namespace MTCS.Service.Services
 
                     worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
 
-                    var stream = new MemoryStream();
-                    await package.SaveAsAsync(stream);
-
-                    return stream.ToArray();
+                    using (var stream = new MemoryStream())
+                    {
+                        await package.SaveAsAsync(stream);
+                        return stream.ToArray();
+                    }
                 }
             }
             catch (Exception ex)
@@ -429,14 +439,26 @@ namespace MTCS.Service.Services
 
         public async Task<IEnumerable<Order>> GetAllOrders()
         {
-            
+
             var orders = await _unitOfWork.OrderRepository.GetAllOrdersAsync();
             return orders.ToList();
         }
 
         public async Task<byte[]> ExportOrdersToExcelAsync(DateOnly fromDate, DateOnly toDate)
         {
-            var orders = await _unitOfWork.OrderRepository.GetOrdersByDateRangeAsync(fromDate, toDate);
+            var fromDateTime = fromDate.ToDateTime(TimeOnly.MinValue);
+            var toDateTime = toDate.ToDateTime(TimeOnly.MaxValue);
+
+            var orders = await _unitOfWork.OrderRepository.GetQueryable()
+                 .Where(o => o.DeliveryDate.HasValue &&
+                 o.DeliveryDate.Value >= fromDate &&
+                 o.DeliveryDate.Value <= toDate)
+                 .Include(o => o.Customer)
+                 .Include(o => o.Trips).ThenInclude(t => t.Driver)
+                 .Include(o => o.Trips).ThenInclude(t => t.Tractor)
+                 .Include(o => o.Trips).ThenInclude(t => t.Trailer)
+                 .ToListAsync();
+
             return await ExportOrdersToExcelInternal(orders);
         }
 
@@ -526,5 +548,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
             }
         }
+
+
     }
 }

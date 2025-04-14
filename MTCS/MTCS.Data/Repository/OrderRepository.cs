@@ -136,6 +136,11 @@ namespace MTCS.Data.Repository
                         .ThenInclude(h => h.Status)
                 .FirstOrDefaultAsync(o => o.TrackingCode == trackingCode);
         }
-      
+
+        public IQueryable<Order> GetQueryable()
+        {
+            return _context.Orders.AsQueryable();
+        }
+
     }
 }

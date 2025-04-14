@@ -62,7 +62,6 @@ namespace MTCS.APIService.Controllers
         {
             try
             {
-                // Parsing dates from DD/MM/YYYY format
                 if (!DateOnly.TryParseExact(fromDateStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateOnly fromDate))
                 {
                     return BadRequest("Định dạng ngày 'fromDate' không hợp lệ. Vui lòng sử dụng định dạng DD/MM/YYYY.");
@@ -72,9 +71,8 @@ namespace MTCS.APIService.Controllers
                 {
                     return BadRequest("Định dạng ngày 'toDate' không hợp lệ. Vui lòng sử dụng định dạng DD/MM/YYYY.");
                 }
-
                 var fileContent = await _orderService.ExportOrdersToExcelAsync(fromDate, toDate);
-                var fileName = $"Danh sach don hang_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.xlsx";
+                var fileName = $"Danh_sach_don_hang_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.xlsx";
 
                 return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
             }
