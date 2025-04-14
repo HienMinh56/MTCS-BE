@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.Models;
+using MTCS.Data.Response;
 
 namespace MTCS.Data.Repository
 {
@@ -11,11 +12,13 @@ namespace MTCS.Data.Repository
         public TripRepository(MTCSContext context) : base(context) { }
 
 
-        public async Task<IEnumerable<Trip>> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId, string? trackingCode, string? tractorlicensePlate, string? trailerlicensePlate)
+        public async Task<IEnumerable<TripData>> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId, string? trackingCode, string? tractorlicensePlate, string? trailerlicensePlate)
         {
             var query = _context.Trips.Include(t => t.TripStatusHistories)
+                                      .Include(t => t.Order)
                                       .Include(i => i.IncidentReports)
                                       .Include(t => t.FuelReports)
+                                      .ThenInclude(t => t.FuelReportFiles)
                                       .Include(t => t.DeliveryReports)
                                       .Include(t => t.InspectionLogs)
                                       .AsQueryable();
@@ -60,7 +63,31 @@ namespace MTCS.Data.Repository
             {
                 query = query.Where(t => t.Trailer.LicensePlate == trailerlicensePlate);
             }
-            return await query.ToListAsync();
+
+            var trips = await query.ToListAsync();
+
+            // Map the IncidentReport entities to IncidentReportsData objects
+            return trips.Select(t => new TripData
+            {
+                TripId = t.TripId,
+                OrderId = t.OrderId,
+                TrackingCode = t.Order?.TrackingCode,
+                DriverId = t.DriverId,
+                TractorId = t.TractorId,
+                TrailerId = t.TrailerId,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                Status = t.Status,
+                MatchType = t.MatchType,
+                MatchBy = t.MatchBy,
+                MatchTime = t.MatchTime,
+                Driver = t.Driver,
+                DeliveryReports = t.DeliveryReports,
+                FuelReports = t.FuelReports,
+                IncidentReports = t.IncidentReports,
+                InspectionLogs = t.InspectionLogs,
+                TripStatusHistories = t.TripStatusHistories
+            }).ToList();
         }
 
         public async Task<(bool IsInUse, List<Trip> ActiveTrips)> IsTractorInUseStatusNow(string tractorId)

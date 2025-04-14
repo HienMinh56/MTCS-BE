@@ -309,6 +309,16 @@ namespace MTCS.Service.Services
             if (driver == null || (driver.Status != 1 && driver.Status != 2))
                 throw new Exception("Tài xế không khả dụng!");
 
+            // Kiểm tra ContainerType của Order và Tractor
+            if (order.ContainerType == 2) // Order lạnh
+            {
+                // Tractor phải là lạnh (2)
+                if (tractor.ContainerType != 2)
+                {
+                    throw new Exception("Tractor không phù hợp với loại container lạnh của đơn hàng!");
+                }
+            }        
+
             // Tính trọng lượng container (kg)
             double containerWeight = 0;
             int? configId = order.ContainerType switch
