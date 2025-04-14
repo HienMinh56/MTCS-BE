@@ -352,6 +352,7 @@ namespace MTCS.Service.Services
                 {
                     var worksheet = package.Workbook.Worksheets.Add("Orders");
 
+                    // Các header cột Excel
                     worksheet.Cells[1, 1].Value = "Ngày";
                     worksheet.Cells[1, 2].Value = "Mã đơn hàng";
                     worksheet.Cells[1, 3].Value = "Khách Hàng";
@@ -371,64 +372,63 @@ namespace MTCS.Service.Services
                     worksheet.Cells[1, 17].Value = "Biển số Rơ-mooc";
                     worksheet.Cells[1, 18].Value = "Nhân viên bán hàng";
 
-
                     int row = 2;
                     foreach (var order in orders)
                     {
-                        var customer = order.Customer;
-                        var trip = order.Trips.FirstOrDefault();
+                        // Kiểm tra nếu order có status "complete"
+                        if (order.Status != "Completed")
+                            continue;
 
-                        var driver = trip?.Driver;
-                        var tractor = trip?.Tractor;
-                        var trailer = trip?.Trailer;
+                        var customer = order.Customer;
+                        var trips = order.Trips.Where(t => t.Status == "completed");
+                        if (!trips.Any())
+                            continue;
 
                         var staff = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(order.CreatedBy);
+
                         if (staff == null)
                         {
-                            throw new Exception($"Không tìm thấy người tạo đơn hàng với ID: {order.CreatedBy}");
+                            throw new Exception("Không tìm thấy người tạo đơn hàng!");
                         }
 
-                        // Format chung cho dòng
-                        worksheet.Cells[row, 1, row, 18].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                        foreach (var trip in trips)
+                        {
+                            var driver = trip.Driver;
+                            var tractor = trip.Tractor;
+                            var trailer = trip.Trailer;
 
-                        // Gán giá trị
-                        worksheet.Cells[row, 1].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
-                        worksheet.Cells[row, 2].Value = order.TrackingCode;
-                        worksheet.Cells[row, 3].Value = customer?.CompanyName ?? "";
-                        worksheet.Cells[row, 4].Value = order.Weight;
-                        worksheet.Cells[row, 5].Value = order.DeliveryType == 1 ? "N" : order.DeliveryType == 2 ? "X" : "";
-                        worksheet.Cells[row, 6].Value = order.Note;
-                        worksheet.Cells[row, 7].Value = order.ContainerNumber;
-                        worksheet.Cells[row, 8].Value = $"{order.ContainerSize}f";
 
-                        // Loại cont: 1 = DC, 2 = RE
-                        worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.ContainerType == 2 ? "RE" : "";
+                            worksheet.Cells[row, 1, row, 13].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
+                            worksheet.Cells[row, 1].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
+                            worksheet.Cells[row, 2].Value = order.TrackingCode;
+                            worksheet.Cells[row, 3].Value = customer.CompanyName;
+                            worksheet.Cells[row, 4].Value = order.Weight;
+                            worksheet.Cells[row, 5].Value = order.DeliveryType == 1 ? "N" : order.DeliveryType == 2 ? "X" : "";
+                            worksheet.Cells[row, 6].Value = order.Note;
+                            worksheet.Cells[row, 7].Value = order.ContainerNumber;
+                            worksheet.Cells[row, 8].Value = order.ContainerSize + "f";
+                            worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.DeliveryType == 2 ? "RE" : ""; 
+                            worksheet.Cells[row, 10].Value = order.PickUpLocation;
+                            worksheet.Cells[row, 11].Value = order.DeliveryLocation;
+                            worksheet.Cells[row, 12].Value = order.ConReturnLocation;
+                            worksheet.Cells[row, 13].Value = order.Price;
+                            worksheet.Cells[row, 13].Style.Numberformat.Format = "#,##0";
+                            worksheet.Cells[row, 14].Value = order.IsPay == 0 ? "Chưa thanh toán" : order.IsPay == 1 ? "Đã thanh toán" : "";
+                            worksheet.Cells[row, 15].Value = driver?.FullName ?? ""; 
+                            worksheet.Cells[row, 16].Value = tractor?.LicensePlate ?? "";
+                            worksheet.Cells[row, 17].Value = trailer?.LicensePlate ?? "";
+                            worksheet.Cells[row, 18].Value = staff.FullName;
 
-                        worksheet.Cells[row, 10].Value = order.PickUpLocation;
-                        worksheet.Cells[row, 11].Value = order.DeliveryLocation;
-                        worksheet.Cells[row, 12].Value = order.ConReturnLocation;
-
-                        var priceCell = worksheet.Cells[row, 13];
-                        priceCell.Value = order.Price;
-                        priceCell.Style.Numberformat.Format = "#,##0";
-
-                        worksheet.Cells[row, 14].Value = order.IsPay == 0 ? "Chưa thanh toán" : order.IsPay == 1 ? "Đã thanh toán" : "";
-
-                        worksheet.Cells[row, 15].Value = driver?.FullName ?? "";
-                        worksheet.Cells[row, 16].Value = tractor?.LicensePlate ?? "";
-                        worksheet.Cells[row, 17].Value = trailer?.LicensePlate ?? "";
-                        worksheet.Cells[row, 18].Value = staff.FullName;
-
-                        row++;
+                            row++;
+                        }
                     }
 
                     worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
 
-                    using (var stream = new MemoryStream())
-                    {
-                        await package.SaveAsAsync(stream);
-                        return stream.ToArray();
-                    }
+                    var stream = new MemoryStream();
+                    await package.SaveAsAsync(stream);
+
+                    return stream.ToArray();
                 }
             }
             catch (Exception ex)
