@@ -456,7 +456,7 @@ namespace MTCS.Service.Services
                 Status = order.Status,
                 PickUpLocation = order.PickUpLocation,
                 DeliveryLocation = order.DeliveryLocation,
-                Trips = order.Trips.Select(t => new TripDto
+                Trips = order.Trips.Where(t => t.Status != "canceled").Select(t => new TripDto
                 {
                     TripId = t.TripId,
                     OrderId = t.OrderId,
