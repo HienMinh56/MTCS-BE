@@ -175,22 +175,18 @@ namespace MTCS.Service.Services
             }
 
             var result = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(reportId);
-            var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(request.TripId);
+            var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+            var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
             var owner = order.CreatedBy;
-            if (result is null)
-            {
-                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, new IncidentReport());
-            }
-
             if (result is not null)
             {
-                // Gửi thông báo sau khi tạo thành công
-                await _notification.SendNotificationAsync(owner, "Incident Report Created", $"New Incident Report Created from {result.ReportedBy}.", result.ReportedBy);
-                return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
+                // Gửi thông báo sau khi cập nhật thành công
+                await _notification.SendNotificationAsync(owner, "Incident Report Created", $"Incident report Created for {existingTrip.TripId} by {result.ReportedBy}.", result.ReportedBy);
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, result);
             }
             else
             {
-                return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, result);
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, result);
             }
         }
         #endregion
@@ -528,10 +524,20 @@ namespace MTCS.Service.Services
                     }
 
                     var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+                    var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
+                    var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
+                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                    var owner = order.CreatedBy;
                     if (result > 0)
-                        return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, incident);
+                    {
+                        // Gửi thông báo sau khi cập nhật thành công
+                        await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"Incident report Updated for {existingTrip.TripId} by {data.ReportedBy}.", data.ReportedBy);
+                        return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
+                    }
                     else
-                        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
+                    {
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
+                    }
                 }
             }
             catch (Exception ex)
@@ -609,12 +615,13 @@ namespace MTCS.Service.Services
 
                 var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                 var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
                 var owner = order.CreatedBy;
                 if (result > 0)
                 {
                     // Gửi thông báo sau khi cập nhật thành công
-                    await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
+                    await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"Incident report Updated for {trip.TripId} by {data.ReportedBy}.", data.ReportedBy);
                     return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
                 }
                 else
