@@ -312,8 +312,8 @@ namespace MTCS.Service.Services
             // Kiểm tra ContainerType của Order và Tractor
             if (order.ContainerType == 2) // Order lạnh
             {
-                // Tractor phải là lạnh (1)
-                if (tractor.ContainerType != 1)
+                // Tractor phải là lạnh (2)
+                if (tractor.ContainerType != 2)
                 {
                     throw new Exception("Tractor không phù hợp với loại container lạnh của đơn hàng!");
                 }
