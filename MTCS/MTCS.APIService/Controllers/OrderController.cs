@@ -58,10 +58,21 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("export-excel")]
-        public async Task<IActionResult> ExportOrdersToExcel([FromQuery] DateOnly fromDate, [FromQuery] DateOnly toDate)
+        public async Task<IActionResult> ExportOrdersToExcel([FromQuery] string fromDateStr, [FromQuery] string toDateStr)
         {
             try
             {
+                // Parsing dates from DD/MM/YYYY format
+                if (!DateOnly.TryParseExact(fromDateStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateOnly fromDate))
+                {
+                    return BadRequest("Định dạng ngày 'fromDate' không hợp lệ. Vui lòng sử dụng định dạng DD/MM/YYYY.");
+                }
+
+                if (!DateOnly.TryParseExact(toDateStr, "dd/MM/yyyy", null, System.Globalization.DateTimeStyles.None, out DateOnly toDate))
+                {
+                    return BadRequest("Định dạng ngày 'toDate' không hợp lệ. Vui lòng sử dụng định dạng DD/MM/YYYY.");
+                }
+
                 var fileContent = await _orderService.ExportOrdersToExcelAsync(fromDate, toDate);
                 var fileName = $"Danh sach don hang_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.xlsx";
 
