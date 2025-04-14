@@ -15,22 +15,22 @@ namespace MTCS.Data.Repository
 
         public async Task<string> GetNextCodeAsync()
         {
-            string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            string randomNumber = new Random().Next(1000, 9999).ToString();
-
-            return $"TRAK_{timestamp}_{randomNumber}";
+            string shortGuid = Guid.NewGuid().ToString("N").Substring(0, 4); 
+            string timestamp = DateTime.Now.ToString("yyyyMMdd");
+            string randomSuffix = new Random().Next(1, 99).ToString(); 
+            return $"TRK{timestamp}{shortGuid}{randomSuffix}";
         }
 
         public async Task<List<OrderData>> GetOrdersByFiltersAsync(
-        string? orderId = null,
-        string? tripId = null,
-        string? customerId = null,
-        int? containerType = null,
-        string? containerNumber = null,
-        string? trackingCode = null,
-        string? status = null,
-        DateOnly? pickUpDate = null,
-        DateOnly? deliveryDate = null)
+            string? orderId = null,
+            string? tripId = null,
+            string? customerId = null,
+            int? containerType = null,
+            string? containerNumber = null,
+            string? trackingCode = null,
+            string? status = null,
+            DateOnly? pickUpDate = null,
+            DateOnly? deliveryDate = null)
         {
             var query = _context.Orders.Include(o => o.OrderFiles)
                                        .Include(o => o.Customer)
@@ -67,7 +67,12 @@ namespace MTCS.Data.Repository
 
             var orders = await query.ToListAsync();
 
-            // Map the IncidentReport entities to IncidentReportsData objects
+            var userIds = orders.Select(o => o.CreatedBy).Distinct().ToList();
+
+            var users = await _context.InternalUsers
+                                       .Where(u => userIds.Contains(u.UserId))
+                                       .ToListAsync();
+
             return orders.Select(o => new OrderData
             {
                 OrderId = o.OrderId,
@@ -81,7 +86,7 @@ namespace MTCS.Data.Repository
                 Status = o.Status,
                 Note = o.Note,
                 CreatedDate = o.CreatedDate,
-                CreatedBy = o.CreatedBy,
+                CreatedBy = users.FirstOrDefault(u => u.UserId == o.CreatedBy)?.FullName,
                 ModifiedDate = o.ModifiedDate,
                 ModifiedBy = o.ModifiedBy,
                 ContainerType = o.ContainerType,
@@ -102,6 +107,7 @@ namespace MTCS.Data.Repository
             }).ToList();
         }
 
+
         public async Task<List<Order>> GetAllOrdersAsync()
         {
             return await _context.Orders.Include(o => o.Customer).ToListAsync();
@@ -114,5 +120,22 @@ namespace MTCS.Data.Repository
                 .Where(o => o.DeliveryDate >= fromDate && o.DeliveryDate <= toDate)
                 .ToListAsync();
         }
+
+        public async Task<Order> GetByTrackingCodeAsync(string trackingCode)
+        {
+            return await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.Trips)
+                    .ThenInclude(t => t.Driver)
+                .Include(o => o.Trips)
+                    .ThenInclude(t => t.Tractor)
+                .Include(o => o.Trips)
+                    .ThenInclude(t => t.Trailer)
+                .Include(o => o.Trips)
+                    .ThenInclude(t => t.TripStatusHistories)
+                        .ThenInclude(h => h.Status)
+                .FirstOrDefaultAsync(o => o.TrackingCode == trackingCode);
+        }
+      
     }
 }
