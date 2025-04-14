@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
@@ -43,7 +44,9 @@ namespace MTCS.Service.Services
 
         Task<IEnumerable<Order>> GetAllOrders();
 
+        Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode);
 
+        Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims);
     }
 
     public class OrderService : IOrderService
@@ -361,14 +364,31 @@ namespace MTCS.Service.Services
                     worksheet.Cells[1, 11].Value = "Địa  chỉ giao";
                     worksheet.Cells[1, 12].Value = "Địa chỉ trả cont";
                     worksheet.Cells[1, 13].Value = "Cước vận chuyển";
+                    worksheet.Cells[1, 14].Value = "Tình trạng thanh toán";
+                    worksheet.Cells[1, 15].Value = "Tài xế";
+                    worksheet.Cells[1, 16].Value = "Biển số đầu kéo";
+                    worksheet.Cells[1, 17].Value = "Biển số Rơ-mooc";
+                    worksheet.Cells[1, 18].Value = "Nhân viên bán hàng";
 
-               
+
                     int row = 2;
                     foreach (var order in orders)
                     {
 
                         var customer = order.Customer;
+                        var driver = order.Trips.FirstOrDefault()?.Driver;
+                        var tractor = order.Trips.FirstOrDefault()?.Tractor;
+                        var trailer = order.Trips.FirstOrDefault()?.Trailer;
                         var priceCell = worksheet.Cells[row, 13];
+                        var staff = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(order.CreatedBy);
+                        if (staff != null)
+                        {
+                            string fullName = staff.FullName;
+                        }
+                        else
+                        {
+                            throw new Exception("Không tìm thấy người tạo đơn hàng!");
+                        }
                         worksheet.Cells[row, 1, row, 13].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
                         worksheet.Cells[row, 1].Value = order.DeliveryDate?.ToString("yyyy-MM-dd");
                         worksheet.Cells[row, 2].Value = order.TrackingCode;
@@ -384,6 +404,11 @@ namespace MTCS.Service.Services
                         worksheet.Cells[row, 12].Value = order.ConReturnLocation;
                         priceCell.Value = order.Price;
                         priceCell.Style.Numberformat.Format = "#,##0";
+                        worksheet.Cells[row, 14].Value = order.IsPay == 0 ? "Chưa thanh toán" : order.IsPay == 1 ? "Đã thanh toán" : "";
+                        worksheet.Cells[row, 15].Value = driver.FullName;
+                        worksheet.Cells[row, 16].Value = tractor.LicensePlate;
+                        worksheet.Cells[row, 17].Value = trailer.LicensePlate;
+                        worksheet.Cells[row, 18].Value = staff.FullName;
 
                         row++;
                     }
@@ -415,5 +440,91 @@ namespace MTCS.Service.Services
             return await ExportOrdersToExcelInternal(orders);
         }
 
+        #region Get order by tracking code for customer
+        public async Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode)
+        {
+            var order = await _unitOfWork.OrderRepository.GetByTrackingCodeAsync(trackingCode);
+            if (order == null) return null;
+
+            return new OrderDto
+            {
+                OrderId = order.OrderId,
+                TrackingCode = order.TrackingCode,
+                CustomerName = order.Customer?.CompanyName,
+                PickUpDate = order.PickUpDate,
+                DeliveryDate = order.DeliveryDate,
+                Status = order.Status,
+                PickUpLocation = order.PickUpLocation,
+                DeliveryLocation = order.DeliveryLocation,
+                Trips = order.Trips.Select(t => new TripDto
+                {
+                    TripId = t.TripId,
+                    OrderId = t.OrderId,
+                    DriverId = t.DriverId,
+                    TractorId = t.TractorId,
+                    TrailerId = t.TrailerId,
+                    StartTime = t.StartTime,
+                    EndTime = t.EndTime,
+                    Status = t.Status,
+                    MatchTime = t.MatchTime,
+                    Driver = t.Driver == null ? null : new DriverDto
+                    {
+                        DriverId = t.Driver.DriverId,
+                        FullName = t.Driver.FullName,
+                        PhoneNumber = t.Driver.PhoneNumber
+                    },
+                    Tractor = t.Tractor == null ? null : new TractorDto
+                    {
+                        TractorId = t.Tractor.TractorId,
+                        LicensePlate = t.Tractor.LicensePlate
+                    },
+                    Trailer = t.Trailer == null ? null : new TrailerDto
+                    {
+                        TrailerId = t.Trailer.TrailerId,
+                        LicensePlate = t.Trailer.LicensePlate
+                    },
+                    TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
+                    {
+                        HistoryId = h.HistoryId,
+                        TripId = h.TripId,
+                        StatusId = h.StatusId,
+                        StatusName = h.Status?.StatusName,
+                        StartTime = h.StartTime
+                    }).ToList()
+                }).ToList()
+            };
+        }
+        #endregion
+
+        public async Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+
+                await _unitOfWork.BeginTransactionAsync();
+
+                var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
+
+                if (order == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG); // Nếu không tìm thấy đơn hàng
+
+                order.IsPay = order.IsPay == 0 ? 1 : order.IsPay;
+                order.ModifiedDate = DateTime.Now;
+                order.ModifiedBy = userName;
+
+
+                await _unitOfWork.OrderRepository.UpdateAsync(order);
+
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(); // Quay lại nếu có lỗi
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
+            }
+        }
     }
 }

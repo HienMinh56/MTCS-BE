@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MTCS.Common;
+using MTCS.Data.DTOs;
 using MTCS.Data.Request;
+using MTCS.Service.Base;
 using MTCS.Service.Services;
 using static Google.Cloud.Firestore.V1.StructuredQuery.Types;
 
@@ -84,6 +86,46 @@ namespace MTCS.APIService.Controllers
             }
 
             return BadRequest(result); 
+        }
+
+        #region get order by tracking code
+        /// <summary>
+        /// Get order by tracking code - for customer search order
+        /// </summary>
+        /// <param name="trackingCode"></param>
+        /// <returns></returns>
+        [HttpGet("{trackingCode}")]
+        public async Task<ActionResult<OrderDto>> GetOrderByTrackingCodeAsync(string trackingCode)
+        {
+            var order = await _orderService.GetOrderByTrackingCodeAsync(trackingCode);
+            if (order == null)
+            {
+                return NotFound(new { message = "Order not found" });
+            }
+            return Ok(order);
+        }
+        #endregion
+
+        [HttpPatch("{orderId}/toggle-is-pay")]
+        public async Task<IActionResult> ToggleIsPay(string orderId)
+        {
+            try
+            {
+                var userClaims = User;
+
+                var result = await _orderService.ToggleIsPayAsync(orderId, userClaims);
+
+                if (result==null)
+                {
+                    return Ok(result); 
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message));
+            }
         }
     }
 }
