@@ -445,8 +445,11 @@ namespace MTCS.Service.Services
                     };
                     await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
                 }
+                    var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                    // Gửi thông báo sau khi cập nhật thành công
+                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
 
-                return new BusinessResult(1, "Tạo trip thành công!", trip);
+                    return new BusinessResult(1, "Tạo trip thành công!", trip);
             }
             catch (Exception ex)
             {
@@ -613,6 +616,11 @@ namespace MTCS.Service.Services
                     };
                     await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
                 }
+                var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                // Gửi thông báo sau khi cập nhật thành công
+                await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
+
+                return new BusinessResult(1, "Tạo trip thành công!", trip);
 
                 return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
             }
