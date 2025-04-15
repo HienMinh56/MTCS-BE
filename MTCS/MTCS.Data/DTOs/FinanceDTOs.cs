@@ -21,6 +21,7 @@
     {
         public string TripId { get; set; }
         public string OrderId { get; set; }
+        public string TrackingCode { get; set; }
         public string CustomerName { get; set; }
         public decimal Revenue { get; set; }
         public decimal FuelCost { get; set; }

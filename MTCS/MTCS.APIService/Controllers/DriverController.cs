@@ -87,5 +87,17 @@ namespace MTCS.APIService.Controllers
             }
             return Ok(response);
         }
+
+        [HttpPut("delete-driver/{driverId}")]
+        public async Task<IActionResult> DeleteDriver(string driverId)
+        {
+            var userName = User.GetUserName();
+            var response = await _driverService.DeleteDriver(driverId, userName);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+            return Ok(response);
+        }
     }
 }

@@ -377,8 +377,8 @@ namespace MTCS.Service.Services
                     null);
             }
             driver.Status = (int)DriverStatus.Inactive;
-            driver.DeletedBy = userName;
-            driver.DeletedDate = DateTime.Now;
+            driver.ModifiedBy = userName;
+            driver.ModifiedDate = DateTime.Now;
             await _unitOfWork.DriverRepository.UpdateAsync(driver);
 
             return new ApiResponse<bool>(
@@ -406,8 +406,8 @@ namespace MTCS.Service.Services
                 return new ApiResponse<bool>(
                     false,
                     false,
-                    "Cannot delete driver while on duty",
-                    "Không thể kích hoạt tài xế",
+                    "Cannot deactivate driver while on duty",
+                    "Tài xế không hoạt động sẵn",
                     null);
             }
             driver.Status = (int)DriverStatus.Active;
@@ -425,6 +425,37 @@ namespace MTCS.Service.Services
                 null);
         }
 
+        public async Task<ApiResponse<bool>> DeleteDriver(string driverId, string userName)
+        {
+            var driver = await _unitOfWork.DriverRepository.GetByIdAsync(driverId);
+            if (driver == null)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Driver not found",
+                    "Không tìm thấy tài xế",
+                    null);
+            }
+            if (driver.Status == (int)DriverStatus.OnDuty)
+            {
+                return new ApiResponse<bool>(
+                    false,
+                    false,
+                    "Cannot delete driver while on duty",
+                    "Không thể xóa tài xế khi đang làm việc",
+                    null);
+            }
+            driver.DeletedBy = userName;
+            driver.DeletedDate = DateTime.Now;
+            await _unitOfWork.DriverRepository.UpdateAsync(driver);
 
+            return new ApiResponse<bool>(
+                true,
+                true,
+                "Driver deleted successfully",
+                "Xoá tài xế thành công",
+                null);
+        }
     }
 }

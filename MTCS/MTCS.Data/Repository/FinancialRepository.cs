@@ -118,6 +118,7 @@ namespace MTCS.Data.Repository
             {
                 TripId = trip.TripId,
                 OrderId = trip.OrderId,
+                TrackingCode = trip.Order.TrackingCode,
                 CustomerName = trip.Order?.Customer?.CompanyName,
                 Revenue = revenue,
                 FuelCost = fuelCost,
@@ -160,6 +161,7 @@ namespace MTCS.Data.Repository
                 {
                     TripId = trip.TripId,
                     OrderId = trip.OrderId,
+                    TrackingCode = trip.Order.TrackingCode,
                     CustomerName = trip.Order?.Customer?.CompanyName,
                     Revenue = revenue,
                     FuelCost = fuelCost,
