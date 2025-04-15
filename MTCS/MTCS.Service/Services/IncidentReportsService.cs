@@ -80,11 +80,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Create Incident Report with Incident Image
-        /// <summary>
-        /// Create incident report for a trip
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
         public async Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims)
         {
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -181,7 +176,7 @@ namespace MTCS.Service.Services
             if (result is not null)
             {
                 // Gửi thông báo sau khi cập nhật thành công
-                await _notification.SendNotificationAsync(owner, "Incident Report Created", $"Incident report Created for {existingTrip.TripId} by {result.ReportedBy}.", result.ReportedBy);
+                await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {result.ReportedBy}.", result.ReportedBy);
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, result);
             }
             else
@@ -294,11 +289,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Update Incident Report
-        /// <summary>
-        /// Update incident report for a trip
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
         public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
         {
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -422,11 +412,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Delete Incident Report
-        /// <summary>
-        /// Delete incident report by report id
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
         public async Task<IBusinessResult> DeleteIncidentReportById(string reportId)
         {
             try
@@ -458,6 +443,7 @@ namespace MTCS.Service.Services
         }
         #endregion
 
+        #region Update Status Incident Report
         public async Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims)
         {
             try
@@ -531,7 +517,7 @@ namespace MTCS.Service.Services
                     if (result > 0)
                     {
                         // Gửi thông báo sau khi cập nhật thành công
-                        await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"Incident report Updated for {existingTrip.TripId} by {data.ReportedBy}.", data.ReportedBy);
+                        await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được cập nhật", $"Sự cố {incident.ReportId} của {existingTrip.TripId} đã được giải quyết bởi {data.ReportedBy}.", data.ReportedBy);
                         return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
                     }
                     else
@@ -545,7 +531,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+        #endregion
 
+        #region Update Incident Report
         public async Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims)
         {
             try
@@ -621,7 +609,7 @@ namespace MTCS.Service.Services
                 if (result > 0)
                 {
                     // Gửi thông báo sau khi cập nhật thành công
-                    await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"Incident report Updated for {trip.TripId} by {data.ReportedBy}.", data.ReportedBy);
+                    await _notification.SendNotificationAsync(owner, $"Thay đổi của báo cáo sự cố của {trip.TripId}", $"Sự cố của chuyến {trip.TripId} đã được điều chỉnh bởi {data.ReportedBy}.", data.ReportedBy);
                     return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
                 }
                 else
@@ -633,6 +621,7 @@ namespace MTCS.Service.Services
             {
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
-        }    
+        }
+        #endregion
     }
 }

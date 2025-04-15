@@ -96,7 +96,7 @@ namespace MTCS.Service.Services
                     var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
                     await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                    await _notificationService.SendNotificationAsync(order.CreatedBy, "Trip Status Update", $"Your trip status has been updated to {newStatus.StatusName} by {driver.FullName} at {trip.EndTime}", driver.FullName);
+                    await _notificationService.SendNotificationAsync(order.CreatedBy, "Chuyến đi đã được cập nhật", $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}", driver.FullName);
                 }
 
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
@@ -445,13 +445,188 @@ namespace MTCS.Service.Services
                     };
                     await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
                 }
+                    var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                    // Gửi thông báo sau khi cập nhật thành công
+                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
 
-                return new BusinessResult(1, "Tạo trip thành công!", trip);
+                    return new BusinessResult(1, "Tạo trip thành công!", trip);
             }
             catch (Exception ex)
             {
                 var errorMessage = ex.InnerException?.Message ?? ex.Message;
                 return new BusinessResult(-1, $"Lỗi khi tạo trip: {errorMessage}");
+            }
+        }
+        #endregion
+
+        #region AutoScheduleTrips
+        public async Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId)
+        {
+            // Lấy thông tin đơn hàng
+            var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
+            if (order == null)
+                throw new Exception("Không tìm thấy đơn hàng!");
+
+            if (!order.DeliveryDate.HasValue)
+                throw new Exception("Đơn hàng không có ngày giao hàng (DeliveryDate)!");
+
+            var deliveryDate = order.DeliveryDate.Value;
+
+            // Tính trọng lượng container (kg)
+            double containerWeight = 0;
+            int? configId = order.ContainerType switch
+            {
+                1 when order.ContainerSize == 20 => 1,
+                1 when order.ContainerSize == 40 => 2,
+                2 when order.ContainerSize == 20 => 3,
+                2 when order.ContainerSize == 40 => 4,
+                _ => null
+            };
+
+            if (configId.HasValue)
+            {
+                var config = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(configId.Value);
+                if (config == null || !double.TryParse(config.ConfigValue, out containerWeight))
+                    return new BusinessResult(-1, "Không tìm thấy dữ liệu trọng lượng container!");
+            }
+
+            decimal totalWeight = (order.Weight ?? 0) + ((decimal)containerWeight / 1000);
+
+            // Lấy danh sách đầu kéo có trạng thái "Active" hoặc "OnDuty"
+            var tractorList = await _unitOfWork.TractorRepository.GetActiveTractorsAsync();
+            var tractor = tractorList.FirstOrDefault(t => t.ContainerType == order.ContainerType);
+
+            if (tractor == null)
+                return new BusinessResult(-1, "Không tìm thấy đầu kéo phù hợp!");
+
+            // Lấy danh sách rơ-moóc có trạng thái "Active" hoặc "OnDuty"
+            var trailerList = await _unitOfWork.TrailerRepository.GetActiveTrailersAsync();
+            var trailer = trailerList.FirstOrDefault(t => t.MaxLoadWeight >= totalWeight);
+
+            if (trailer == null)
+                return new BusinessResult(-1, "Không tìm thấy rơ-moóc phù hợp!");
+
+            // Lấy danh sách tài xế có trạng thái "Active" hoặc "OnDuty"
+            var driverList = await _unitOfWork.DriverRepository.GetActiveDriversAsync();
+            var driver = driverList.FirstOrDefault(d => d.Status == 1 || d.Status == 2);
+
+            if (driver == null)
+                return new BusinessResult(-1, "Không tìm thấy tài xế!");
+
+            // Kiểm tra tải trọng trailer và tractor
+            if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
+                return new BusinessResult(-1, "Tải trọng của rơ-moóc không đủ!");
+
+            if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
+                return new BusinessResult(-1, "Tải trọng vượt quá khả năng kéo của đầu kéo!");
+
+            // Lấy cấu hình thời gian giới hạn ngày & tuần
+            var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
+            var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
+
+            var completionTimeSpan = order.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
+            int completionMinutes = (int)completionTimeSpan.TotalMinutes;
+
+            if (dailyLimitConfig == null || weeklyLimitConfig == null)
+                throw new Exception("Không tìm thấy cấu hình giới hạn thời gian!");
+
+            if (!int.TryParse(dailyLimitConfig.ConfigValue, out int dailyHourLimit))
+                throw new Exception("Cấu hình giới hạn thời gian ngày không hợp lệ!");
+
+            if (!int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
+                throw new Exception("Cấu hình giới hạn thời gian tuần không hợp lệ!");
+
+            // Kiểm tra giới hạn theo ngày
+            var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                .GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+
+            int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
+            if (totalDailyTime > dailyHourLimit * 60)
+                throw new Exception($"Không có tài xế nào có thời gian phù hợp cho đơn hàng)!");
+
+            // Tính tuần: từ chủ nhật -> thứ bảy
+            var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+            var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
+            var weekEnd = weekStart.AddDays(6);
+
+            var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                .GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
+
+            int totalWeeklyTime = (weeklyRecord?.TotalHours ?? 0) + completionMinutes;
+            if (totalWeeklyTime > weeklyHourLimit * 60)
+                throw new Exception($"Không có tài xế nào có thời gian phù hợp cho đơn hàng!");
+
+            // Tạo Trip
+            var trip = new Trip
+            {
+                TripId = Guid.NewGuid().ToString(),
+                OrderId = orderId,
+                DriverId = driver.DriverId,
+                TractorId = tractor.TractorId,
+                TrailerId = trailer.TrailerId,
+                Status = "not_started",
+                MatchType = 2,
+                MatchBy = "System",
+                MatchTime = DateTime.Now
+            };
+
+            // Tạo mới Trip và cập nhật các bảng liên quan
+            try
+            {
+                await _unitOfWork.TripRepository.CreateAsync(trip);
+                order.Status = "Scheduled";
+                await _unitOfWork.OrderRepository.UpdateAsync(order);
+
+                // Cập nhật thời gian làm việc của tài xế
+                if (dailyRecord != null)
+                {
+                    dailyRecord.TotalTime += completionMinutes;
+                    dailyRecord.ModifiedDate = DateTime.Now;
+                    await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
+                }
+                else
+                {
+                    var newDaily = new DriverDailyWorkingTime
+                    {
+                        RecordId = Guid.NewGuid().ToString(),
+                        DriverId = driver.DriverId,
+                        WorkDate = deliveryDate,
+                        TotalTime = completionMinutes,
+                        CreatedBy = "System",
+                        ModifiedDate = DateTime.Now
+                    };
+                    await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
+                }
+
+                // Cập nhật thời gian làm việc tuần
+                if (weeklyRecord != null)
+                {
+                    weeklyRecord.TotalHours += completionMinutes;
+                    await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
+                }
+                else
+                {
+                    var newWeekly = new DriverWeeklySummary
+                    {
+                        SummaryId = Guid.NewGuid().ToString(),
+                        DriverId = driver.DriverId,
+                        WeekStart = weekStart,
+                        WeekEnd = weekEnd,
+                        TotalHours = completionMinutes,
+                    };
+                    await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
+                }
+                var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                // Gửi thông báo sau khi cập nhật thành công
+                await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
+
+                return new BusinessResult(1, "Tạo trip thành công!", trip);
+
+                return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(-1, $"Lỗi khi tạo trip: {ex.Message}");
             }
         }
         #endregion
