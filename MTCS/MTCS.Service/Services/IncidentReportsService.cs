@@ -181,7 +181,7 @@ namespace MTCS.Service.Services
             if (result is not null)
             {
                 // Gửi thông báo sau khi cập nhật thành công
-                await _notification.SendNotificationAsync(owner, "Incident Report Created", $"Incident report Created for {existingTrip.TripId} by {result.ReportedBy}.", result.ReportedBy);
+                await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {result.ReportedBy}.", result.ReportedBy);
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, result);
             }
             else
@@ -531,7 +531,7 @@ namespace MTCS.Service.Services
                     if (result > 0)
                     {
                         // Gửi thông báo sau khi cập nhật thành công
-                        await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"Incident report Updated for {existingTrip.TripId} by {data.ReportedBy}.", data.ReportedBy);
+                        await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được cập nhật", $"Sự cố {incident.ReportId} của {existingTrip.TripId} đã được giải quyết bởi {data.ReportedBy}.", data.ReportedBy);
                         return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
                     }
                     else
@@ -621,7 +621,7 @@ namespace MTCS.Service.Services
                 if (result > 0)
                 {
                     // Gửi thông báo sau khi cập nhật thành công
-                    await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"Incident report Updated for {trip.TripId} by {data.ReportedBy}.", data.ReportedBy);
+                    await _notification.SendNotificationAsync(owner, $"Thay đổi của báo cáo sự cố của {trip.TripId}", $"Sự cố của chuyến {trip.TripId} đã được điều chỉnh bởi {data.ReportedBy}.", data.ReportedBy);
                     return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
                 }
                 else
