@@ -20,6 +20,7 @@ namespace MTCS.APIService.Controllers
             _orderService = orderService;
         }
 
+        #region Get order by fillter
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders(
             [FromQuery] string? orderId,
@@ -36,6 +37,7 @@ namespace MTCS.APIService.Controllers
             var result = await _orderService.GetOrders(orderId, tripId, userId, containerType, containerNumber, trackingCode, status, pickUpDate, deliveryDate);
             return Ok(result);
         }
+        #endregion
 
         [HttpGet("{orderId}/order-file")]
         public async Task<IActionResult> GetOrderFiles(string orderId)

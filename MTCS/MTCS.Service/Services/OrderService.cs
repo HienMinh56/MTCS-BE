@@ -48,18 +48,21 @@ namespace MTCS.Service.Services
         Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode);
 
         Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims);
+
+
     }
 
     public class OrderService : IOrderService
     {
         private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseService;
+        private readonly IEmailService _emailService;
 
-        public OrderService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseService)
+        public OrderService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseService, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _firebaseService = firebaseService;
-
+            _emailService = emailService;
         }
 
         #region Create Order
@@ -161,6 +164,18 @@ namespace MTCS.Service.Services
 
                     await _unitOfWork.OrderFileRepository.CreateAsync(orderFile);
                     savedFiles.Add(orderFile);
+                }
+
+                var customerEmail = customer.Email;
+                if (!string.IsNullOrEmpty(customerEmail))
+                {
+                    // Gửi email thông báo
+                    await _emailService.SendEmailAsync(
+                            customer.Email,                            // to
+                            "Thông báo đơn hàng mới",                  // subject
+                            customer.CompanyName,                         // companyName
+                            order.TrackingCode                         // trackingCode
+                        );
                 }
 
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, new
