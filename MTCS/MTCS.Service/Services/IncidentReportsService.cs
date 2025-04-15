@@ -80,11 +80,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Create Incident Report with Incident Image
-        /// <summary>
-        /// Create incident report for a trip
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
         public async Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims)
         {
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -294,11 +289,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Update Incident Report
-        /// <summary>
-        /// Update incident report for a trip
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
         public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
         {
             var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -422,11 +412,6 @@ namespace MTCS.Service.Services
         #endregion
 
         #region Delete Incident Report
-        /// <summary>
-        /// Delete incident report by report id
-        /// </summary>
-        /// <author name="Đoàn Lê Hiển Minh"></author>
-        /// <returns></returns>
         public async Task<IBusinessResult> DeleteIncidentReportById(string reportId)
         {
             try
@@ -458,6 +443,7 @@ namespace MTCS.Service.Services
         }
         #endregion
 
+        #region Update Status Incident Report
         public async Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims)
         {
             try
@@ -545,7 +531,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+        #endregion
 
+        #region Update Incident Report
         public async Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims)
         {
             try
@@ -633,6 +621,7 @@ namespace MTCS.Service.Services
             {
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
-        }    
+        }
+        #endregion
     }
 }
