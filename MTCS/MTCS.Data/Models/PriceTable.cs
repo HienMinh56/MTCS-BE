@@ -32,4 +32,6 @@ public partial class PriceTable
     public string ModifiedBy { get; set; }
 
     public int? DeliveryType { get; set; }
+
+    public int? Version { get; set; }
 }
