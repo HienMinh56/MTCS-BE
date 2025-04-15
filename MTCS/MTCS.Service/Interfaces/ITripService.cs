@@ -13,5 +13,7 @@ namespace MTCS.Service.Interfaces
         Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, string userId);
         Task<BusinessResult> UpdateTripAsync(string tripId, UpdateTripRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> CreateTripAsync(CreateTripRequestModel tripRequestModel, ClaimsPrincipal claims);
+        Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId);
+
     }
 }

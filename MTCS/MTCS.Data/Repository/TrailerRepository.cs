@@ -240,5 +240,12 @@ namespace MTCS.Data.Repository
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<List<Trailer>> GetActiveTrailersAsync()
+        {
+            return await _context.Trailers
+                .Where(t => t.Status == "OnDuty" || t.Status == "Active")
+                .ToListAsync();
+        }
     }
 }
