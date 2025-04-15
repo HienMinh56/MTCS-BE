@@ -241,6 +241,12 @@ namespace MTCS.Data.Repository
             return true;
         }
 
+        public async Task<List<Tractor>> GetActiveTractorsAsync()
+        {
+            return await _context.Tractors
+                .Where(t => t.Status == "OnDuty" || t.Status == "Active")
+                .ToListAsync();
+        }
 
     }
 }

@@ -77,5 +77,24 @@ namespace MTCS.APIService.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("auto-schedule")]
+        public async Task<IActionResult> AutoScheduleTripsForOrder([FromForm] string orderId)
+        {
+            if (string.IsNullOrEmpty(orderId))
+                return BadRequest("OrderId không hợp lệ!");
+            try
+            {
+                var result = await _tripService.AutoScheduleTripsForOrderAsync(orderId);
+                if (result.Status < 0)
+                    return BadRequest(result.Message);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Lỗi: {ex.Message}");
+            }
+        }
     }
 }

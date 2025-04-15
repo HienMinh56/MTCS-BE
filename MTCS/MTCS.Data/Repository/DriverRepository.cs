@@ -238,5 +238,12 @@ namespace MTCS.Data.Repository
                 return false;
             }
         }
+
+        public async Task<List<Driver>> GetActiveDriversAsync()
+        {
+            return await _context.Drivers
+                .Where(d => d.Status == 1 || d.Status == 2)
+                .ToListAsync();
+        }
     }
 }
