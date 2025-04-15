@@ -96,7 +96,7 @@ namespace MTCS.Service.Services
                     var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
                     await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                    await _notificationService.SendNotificationAsync(order.CreatedBy, "Trip Status Update", $"Your trip status has been updated to {newStatus.StatusName} by {driver.FullName} at {trip.EndTime}", driver.FullName);
+                    await _notificationService.SendNotificationAsync(order.CreatedBy, "Chuyến đi đã được cập nhật", $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}", driver.FullName);
                 }
 
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
