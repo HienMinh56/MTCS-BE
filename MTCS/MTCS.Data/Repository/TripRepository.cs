@@ -111,5 +111,19 @@ namespace MTCS.Data.Repository
 
             return (activeTrips.Any(), activeTrips);
         }
+
+        public async Task<List<Trip>> GetByDriverIdAndDateAsync(string driverId, DateOnly deliveryDate)
+        {
+            return await _context.Trips
+                .Where(t => t.DriverId == driverId && t.Order.DeliveryDate == deliveryDate)
+                .ToListAsync();
+        }
+
+        public async Task<List<Trip>> GetByDateAsync(DateOnly deliveryDate)
+        {
+            return await _context.Trips
+                .Where(t => t.Order.DeliveryDate == deliveryDate)
+                .ToListAsync();
+        }
     }
 }
