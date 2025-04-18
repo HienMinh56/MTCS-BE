@@ -13,14 +13,14 @@ namespace MTCS.Service.Services
 
     public interface IPriceTableService
     {
-        public Task<BusinessResult> GetPriceTables();
         public Task<BusinessResult> GetPriceTableById(string id);
-        public Task<BusinessResult> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName);
         public Task<BusinessResult> UpdatePriceTable(List<UpdatePriceTableRequest> priceTable, ClaimsPrincipal claims);
-        public Task<BusinessResult> ImportPriceTable(IFormFile excelFile, string userName);
         public Task<BusinessResult> DownloadPriceTableTemplate();
         public Task<BusinessResult> DeletePriceTable(string id);
         Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType);
+        Task<ApiResponse<List<PriceTable>>> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName);
+        Task<ApiResponse<List<PriceTable>>> ImportPriceTable(IFormFile excelFile, string userName);
+        Task<ApiResponse<PriceTablesHistoryDTO>> GetPriceTables(int? version = null);
     }
     public class PriceTableService : IPriceTableService
     {
@@ -75,58 +75,57 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
-        #endregion 
+        #endregion
 
-        #region CreatePriceTable
-        public async Task<BusinessResult> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName)
+        public async Task<ApiResponse<List<PriceTable>>> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName)
         {
             try
             {
                 await _unitOfWork.BeginTransactionAsync();
-                foreach (var price in priceTable)
-                {
-                    var newPricetable = new PriceTable
-                    {
-                        PriceId = Guid.NewGuid().ToString(),
-                        MinKm = price.MinKm,
-                        MaxKm = price.MaxKm,
-                        ContainerSize = price.ContainerSize,
-                        ContainerType = price.ContainerType,
-                        MinPricePerKm = price.MinPricePerKm,
-                        MaxPricePerKm = price.MaxPricePerKm,
-                        DeliveryType = price.DeliveryType,
-                        Status = 1,
-                        CreatedBy = userName,
-                        CreatedDate = DateTime.Now
-                    };
-                    await _unitOfWork.PriceTableRepository.CreateAsync(newPricetable);
-                }
-                return new BusinessResult(200, "Price table created successfully");
-            }
 
+                var currentMaxVersion = await _unitOfWork.PriceTableRepository.GetMaxVersion() ?? 0;
+                if (currentMaxVersion > 0)
+                {
+                    var currentVersionTables = await _unitOfWork.PriceTableRepository.GetPriceTables(currentMaxVersion);
+                    foreach (var item in currentVersionTables)
+                    {
+                        item.Status = 0;
+                        item.ModifiedBy = userName;
+                        item.ModifiedDate = DateTime.Now;
+                        await _unitOfWork.PriceTableRepository.UpdateAsync(item);
+                    }
+                }
+
+                int newVersion = currentMaxVersion + 1;
+                var newPriceTables = priceTable.Select(price => new PriceTable
+                {
+                    PriceId = Guid.NewGuid().ToString(),
+                    MinKm = price.MinKm,
+                    MaxKm = price.MaxKm,
+                    ContainerSize = price.ContainerSize,
+                    ContainerType = price.ContainerType,
+                    MinPricePerKm = price.MinPricePerKm,
+                    MaxPricePerKm = price.MaxPricePerKm,
+                    DeliveryType = price.DeliveryType,
+                    Status = 1,
+                    Version = newVersion,
+                    CreatedBy = userName,
+                    CreatedDate = DateTime.Now
+                }).ToList();
+
+                foreach (var newPriceTable in newPriceTables)
+                {
+                    await _unitOfWork.PriceTableRepository.CreateAsync(newPriceTable);
+                }
+                await _unitOfWork.CommitTransactionAsync();
+                return new ApiResponse<List<PriceTable>>(true, newPriceTables, "Price table created successfully", "Đã tạo bảng giá thành công", null);
+            }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return new BusinessResult(500, ex.Message);
-            }
-
-        }
-        #endregion
-
-        #region GetPriceTable
-        public async Task<BusinessResult> GetPriceTables()
-        {
-            try
-            {
-                var priceTables = _unitOfWork.PriceTableRepository.GetAll();
-                return new BusinessResult(200, "Get Price Tables successfully", priceTables);
-            }
-            catch (Exception ex)
-            {
-                return new BusinessResult(500, ex.Message);
+                return new ApiResponse<List<PriceTable>>(false, null, "Failed to create price table", "Tạo bảng giá thất bại", ex.Message);
             }
         }
-        #endregion
 
         #region GetPriceTableById
         public async Task<BusinessResult> GetPriceTableById(string id)
@@ -165,52 +164,76 @@ namespace MTCS.Service.Services
         #endregion
 
         #region ImportPriceTable
-        public async Task<BusinessResult> ImportPriceTable(IFormFile excelFile, string userName)
+        public async Task<ApiResponse<List<PriceTable>>> ImportPriceTable(IFormFile excelFile, string userName)
         {
             try
             {
-                var priceTableList = new List<CreatePriceTableRequest>();
-
-                // Update status of all existing price tables to 0
-                var existingPriceTables = _unitOfWork.PriceTableRepository.GetAll().ToList();
-                foreach (var priceTable in existingPriceTables)
+                if (!excelFile.FileName.EndsWith(".xlsx") && !excelFile.FileName.EndsWith(".xls"))
                 {
-                    priceTable.Status = 0;
-                    priceTable.ModifiedBy = userName;
-                    priceTable.ModifiedDate = DateTime.Now;
-                    await _unitOfWork.PriceTableRepository.UpdateAsync(priceTable);
+                    return new ApiResponse<List<PriceTable>>(false, null, "Only Excel files are allowed", "Chỉ chấp nhận file Excel", null);
                 }
 
+                var priceTableList = new List<CreatePriceTableRequest>();
                 using (var stream = new MemoryStream())
                 {
                     await excelFile.CopyToAsync(stream);
                     using (var package = new ExcelPackage(stream))
                     {
                         var worksheet = package.Workbook.Worksheets[0];
+
+                        if (worksheet.Dimension == null || worksheet.Dimension.Rows <= 1)
+                        {
+                            return new ApiResponse<List<PriceTable>>(false, null, "Excel file is empty or has no data rows", "File Excel trống hoặc không có dữ liệu", null);
+                        }
+
                         var rowCount = worksheet.Dimension.Rows;
 
                         for (int row = 2; row <= rowCount; row++)
                         {
-                            var priceTable = new CreatePriceTableRequest
+                            try
                             {
-                                MinKm = Convert.ToDouble(worksheet.Cells[row, 1].Value),
-                                MaxKm = Convert.ToDouble(worksheet.Cells[row, 2].Value),
-                                ContainerSize = Convert.ToInt32(worksheet.Cells[row, 3].Value),
-                                ContainerType = Convert.ToInt32(worksheet.Cells[row, 4].Value),
-                                MinPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 5].Value),
-                                MaxPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 6].Value),
-                                DeliveryType = Convert.ToInt32(worksheet.Cells[row, 7].Value)
-                            };
-                            priceTableList.Add(priceTable);
+                                if (worksheet.Cells[row, 1].Value == null || worksheet.Cells[row, 2].Value == null)
+                                {
+                                    return new ApiResponse<List<PriceTable>>(false, null, $"Missing required data in row {row}", $"Thiếu dữ liệu cần thiết ở dòng {row}", null);
+                                }
+
+                                var minKm = Convert.ToDouble(worksheet.Cells[row, 1].Value);
+                                var maxKm = Convert.ToDouble(worksheet.Cells[row, 2].Value);
+
+                                if (minKm >= maxKm)
+                                {
+                                    return new ApiResponse<List<PriceTable>>(false, null, $"Min Km must be less than Max Km in row {row}", $"Km tối thiểu phải nhỏ hơn Km tối đa ở dòng {row}", null);
+                                }
+
+                                var priceTable = new CreatePriceTableRequest
+                                {
+                                    MinKm = minKm,
+                                    MaxKm = maxKm,
+                                    ContainerSize = Convert.ToInt32(worksheet.Cells[row, 3].Value),
+                                    ContainerType = Convert.ToInt32(worksheet.Cells[row, 4].Value),
+                                    MinPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 5].Value),
+                                    MaxPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 6].Value),
+                                    DeliveryType = Convert.ToInt32(worksheet.Cells[row, 7].Value)
+                                };
+                                priceTableList.Add(priceTable);
+                            }
+                            catch (FormatException)
+                            {
+                                return new ApiResponse<List<PriceTable>>(false, null, $"Invalid data format in row {row}. Please ensure all cells contain the correct data type.", $"Định dạng dữ liệu không hợp lệ ở dòng {row}. Vui lòng đảm bảo tất cả các ô chứa đúng kiểu dữ liệu.", null);
+                            }
                         }
                     }
                 }
 
+                if (priceTableList.Count == 0)
+                {
+                    return new ApiResponse<List<PriceTable>>(false, null, "No valid price table entries found in the Excel file", "Không tìm thấy bảng giá hợp lệ trong file Excel", null);
+                }
                 return await CreatePriceTable(priceTableList, userName);
             }
             catch (Exception ex)
             {
-                return new BusinessResult(500, ex.Message);
+                return new ApiResponse<List<PriceTable>>(false, null, "Failed to import price table", "Nhập bảng giá thất bại", ex.Message);
             }
         }
         #endregion
@@ -248,16 +271,68 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        public async Task<BusinessResult> GetActivePriceTables()
+        public async Task<ApiResponse<PriceTablesHistoryDTO>> GetPriceTables(int? version = null)
         {
             try
             {
-                var priceTables = await _unitOfWork.PriceTableRepository.GetActivePriceTables();
-                return new BusinessResult(200, "Get Price Tables successfully", priceTables);
+                var (availableVersions, activeVersion) = await _unitOfWork.PriceTableRepository.GetPriceTableVersions();
+
+                var priceTables = await _unitOfWork.PriceTableRepository.GetPriceTables(version);
+
+                if (priceTables == null || !priceTables.Any())
+                {
+                    string message = version.HasValue
+                        ? $"No price tables found for version {version}"
+                        : "No price tables found in the latest version";
+
+                    return new ApiResponse<PriceTablesHistoryDTO>(
+                        false,
+                        new PriceTablesHistoryDTO
+                        {
+                            PriceTables = new List<PriceTable>(),
+                            AvailableVersions = availableVersions,
+                            CurrentVersion = version ?? availableVersions.FirstOrDefault(),
+                            ActiveVersion = activeVersion,
+                            TotalCount = 0
+                        },
+                        message,
+                        "Không tìm thấy bảng giá",
+                        null);
+                }
+
+                var currentVersion = version ?? priceTables.FirstOrDefault()?.Version ?? 0;
+
+                var activePrices = priceTables.Where(p => p.Status == 1).ToList();
+                var inactivePrices = priceTables.Where(p => p.Status == 0).ToList();
+
+                var response = new PriceTablesHistoryDTO
+                {
+                    PriceTables = priceTables,
+                    AvailableVersions = availableVersions,
+                    ActiveVersion = activeVersion,
+                    CurrentVersion = currentVersion,
+                    TotalCount = priceTables.Count
+                };
+
+                string successMessage = version.HasValue
+                    ? $"Retrieved {priceTables.Count} price tables for version {version}"
+                    : $"Retrieved {priceTables.Count} price tables from the latest version";
+
+                return new ApiResponse<PriceTablesHistoryDTO>(
+                    true,
+                    response,
+                    successMessage,
+                    "Lấy bảng giá thành công",
+                    null);
             }
             catch (Exception ex)
             {
-                return new BusinessResult(500, ex.Message);
+                return new ApiResponse<PriceTablesHistoryDTO>(
+                    false,
+                    null,
+                    "Failed to retrieve price tables",
+                    "Lấy bảng giá thất bại",
+                    ex.Message);
             }
         }
 

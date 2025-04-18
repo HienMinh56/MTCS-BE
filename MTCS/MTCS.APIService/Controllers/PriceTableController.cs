@@ -17,9 +17,9 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("get-list")]
-        public async Task<IActionResult> GetPriceTables()
+        public async Task<IActionResult> GetPriceTables([FromQuery] int? version = null)
         {
-            var result = await _priceTableService.GetPriceTables();
+            var result = await _priceTableService.GetPriceTables(version);
             return Ok(result);
         }
 
@@ -45,6 +45,7 @@ namespace MTCS.APIService.Controllers
             var result = await _priceTableService.ImportPriceTable(excelFile, currentUser);
             return Ok(result);
         }
+
         [HttpGet("download-template")]
         public async Task<IActionResult> DownloadTemplate()
         {
