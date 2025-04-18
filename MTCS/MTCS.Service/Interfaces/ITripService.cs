@@ -15,5 +15,7 @@ namespace MTCS.Service.Interfaces
         Task<BusinessResult> CreateTripAsync(CreateTripRequestModel tripRequestModel, ClaimsPrincipal claims);
         Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId);
 
+        Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd);
+
     }
 }

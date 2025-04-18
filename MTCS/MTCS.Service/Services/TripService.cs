@@ -459,20 +459,16 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        #region AutoScheduleTrips
+        #region
         public async Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId)
         {
-            // Lấy thông tin đơn hàng
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
-            if (order == null)
-                throw new Exception("Không tìm thấy đơn hàng!");
-
-            if (!order.DeliveryDate.HasValue)
-                throw new Exception("Đơn hàng không có ngày giao hàng (DeliveryDate)!");
+            if (order == null) return new BusinessResult(-1, "Không tìm thấy đơn hàng!");
+            if (!order.DeliveryDate.HasValue) return new BusinessResult(-1, "Đơn hàng không có ngày giao hàng!");
 
             var deliveryDate = order.DeliveryDate.Value;
 
-            // Tính trọng lượng container (kg)
+            // Tính trọng lượng
             double containerWeight = 0;
             int? configId = order.ContainerType switch
             {
@@ -487,80 +483,104 @@ namespace MTCS.Service.Services
             {
                 var config = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(configId.Value);
                 if (config == null || !double.TryParse(config.ConfigValue, out containerWeight))
-                    return new BusinessResult(-1, "Không tìm thấy dữ liệu trọng lượng container!");
+                    return new BusinessResult(-1, "Không tìm thấy trọng lượng container!");
             }
 
             decimal totalWeight = (order.Weight ?? 0) + ((decimal)containerWeight / 1000);
 
-            // Lấy danh sách đầu kéo có trạng thái "Active" hoặc "OnDuty"
-            var tractorList = await _unitOfWork.TractorRepository.GetActiveTractorsAsync();
-            var tractor = tractorList.FirstOrDefault(t => t.ContainerType == order.ContainerType);
+            var drivers = await _unitOfWork.DriverRepository.GetActiveDriversAsync();
+            var tractors = await _unitOfWork.TractorRepository.GetActiveTractorsAsync();
+            var trailers = await _unitOfWork.TrailerRepository.GetActiveTrailersAsync();
 
-            if (tractor == null)
-                return new BusinessResult(-1, "Không tìm thấy đầu kéo phù hợp!");
-
-            // Lấy danh sách rơ-moóc có trạng thái "Active" hoặc "OnDuty"
-            var trailerList = await _unitOfWork.TrailerRepository.GetActiveTrailersAsync();
-            var trailer = trailerList.FirstOrDefault(t => t.MaxLoadWeight >= totalWeight);
-
-            if (trailer == null)
-                return new BusinessResult(-1, "Không tìm thấy rơ-moóc phù hợp!");
-
-            // Lấy danh sách tài xế có trạng thái "Active" hoặc "OnDuty"
-            var driverList = await _unitOfWork.DriverRepository.GetActiveDriversAsync();
-            var driver = driverList.FirstOrDefault(d => d.Status == 1 || d.Status == 2);
-
-            if (driver == null)
-                return new BusinessResult(-1, "Không tìm thấy tài xế!");
-
-            // Kiểm tra tải trọng trailer và tractor
-            if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
-                return new BusinessResult(-1, "Tải trọng của rơ-moóc không đủ!");
-
-            if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < (decimal)totalWeight)
-                return new BusinessResult(-1, "Tải trọng vượt quá khả năng kéo của đầu kéo!");
-
-            // Lấy cấu hình thời gian giới hạn ngày & tuần
             var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
             var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
-
-            var completionTimeSpan = order.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
-            int completionMinutes = (int)completionTimeSpan.TotalMinutes;
-
             if (dailyLimitConfig == null || weeklyLimitConfig == null)
-                throw new Exception("Không tìm thấy cấu hình giới hạn thời gian!");
+                return new BusinessResult(-1, "Không tìm thấy cấu hình giới hạn thời gian!");
 
-            if (!int.TryParse(dailyLimitConfig.ConfigValue, out int dailyHourLimit))
-                throw new Exception("Cấu hình giới hạn thời gian ngày không hợp lệ!");
+            if (!int.TryParse(dailyLimitConfig.ConfigValue, out int dailyHourLimit) ||
+                !int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
+                return new BusinessResult(-1, "Giá trị giới hạn thời gian không hợp lệ!");
 
-            if (!int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
-                throw new Exception("Cấu hình giới hạn thời gian tuần không hợp lệ!");
+            var completionMinutes = (int)(order.CompletionTime?.ToTimeSpan().TotalMinutes ?? 0);
 
-            // Kiểm tra giới hạn theo ngày
-            var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
-                .GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+            // Lấy tất cả trips trong ngày để biết tractor & trailer đã dùng
+            var tripsInDate = await _unitOfWork.TripRepository.GetByDateAsync(deliveryDate);
+            var usedTractorIds = tripsInDate.Select(t => t.TractorId).ToHashSet();
+            var usedTrailerIds = tripsInDate.Select(t => t.TrailerId).ToHashSet();
 
-            int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
-            if (totalDailyTime > dailyHourLimit * 60)
-                throw new Exception($"Không có tài xế nào có thời gian phù hợp cho đơn hàng)!");
+            // Ưu tiên đầu kéo khô nếu đơn hàng khô
+            var preferredTractorList = order.ContainerType == 1
+                ? tractors.Where(t => t.ContainerType == 1).Concat(tractors.Where(t => t.ContainerType != 1))
+                : tractors.Where(t => t.ContainerType == order.ContainerType);
 
-            // Tính tuần: từ chủ nhật -> thứ bảy
-            var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
-            var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
-            var weekEnd = weekStart.AddDays(6);
+            foreach (var driver in drivers)
+            {
+                // Check daily working time
+                var daily = await _unitOfWork.DriverDailyWorkingTimeRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+                int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
+                if (totalDaily > dailyHourLimit * 60) continue;
 
-            var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
-                .GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
+                // Check weekly working time
+                var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
+                var weekEnd = weekStart.AddDays(6);
 
-            int totalWeeklyTime = (weeklyRecord?.TotalHours ?? 0) + completionMinutes;
-            if (totalWeeklyTime > weeklyHourLimit * 60)
-                throw new Exception($"Không có tài xế nào có thời gian phù hợp cho đơn hàng!");
+                var weekly = await _unitOfWork.DriverWeeklySummaryRepository.GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
+                int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
+                if (totalWeekly > weeklyHourLimit * 60) continue;
 
-            // Tạo Trip
+                // Nếu tài xế đã có trip trong ngày -> cố định đầu kéo + rơ-moóc cũ
+                var existingTrips = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+                string tractorId = null, trailerId = null;
+
+                if (existingTrips.Any())
+                {
+                    tractorId = existingTrips.First().TractorId;
+                    trailerId = existingTrips.First().TrailerId;
+
+                    // Nếu chưa bị dùng bởi tài xế khác và vẫn hợp lệ
+                    if (!usedTractorIds.Contains(tractorId) && !usedTrailerIds.Contains(trailerId))
+                    {
+                        var usedTractor = tractors.FirstOrDefault(x => x.TractorId == tractorId && x.MaxLoadWeight >= totalWeight);
+                        var usedTrailer = trailers.FirstOrDefault(x => x.TrailerId == trailerId && x.MaxLoadWeight >= totalWeight);
+
+                        if (usedTractor != null && usedTrailer != null)
+                        {
+                            usedTractorIds.Add(tractorId);
+                            usedTrailerIds.Add(trailerId);
+                            return await CreateTrip(order, driver, usedTractor, usedTrailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
+                        }
+                    }
+                }
+                else
+                {
+                    // Nếu tài xế chưa có trip, duyệt tất cả tractor + trailer còn trống
+                    foreach (var tractor in preferredTractorList)
+                    {
+                        if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < totalWeight || usedTractorIds.Contains(tractor.TractorId)) continue;
+
+                        foreach (var trailer in trailers.Where(t => t.MaxLoadWeight >= totalWeight))
+                        {
+                            if (usedTrailerIds.Contains(trailer.TrailerId)) continue;
+
+                            usedTractorIds.Add(tractor.TractorId);
+                            usedTrailerIds.Add(trailer.TrailerId);
+
+                            return await CreateTrip(order, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
+                        }
+                    }
+                }
+            }
+
+            return new BusinessResult(-1, "Không tìm thấy tài xế, đầu kéo hoặc rơ-moóc phù hợp!");
+        }
+
+        public async Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd)
+        {
             var trip = new Trip
             {
                 TripId = Guid.NewGuid().ToString(),
-                OrderId = orderId,
+                OrderId = order.OrderId,
                 DriverId = driver.DriverId,
                 TractorId = tractor.TractorId,
                 TrailerId = trailer.TrailerId,
@@ -570,65 +590,53 @@ namespace MTCS.Service.Services
                 MatchTime = DateTime.Now
             };
 
-            // Tạo mới Trip và cập nhật các bảng liên quan
-            try
+            await _unitOfWork.TripRepository.CreateAsync(trip);
+
+            order.Status = "Scheduled";
+            await _unitOfWork.OrderRepository.UpdateAsync(order);
+
+            if (daily != null)
             {
-                await _unitOfWork.TripRepository.CreateAsync(trip);
-                order.Status = "Scheduled";
-                await _unitOfWork.OrderRepository.UpdateAsync(order);
-
-                // Cập nhật thời gian làm việc của tài xế
-                if (dailyRecord != null)
-                {
-                    dailyRecord.TotalTime += completionMinutes;
-                    dailyRecord.ModifiedDate = DateTime.Now;
-                    await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
-                }
-                else
-                {
-                    var newDaily = new DriverDailyWorkingTime
-                    {
-                        RecordId = Guid.NewGuid().ToString(),
-                        DriverId = driver.DriverId,
-                        WorkDate = deliveryDate,
-                        TotalTime = completionMinutes,
-                        CreatedBy = "System",
-                        ModifiedDate = DateTime.Now
-                    };
-                    await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
-                }
-
-                // Cập nhật thời gian làm việc tuần
-                if (weeklyRecord != null)
-                {
-                    weeklyRecord.TotalHours += completionMinutes;
-                    await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
-                }
-                else
-                {
-                    var newWeekly = new DriverWeeklySummary
-                    {
-                        SummaryId = Guid.NewGuid().ToString(),
-                        DriverId = driver.DriverId,
-                        WeekStart = weekStart,
-                        WeekEnd = weekEnd,
-                        TotalHours = completionMinutes,
-                    };
-                    await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
-                }
-                var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
-                // Gửi thông báo sau khi cập nhật thành công
-                await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
-
-                return new BusinessResult(1, "Tạo trip thành công!", trip);
-
-                return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
+                daily.TotalTime += completionMinutes;
+                daily.ModifiedDate = DateTime.Now;
+                await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(daily);
             }
-            catch (Exception ex)
+            else
             {
-                return new BusinessResult(-1, $"Lỗi khi tạo trip: {ex.Message}");
+                await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(new DriverDailyWorkingTime
+                {
+                    RecordId = Guid.NewGuid().ToString(),
+                    DriverId = driver.DriverId,
+                    WorkDate = deliveryDate,
+                    TotalTime = completionMinutes,
+                    CreatedBy = "System",
+                    ModifiedDate = DateTime.Now
+                });
             }
+
+            if (weekly != null)
+            {
+                weekly.TotalHours += completionMinutes;
+                await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weekly);
+            }
+            else
+            {
+                await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(new DriverWeeklySummary
+                {
+                    SummaryId = Guid.NewGuid().ToString(),
+                    DriverId = driver.DriverId,
+                    WeekStart = weekStart,
+                    WeekEnd = weekEnd,
+                    TotalHours = completionMinutes
+                });
+            }
+
+            var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+            await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
+
+            return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
         }
+
         #endregion
     }
 }
