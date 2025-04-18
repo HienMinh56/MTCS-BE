@@ -142,5 +142,11 @@ namespace MTCS.Data.Repository
             return _context.Orders.AsQueryable();
         }
 
+        public async Task<int> CountOrdersByDeliveryDateAsync(DateOnly deliveryDate)
+        {
+            return await _context.Orders
+                .Where(o => o.DeliveryDate == deliveryDate)
+                .CountAsync();
+        }
     }
 }
