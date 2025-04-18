@@ -74,7 +74,28 @@ namespace MTCS.Service.Services
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
+                // Lấy giới hạn đơn hàng theo ngày giao hàng từ config
+                var config = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(7); 
+                if (config == null || !int.TryParse(config.ConfigValue, out int dailyLimit))
+                {
+                    throw new InvalidOperationException("Chưa set cấu hình hệ thống cho đơn hàng.");
+                }
+                if (orderRequest.DeliveryDate == null)
+                {
+                    throw new ArgumentException("DeliveryDate không được để trống.");
+                }
 
+                // Kiểm tra số lượng đơn hàng đã đặt cho ngày giao hàng
+                var deliveryDate = orderRequest.DeliveryDate.Value;
+                var countOrdersForDeliveryDate = await _unitOfWork.OrderRepository
+                    .CountOrdersByDeliveryDateAsync(deliveryDate);
+
+                if (countOrdersForDeliveryDate >= dailyLimit)
+                {
+                    throw new InvalidOperationException(
+                        $"Số lượng đơn hàng với ngày giao hàng {deliveryDate:dd/MM/yyyy} đã đạt giới hạn ({dailyLimit} đơn). Không thể tạo thêm."
+                    );
+                }
 
                 if (string.IsNullOrEmpty(orderRequest.CompanyName))
                 {
@@ -103,7 +124,6 @@ namespace MTCS.Service.Services
                     throw new ArgumentException("ContainerType chỉ được nhập 1 (Lạnh) hoặc 2 (Khô).");
                 }
 
-                //await _unitOfWork.BeginTransactionAsync();
                 var trackingCode = await _unitOfWork.OrderRepository.GetNextCodeAsync();
                 var orderId = Guid.NewGuid().ToString();
                 var order = new Order
