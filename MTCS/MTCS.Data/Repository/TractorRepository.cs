@@ -162,6 +162,12 @@ namespace MTCS.Data.Repository
                 .Distinct()
                 .CountAsync();
 
+            var tractorUsedHistory = await _context.Trips
+                .Include(x => x.Driver)
+                .Include(x => x.Trailer)
+                .Where(x => x.TractorId == tractorId)
+                .ToListAsync();
+
             return new TractorDetailsDTO
             {
                 TractorId = tractor.TractorId,
@@ -183,7 +189,7 @@ namespace MTCS.Data.Repository
                 CreatedBy = users.TryGetValue(tractor.CreatedBy ?? "", out var createdBy) ? createdBy : null,
                 ModifiedBy = users.TryGetValue(tractor.ModifiedBy ?? "", out var modifiedBy) ? modifiedBy : null,
                 DeletedBy = users.TryGetValue(tractor.DeletedBy ?? "", out var deletedBy) ? deletedBy : null,
-                Files = new List<TractorFileDTO>()
+                Files = new List<TractorFileDTO>(),
             };
         }
 
@@ -248,5 +254,39 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
+        public async Task<PagedList<TractorUseHistory>> GetTractorUseHistory(
+    string tractorId,
+    PaginationParams paginationParams)
+        {
+            var query = _context.Trips
+                .AsNoTracking()
+                .Include(x => x.Driver)
+                .Include(x => x.Trailer)
+                .Join(
+                    _context.DeliveryStatuses,
+                    trip => trip.Status,
+                    status => status.StatusId,
+                    (trip, status) => new { Trip = trip, Status = status })
+                .Where(x => x.Trip.TractorId == tractorId)
+                .OrderByDescending(x => x.Trip.MatchTime)
+                .Select(x => new TractorUseHistory
+                {
+                    TripId = x.Trip.TripId,
+                    DriverId = x.Trip.DriverId,
+                    DriverName = x.Trip.Driver.FullName,
+                    TrailerId = x.Trip.TrailerId,
+                    TrailerPlate = x.Trip.Trailer.LicensePlate,
+                    StartTime = x.Trip.StartTime,
+                    EndTime = x.Trip.EndTime,
+                    MatchBy = x.Trip.MatchBy,
+                    MatchTime = x.Trip.MatchTime,
+                    Status = x.Status.StatusName
+                });
+
+            return await PagedList<TractorUseHistory>.CreateAsync(
+                query,
+                paginationParams.PageNumber,
+                paginationParams.PageSize);
+        }
     }
 }

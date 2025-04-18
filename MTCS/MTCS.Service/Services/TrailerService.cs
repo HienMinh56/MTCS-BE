@@ -480,5 +480,61 @@ namespace MTCS.Service.Services
                 null);
         }
 
+        public async Task<ApiResponse<TrailerUseHistoryPagedDTO>> GetTrailerUseHistory(
+    string trailerId,
+    PaginationParams paginationParams)
+        {
+            if (string.IsNullOrEmpty(trailerId))
+            {
+                return new ApiResponse<TrailerUseHistoryPagedDTO>(
+                    false,
+                    null,
+                    "Invalid tractor ID",
+                    "Mã rơ-móoc không hợp lệ",
+                    "Tractor ID cannot be empty");
+            }
+
+            var trailer = await _unitOfWork.TrailerRepository.GetTrailerById(trailerId);
+            if (trailer == null)
+            {
+                return new ApiResponse<TrailerUseHistoryPagedDTO>(
+                    false,
+                    null,
+                    "Tractor not found",
+                    "Không tìm thấy rơ-móoc",
+                    $"No tractor found with ID: {trailerId}");
+            }
+
+            var useHistory = await _unitOfWork.TrailerRepository.GetTrailerUseHistory(trailerId, paginationParams);
+
+            if (useHistory == null || useHistory.Items.Count == 0)
+            {
+                var result = new TrailerUseHistoryPagedDTO
+                {
+                    TrailerUseHistories = new PagedList<TrailerUseHistory>(
+                        new List<TrailerUseHistory>(), 0, paginationParams.PageNumber, paginationParams.PageSize)
+                };
+
+                return new ApiResponse<TrailerUseHistoryPagedDTO>(
+                    true,
+                    result,
+                    "No use history found for this tractor",
+                    "Không tìm thấy lịch sử sử dụng cho rơ-móoc này",
+                    null);
+            }
+
+            var responseDto = new TrailerUseHistoryPagedDTO
+            {
+                TrailerUseHistories = useHistory
+            };
+
+            return new ApiResponse<TrailerUseHistoryPagedDTO>(
+                true,
+                responseDto,
+                $"Retrieved {useHistory.Items.Count} use history records (page {useHistory.CurrentPage} of {useHistory.TotalPages})",
+                $"Đã tìm thấy {useHistory.Items.Count} bản ghi lịch sử rơ-móoc {trailer.LicensePlate}",
+                null);
+        }
+
     }
 }

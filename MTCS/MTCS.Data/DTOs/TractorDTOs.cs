@@ -109,4 +109,23 @@ namespace MTCS.Data.DTOs
         public DateTime UploadDate { get; set; }
         public string UploadBy { get; set; }
     }
+
+    public class TractorUseHistory
+    {
+        public string TripId { get; set; }
+        public string DriverId { get; set; }
+        public string DriverName { get; set; }
+        public string TrailerId { get; set; }
+        public string TrailerPlate { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string Status { get; set; }
+        public string MatchBy { get; set; }
+        public DateTime? MatchTime { get; set; }
+    }
+
+    public class TractorUseHistoryPagedDTO
+    {
+        public PagedList<TractorUseHistory>? TractorUseHistories { get; set; }
+    }
 }

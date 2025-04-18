@@ -17,6 +17,15 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
+        public async Task<List<PriceTable>> GetPriceTables(int status = 1)
+        {
+            return await _context.PriceTables
+                .AsNoTracking()
+                .Where(p => p.Status == status)
+                .OrderBy(p => p.MinKm)
+                .ToListAsync();
+        }
+
         public async Task<PriceTable?> GetPriceForCalculation(double distance, int containerType, int containerSize, int deliveryType)
         {
             return await _context.PriceTables

@@ -140,5 +140,16 @@ namespace MTCS.APIService.Controllers
 
             return Ok(response);
         }
+
+        [HttpGet("history/{tractorId}")]
+        public async Task<IActionResult> GetTractorUseHistory(string tractorId, [FromQuery] PaginationParams paginationParams)
+        {
+            var response = await _tractorService.GetTractorUseHistory(tractorId, paginationParams);
+            if (!response.Success)
+            {
+                return NotFound(response);
+            }
+            return Ok(response);
+        }
     }
 }

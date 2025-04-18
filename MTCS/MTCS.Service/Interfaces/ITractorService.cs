@@ -24,5 +24,6 @@ namespace MTCS.Service.Interfaces
     string userId);
         Task<ApiResponse<TractorResponseDTO>> UpdateTractorWithFiles(string tractorId, CreateTractorDTO updateDto, List<FileUploadDTO> newFiles, List<string> fileIdsToRemove, string userId);
         Task<ApiResponse<bool>> UpdateTractorFileDetails(string fileId, FileDetailsDTO updateDto, string userId);
+        Task<ApiResponse<TractorUseHistoryPagedDTO>> GetTractorUseHistory(string tractorId, PaginationParams paginationParams);
     }
 }

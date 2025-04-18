@@ -480,5 +480,61 @@ namespace MTCS.Service.Services
                 "Cập nhật thông tin tệp tin thành công",
                 null);
         }
+
+        public async Task<ApiResponse<TractorUseHistoryPagedDTO>> GetTractorUseHistory(
+    string tractorId,
+    PaginationParams paginationParams)
+        {
+            if (string.IsNullOrEmpty(tractorId))
+            {
+                return new ApiResponse<TractorUseHistoryPagedDTO>(
+                    false,
+                    null,
+                    "Invalid tractor ID",
+                    "Mã đầu kéo không hợp lệ",
+                    "Tractor ID cannot be empty");
+            }
+
+            var tractor = await _unitOfWork.TractorRepository.GetTractorById(tractorId);
+            if (tractor == null)
+            {
+                return new ApiResponse<TractorUseHistoryPagedDTO>(
+                    false,
+                    null,
+                    "Tractor not found",
+                    "Không tìm thấy đầu kéo",
+                    $"No tractor found with ID: {tractorId}");
+            }
+
+            var useHistory = await _unitOfWork.TractorRepository.GetTractorUseHistory(tractorId, paginationParams);
+
+            if (useHistory == null || useHistory.Items.Count == 0)
+            {
+                var result = new TractorUseHistoryPagedDTO
+                {
+                    TractorUseHistories = new PagedList<TractorUseHistory>(
+                        new List<TractorUseHistory>(), 0, paginationParams.PageNumber, paginationParams.PageSize)
+                };
+
+                return new ApiResponse<TractorUseHistoryPagedDTO>(
+                    true,
+                    result,
+                    "No use history found for this tractor",
+                    "Không tìm thấy lịch sử sử dụng cho đầu kéo này",
+                    null);
+            }
+
+            var responseDto = new TractorUseHistoryPagedDTO
+            {
+                TractorUseHistories = useHistory
+            };
+
+            return new ApiResponse<TractorUseHistoryPagedDTO>(
+                true,
+                responseDto,
+                $"Retrieved {useHistory.Items.Count} use history records (page {useHistory.CurrentPage} of {useHistory.TotalPages})",
+                $"Đã tìm thấy {useHistory.Items.Count} bản ghi lịch sử đầu kéo {tractor.LicensePlate}",
+                null);
+        }
     }
 }

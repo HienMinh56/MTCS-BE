@@ -247,5 +247,40 @@ namespace MTCS.Data.Repository
                 .Where(t => t.Status == "OnDuty" || t.Status == "Active")
                 .ToListAsync();
         }
+
+        public async Task<PagedList<TrailerUseHistory>> GetTrailerUseHistory(
+    string trailerId,
+    PaginationParams paginationParams)
+        {
+            var query = _context.Trips
+                .AsNoTracking()
+                .Include(x => x.Driver)
+                .Include(x => x.Tractor)
+                .Join(
+                    _context.DeliveryStatuses,
+                    trip => trip.Status,
+                    status => status.StatusId,
+                    (trip, status) => new { Trip = trip, Status = status })
+                .Where(x => x.Trip.TrailerId == trailerId)
+                .OrderByDescending(x => x.Trip.MatchTime)
+                .Select(x => new TrailerUseHistory
+                {
+                    TripId = x.Trip.TripId,
+                    DriverId = x.Trip.DriverId,
+                    DriverName = x.Trip.Driver.FullName,
+                    TractorId = x.Trip.TractorId,
+                    TractorPlate = x.Trip.Tractor.LicensePlate,
+                    StartTime = x.Trip.StartTime,
+                    EndTime = x.Trip.EndTime,
+                    MatchBy = x.Trip.MatchBy,
+                    MatchTime = x.Trip.MatchTime,
+                    Status = x.Status.StatusName
+                });
+
+            return await PagedList<TrailerUseHistory>.CreateAsync(
+                query,
+                paginationParams.PageNumber,
+                paginationParams.PageSize);
+        }
     }
 }
