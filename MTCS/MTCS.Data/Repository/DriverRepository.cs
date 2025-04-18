@@ -95,8 +95,9 @@ namespace MTCS.Data.Repository
                 TotalOrders = d.TotalProcessedOrders,
                 CurrentWeekHours = d.DriverWeeklySummaries
             .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
-            .Select(ws => ws.TotalHours.HasValue ? ws.TotalHours.Value / 60 : (int?)null)
-            .FirstOrDefault()
+            .Select(ws => ws.TotalHours.HasValue ?
+                $"{ws.TotalHours.Value / 60:D2}:{ws.TotalHours.Value % 60:D2}" : "00:00")
+            .FirstOrDefault() ?? "00:00"
             });
 
             return await PagedList<ViewDriverDTO>.CreateAsync(
@@ -112,7 +113,8 @@ namespace MTCS.Data.Repository
                 .Where(d => d.DriverId == driverId)
                 .Include(d => d.DriverDailyWorkingTimes)
                 .Include(d => d.DriverWeeklySummaries)
-                .Include(d => d.DriverFiles.Where(f => f.DeletedDate == null))
+                .Include(d => d.DriverFiles
+                .Where(f => f.DeletedDate == null))
                 .FirstOrDefaultAsync();
 
             if (driver == null)
@@ -120,28 +122,29 @@ namespace MTCS.Data.Repository
                 return null;
             }
 
-            // Get today's working time record (not sum)
             var todayWorkingTimeRecord = driver.DriverDailyWorkingTimes
                 .FirstOrDefault(wt => wt.WorkDate == today);
 
-            // Get today's working time in hours (or 0 if no record found)
-            int dailyWorkingTimeHours = 0;
-            if (todayWorkingTimeRecord != null && todayWorkingTimeRecord.TotalTime.HasValue)
+            string dailyWorkingTime = "00:00";
+            if (todayWorkingTimeRecord?.TotalTime.HasValue == true)
             {
-                // Convert minutes to hours
-                dailyWorkingTimeHours = todayWorkingTimeRecord.TotalTime.Value / 60;
+                int totalMinutes = todayWorkingTimeRecord.TotalTime.Value;
+                int hours = totalMinutes / 60;
+                int minutes = totalMinutes % 60;
+                dailyWorkingTime = $"{hours:D2}:{minutes:D2}";
             }
 
-            int? currentWeekWorkingTimeMinutes = driver.DriverWeeklySummaries
-         .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
-         .Select(ws => ws.TotalHours) // TotalHours is actually storing minutes
-         .FirstOrDefault();
+            int? weeklyTotalMinutes = driver.DriverWeeklySummaries
+        .Where(ws => ws.WeekStart <= today && ws.WeekEnd >= today)
+        .Select(ws => ws.TotalHours)
+        .FirstOrDefault();
 
-            // Convert minutes to hours
-            int currentWeekWorkingTimeHours = 0;
-            if (currentWeekWorkingTimeMinutes.HasValue)
+            string weeklyWorkingTime = "00:00";
+            if (weeklyTotalMinutes.HasValue)
             {
-                currentWeekWorkingTimeHours = currentWeekWorkingTimeMinutes.Value / 60;
+                int hours = weeklyTotalMinutes.Value / 60;
+                int minutes = weeklyTotalMinutes.Value % 60;
+                weeklyWorkingTime = $"{hours:D2}:{minutes:D2}";
             }
 
             List<DriverFileDTO> files = driver.DriverFiles
@@ -171,8 +174,8 @@ namespace MTCS.Data.Repository
                 CreatedBy = driver.CreatedBy,
                 ModifiedDate = driver.ModifiedDate,
                 ModifiedBy = driver.ModifiedBy,
-                DailyWorkingTime = dailyWorkingTimeHours,
-                CurrentWeekWorkingTime = currentWeekWorkingTimeHours,
+                DailyWorkingTime = dailyWorkingTime,
+                CurrentWeekWorkingTime = weeklyWorkingTime,
                 TotalOrder = driver.TotalProcessedOrders,
                 Files = files
             };
