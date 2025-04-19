@@ -33,6 +33,8 @@ public partial class IncidentReport
 
     public DateTime? CreatedDate { get; set; }
 
+    public int? VehicleType { get; set; }
+
     public virtual ICollection<IncidentReportsFile> IncidentReportsFiles { get; set; } = new List<IncidentReportsFile>();
 
     public virtual Trip Trip { get; set; }

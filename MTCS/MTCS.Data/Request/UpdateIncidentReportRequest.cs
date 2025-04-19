@@ -30,6 +30,9 @@ namespace MTCS.Data.Request
         [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
         public int? Type { get; set; }
 
+        [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
+        public int? VehicleType { get; set; }
+
         public List<int>? ImageType { get; set; }
 
         [StringLength(1000, ErrorMessage = "ResolutionDetails must not exceed 1000 characters.")]

@@ -97,6 +97,7 @@ namespace MTCS.Service.Services
                 IncidentTime = DateTime.Now,
                 Location = request.Location,
                 Type = request.Type,
+                VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
                 CreatedDate = DateTime.Now
             });
@@ -308,6 +309,7 @@ namespace MTCS.Service.Services
                 incident.Description = request.Description is null ? incident.Description : request.Description;
                 incident.Location = request.Location is null ? incident.Location : request.Location;
                 incident.Type = request.Type is null ? incident.Type : request.Type;
+                incident.VehicleType = request.VehicleType is null ? incident.VehicleType : request.VehicleType;
                 incident.Status = request.Status is null ? incident.Status : request.Status;
                 incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
                 incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
@@ -554,6 +556,7 @@ namespace MTCS.Service.Services
                     incident.Description = updateIncidentReportMO.Description is null ? incident.Description : updateIncidentReportMO.Description;
                     incident.Location = updateIncidentReportMO.Location is null ? incident.Location : updateIncidentReportMO.Location;
                     incident.Type = updateIncidentReportMO.Type is null ? incident.Type : updateIncidentReportMO.Type;
+                    incident.VehicleType = updateIncidentReportMO.VehicleType is null ? incident.VehicleType : updateIncidentReportMO.VehicleType;
                 }
 
                 
