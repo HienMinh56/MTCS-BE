@@ -57,6 +57,7 @@ namespace MTCS.Data.Repository
                 IncidentTime = i.IncidentTime,
                 Location = i.Location,
                 Type = i.Type,
+                VehicleType = i.VehicleType,
                 Status = i.Status,
                 ResolutionDetails = i.ResolutionDetails,
                 HandledBy = i.HandledBy,
