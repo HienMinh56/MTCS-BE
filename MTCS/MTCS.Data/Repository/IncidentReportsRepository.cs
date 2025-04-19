@@ -118,5 +118,33 @@ namespace MTCS.Data.Repository
                                  .Include(i => i.IncidentReportsFiles)
                                  .SingleOrDefaultAsync();
         }
+
+        public async Task<List<IncidentReport>> GetIncidentsByVehicleAsync(string vehicleId, int vehicleType)
+        {
+            IQueryable<IncidentReport> query = _context.IncidentReports
+                .Include(ir => ir.Trip)
+                .ThenInclude(trip => trip.Order); 
+
+            if (vehicleType == 1) 
+            {
+                query = query.Where(ir =>
+                    ir.VehicleType == 1 &&
+                    ir.Trip != null &&
+                    ir.Trip.TractorId == vehicleId);
+            }
+            else if (vehicleType == 2)
+            {
+                query = query.Where(ir =>
+                    ir.VehicleType == 2 &&
+                    ir.Trip != null &&
+                    ir.Trip.TrailerId == vehicleId);
+            }
+            else
+            {
+                return new List<IncidentReport>(); 
+            }
+
+            return await query.ToListAsync();
+        }
     }
 }

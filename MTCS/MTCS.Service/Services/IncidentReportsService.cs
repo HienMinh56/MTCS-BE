@@ -3,10 +3,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Request;
+using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
@@ -25,6 +27,7 @@ namespace MTCS.Service.Services
         Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims);
         Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
+        Task<ApiResponse<List<IncidentReportAdminDTO>>> GetIncidentReportsByVehicleAsync(string vehicleId, int vehicleType);
     }
 
     public class IncidentReportsService : IIncidentReportsService
@@ -626,5 +629,46 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
+        public async Task<ApiResponse<List<IncidentReportAdminDTO>>> GetIncidentReportsByVehicleAsync(string vehicleId, int vehicleType)
+        {
+            try
+            {
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentsByVehicleAsync(vehicleId, vehicleType);
+
+                var incidentDtos = incidents.Select(incident => new IncidentReportAdminDTO
+                {
+                    ReportId = incident.ReportId,
+                    TripId = incident.TripId,
+                    IncidentType = incident.IncidentType,
+                    Description = incident.Description,
+                    IncidentTime = incident.IncidentTime,
+                    Status = incident.Status,
+                    ResolutionDetails = incident.ResolutionDetails,
+                    HandledBy = incident.HandledBy,
+                    HandledTime = incident.HandledTime,
+                    ReportedBy = incident.ReportedBy,
+                }).ToList();
+
+                return new ApiResponse<List<IncidentReportAdminDTO>>(
+                    success: true,
+                    data: incidentDtos,
+                    message: "Lấy dữ liệu sự cố thành công",
+                    messageVN: "Lấy dữ liệu sự cố thành công",
+                    errors: null
+                );
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<IncidentReportAdminDTO>>(
+                    success: false,
+                    data: null,
+                    message: "Lỗi khi lấy dữ liệu sự cố",
+                    messageVN: "Lỗi khi lấy dữ liệu sự cố",
+                    errors: ex.Message
+                );
+            }
+        }
+
     }
 }

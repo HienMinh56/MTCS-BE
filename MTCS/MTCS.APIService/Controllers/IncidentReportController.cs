@@ -86,5 +86,17 @@ namespace MTCS.APIService.Controllers
             var result = await _incidentReportsService.DeleteIncidentReportById(reportId);
             return result;
         }
+
+        [HttpGet("HistoryIncident")]
+        public async Task<IActionResult> GetIncidentReportsByVehicle([FromQuery] string vehicleId, [FromQuery] int vehicleType)
+        {
+            var response = await _incidentReportsService.GetIncidentReportsByVehicleAsync(vehicleId, vehicleType);
+
+            if (!response.Success)
+            {
+                return BadRequest(response); 
+            }
+            return Ok(response); 
+        }
     }
 }
