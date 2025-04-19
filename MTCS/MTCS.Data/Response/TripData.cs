@@ -41,8 +41,6 @@ namespace MTCS.Data.Response
 
         public virtual ICollection<IncidentReport> IncidentReports { get; set; } = new List<IncidentReport>();
 
-        public virtual ICollection<InspectionLog> InspectionLogs { get; set; } = new List<InspectionLog>();
-
         public virtual Order Order { get; set; }
 
         public virtual Tractor Tractor { get; set; }

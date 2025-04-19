@@ -20,7 +20,6 @@ namespace MTCS.Data.Repository
                                       .Include(t => t.FuelReports)
                                       .ThenInclude(t => t.FuelReportFiles)
                                       .Include(t => t.DeliveryReports)
-                                      .Include(t => t.InspectionLogs)
                                       .AsQueryable();
 
             if (!string.IsNullOrEmpty(tripId))
@@ -85,7 +84,6 @@ namespace MTCS.Data.Repository
                 DeliveryReports = t.DeliveryReports,
                 FuelReports = t.FuelReports,
                 IncidentReports = t.IncidentReports,
-                InspectionLogs = t.InspectionLogs,
                 TripStatusHistories = t.TripStatusHistories
             }).ToList();
         }
