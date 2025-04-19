@@ -160,6 +160,7 @@ namespace MTCS.Service.Services
                 else if (request.Type == 2)
                 {
                     trip.Status = "canceled";
+                    trip.EndTime = DateTime.Now;
                     if (request.VehicleType == 1)
                     {
                         var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
@@ -188,6 +189,7 @@ namespace MTCS.Service.Services
                 else if (request.Type == 3)
                 {
                     trip.Status = "canceled";
+                    trip.EndTime = DateTime.Now;
                     if (request.VehicleType == 1)
                     {
                         var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);

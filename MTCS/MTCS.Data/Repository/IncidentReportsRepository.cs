@@ -146,5 +146,20 @@ namespace MTCS.Data.Repository
 
             return await query.ToListAsync();
         }
+
+        public async Task<IncidentReport> GetRecentIncidentReport(string tripId)
+        {
+            var recentIncidentReport = await _context.IncidentReports
+                .OrderByDescending(i => i.CreatedDate)
+                .FirstOrDefaultAsync(t => t.TripId == tripId);
+            if (recentIncidentReport != null)
+            {
+                return recentIncidentReport;
+            }
+            else
+            {
+                throw new Exception("No incident report found.");
+            }
+        }
     }
 }

@@ -11,6 +11,5 @@ namespace MTCS.Data.Request
         public string? DriverId { get; set; }
         public string? TractorId { get; set; }
         public string? TrailerId { get; set; }
-        public string? Status { get; set; }
     }
 }
