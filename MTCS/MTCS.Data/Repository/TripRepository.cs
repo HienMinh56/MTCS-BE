@@ -12,66 +12,51 @@ namespace MTCS.Data.Repository
         public TripRepository(MTCSContext context) : base(context) { }
 
 
-        public async Task<IEnumerable<TripData>> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId, string? trackingCode, string? tractorlicensePlate, string? trailerlicensePlate)
+        public async Task<IEnumerable<TripData>> GetTripsByFilterAsync(
+     string? tripId,
+     string? driverId,
+     string? status,
+     string? tractorId,
+     string? trailerId,
+     string? orderId,
+     string? trackingCode,
+     string? tractorlicensePlate,
+     string? trailerlicensePlate
+ )
         {
-            var query = _context.Trips.Include(t => t.TripStatusHistories)
-                                      .Include(t => t.Order)
-                                      .Include(i => i.IncidentReports)
-                                      .Include(t => t.FuelReports)
-                                      .ThenInclude(t => t.FuelReportFiles)
-                                      .Include(t => t.DeliveryReports)
-                                      .AsQueryable();
+            var query = _context.Trips.AsQueryable();
 
-            if (!string.IsNullOrEmpty(tripId))
-            {
-                query = query.Where(t => t.TripId == tripId);
-            }
+            if (!string.IsNullOrEmpty(tripId)) query = query.Where(t => t.TripId == tripId);
+            if (!string.IsNullOrEmpty(driverId)) query = query.Where(t => t.DriverId == driverId);
+            if (!string.IsNullOrEmpty(status)) query = query.Where(t => t.Status == status);
+            if (!string.IsNullOrEmpty(tractorId)) query = query.Where(t => t.TractorId == tractorId);
+            if (!string.IsNullOrEmpty(trailerId)) query = query.Where(t => t.TrailerId == trailerId);
+            if (!string.IsNullOrEmpty(orderId)) query = query.Where(t => t.OrderId == orderId);
+            if (!string.IsNullOrEmpty(trackingCode)) query = query.Where(t => t.Order.TrackingCode == trackingCode);
+            if (!string.IsNullOrEmpty(tractorlicensePlate)) query = query.Where(t => t.Tractor.LicensePlate == tractorlicensePlate);
+            if (!string.IsNullOrEmpty(trailerlicensePlate)) query = query.Where(t => t.Trailer.LicensePlate == trailerlicensePlate);
 
-            if (!string.IsNullOrEmpty(driverId))
-            {
-                query = query.Where(t => t.DriverId == driverId);
-            }
-            if (!string.IsNullOrEmpty(status))
-            {
-                query = query.Where(t => t.Status == status);
-            }
-            if (!string.IsNullOrEmpty(tractorId))
-            {
-                query = query.Where(t => t.TractorId == tractorId);
-            }
-            if (!string.IsNullOrEmpty(trailerId))
-            {
-                query = query.Where(t => t.TrailerId == trailerId);
-            }
-            if (!string.IsNullOrEmpty(orderId))
-            {
-                query = query.Where(t => t.OrderId == orderId);
-            }
+            query = query.AsNoTracking();
 
-            if (!string.IsNullOrEmpty(trackingCode))
-            {
-                query = query.Where(t => t.Order.TrackingCode == trackingCode);
-            }
+            var trips = await query
+                .Include(t => t.Order)
+                .Include(t => t.Driver)
+                .Include(t => t.Tractor)
+                .Include(t => t.Trailer)
+                .Include(t => t.TripStatusHistories)
+                .Include(t => t.IncidentReports)
+                .Include(t => t.FuelReports)
+                .ThenInclude(t => t.FuelReportFiles)
+                .Include(t => t.DeliveryReports)
+                .ToListAsync();
 
-            if (!string.IsNullOrEmpty(tractorlicensePlate))
-            {
-                query = query.Where(t => t.Tractor.LicensePlate == tractorlicensePlate);
-            }
-
-            if (!string.IsNullOrEmpty(trailerlicensePlate))
-            {
-                query = query.Where(t => t.Trailer.LicensePlate == trailerlicensePlate);
-            }
-
-            var trips = await query.ToListAsync();
-
-            // Map the IncidentReport entities to IncidentReportsData objects
             return trips.Select(t => new TripData
             {
                 TripId = t.TripId,
                 OrderId = t.OrderId,
                 TrackingCode = t.Order?.TrackingCode,
                 DriverId = t.DriverId,
+                DriverName = t.Driver?.FullName, 
                 TractorId = t.TractorId,
                 TrailerId = t.TrailerId,
                 StartTime = t.StartTime,

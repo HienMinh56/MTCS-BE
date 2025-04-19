@@ -16,6 +16,7 @@ namespace MTCS.Data.Response
         public string TrackingCode { get; set; }
 
         public string DriverId { get; set; }
+        public string DriverName { get; set; }
 
         public string TractorId { get; set; }
 
