@@ -29,6 +29,8 @@ public partial class Trip
 
     public DateTime? MatchTime { get; set; }
 
+    public string Note { get; set; }
+
     public virtual ICollection<DeliveryReport> DeliveryReports { get; set; } = new List<DeliveryReport>();
 
     public virtual Driver Driver { get; set; }

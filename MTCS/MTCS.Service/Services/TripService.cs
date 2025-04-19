@@ -459,6 +459,31 @@ namespace MTCS.Service.Services
         }
         #endregion
 
+        public async Task<IBusinessResult> CancelTrip (CancelTripRequest request ,ClaimsPrincipal claims)
+        {
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+
+            var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+            if (trip == null)
+                return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
+            trip.Note = request.Note;
+            trip.Status = "canceled";
+            trip.StartTime = DateTime.Now;
+            trip.EndTime = DateTime.Now;
+            await _unitOfWork.TripRepository.UpdateAsync(trip);
+
+            await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
+            {
+                HistoryId = Guid.NewGuid().ToString(),
+                TripId = trip.TripId,
+                StatusId = trip.Status,
+                StartTime = DateTime.Now
+            });
+
+            await _notificationService.SendNotificationAsync(trip.DriverId, "Chuyến đi đã bị hủy", $"Chuyến {request.TripId} đã được cập nhật thành '{trip.Status}' lý do {request.Note} vào lúc {trip.EndTime} bởi {userName}.", userName);
+            return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", trip);
+        }
+
         #region
         public async Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId)
         {

@@ -61,6 +61,17 @@ namespace MTCS.APIService.Controllers
             return BadRequest(result);
         }
 
+        [HttpPut("cancel")]
+        public async Task<IActionResult> Cancel([FromBody]CancelTripRequest request)
+        {
+
+            var result = await _tripService.CancelTrip(request, User);
+            if (result.Status == Const.SUCCESS_UPDATE_CODE)
+                return Ok(result);
+
+            return BadRequest(result);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateTrip([FromForm] CreateTripRequestModel model)
         {

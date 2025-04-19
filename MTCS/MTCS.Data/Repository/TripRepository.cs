@@ -88,6 +88,7 @@ namespace MTCS.Data.Repository
             }).ToList();
         }
 
+
         public async Task<(bool IsInUse, List<Trip> ActiveTrips)> IsTractorInUseStatusNow(string tractorId)
         {
             var activeTrips = await _context.Trips
