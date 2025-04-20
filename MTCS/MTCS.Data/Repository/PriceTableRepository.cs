@@ -41,21 +41,22 @@ namespace MTCS.Data.Repository
         public async Task<List<PriceTable>> GetPriceTables(int? version = null)
         {
             var query = _context.PriceTables.AsNoTracking();
+            var maxVersion = await _context.PriceTables
+                .AsNoTracking()
+                .MaxAsync(p => p.Version) ?? 0;
 
             if (!version.HasValue)
             {
-                var maxVersionQuery = _context.PriceTables.AsQueryable();
-
-                var maxVersion = await maxVersionQuery
-                    .MaxAsync(p => p.Version) ?? 0;
-
-                query = query.Where(p => p.Version == maxVersion);
+                query = query.Where(p => p.Version == maxVersion && p.Status == 1);
+            }
+            else if (version.Value == maxVersion)
+            {
+                query = query.Where(p => p.Version == version.Value && p.Status == 1);
             }
             else
             {
                 query = query.Where(p => p.Version == version.Value);
             }
-
             return await query
                 .OrderBy(p => p.MinKm)
                 .ToListAsync();

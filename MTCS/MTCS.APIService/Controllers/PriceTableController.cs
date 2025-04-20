@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Helpers;
 using MTCS.Data.Request;
 using MTCS.Service.Services;
@@ -20,6 +21,13 @@ namespace MTCS.APIService.Controllers
         public async Task<IActionResult> GetPriceTables([FromQuery] int? version = null)
         {
             var result = await _priceTableService.GetPriceTables(version);
+            return Ok(result);
+        }
+
+        [HttpGet("price-changes/{version}")]
+        public async Task<IActionResult> GetPriceChangesInVersion(int version)
+        {
+            var result = await _priceTableService.GetPriceChangesInVersion(version);
             return Ok(result);
         }
 
@@ -58,11 +66,12 @@ namespace MTCS.APIService.Controllers
             return StatusCode(result.Status, result.Message);
         }
 
+        [Authorize]
         [HttpPut]
-        public async Task<IActionResult> UpdatePriceTable([FromBody] List<UpdatePriceTableRequest> priceTable)
+        public async Task<IActionResult> UpdatePriceTable([FromBody] UpdatePriceTableRequest priceTable)
         {
-            var currentUser = HttpContext.User;
-            var result = await _priceTableService.UpdatePriceTable(priceTable, currentUser);
+            var userName = User.GetUserName();
+            var result = await _priceTableService.UpdatePriceTable(priceTable, userName);
             return Ok(result);
         }
 
