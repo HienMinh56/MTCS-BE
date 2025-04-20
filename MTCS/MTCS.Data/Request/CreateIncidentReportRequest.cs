@@ -24,10 +24,10 @@ namespace MTCS.Data.Request
         [StringLength(200, ErrorMessage = "Location must not exceed 200 characters.")]
         public string? Location { get; set; }
 
-        [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
+        [Range(1, 3, ErrorMessage = "Type must be between 1 and 3.")]
         public int? Type { get; set; }
 
-        [Range(1, 2, ErrorMessage = "Type must be between 1 and 2.")]
+        [Range(1, 2, ErrorMessage = "VehicleType must be between 1 and 2.")]
         public int? VehicleType { get; set; }
 
         [RegularExpression("^(Handling|Resolved)$", ErrorMessage = "Status must be Handling or Resolved")]
