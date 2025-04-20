@@ -62,7 +62,7 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
-        public async Task<(List<int> AllVersions, int ActiveVersion)> GetPriceTableVersions()
+        public async Task<(List<VersionInfo> VersionsInfo, int ActiveVersion)> GetPriceTableVersions()
         {
             var allVersions = await _context.PriceTables
                 .AsNoTracking()
@@ -76,8 +76,35 @@ namespace MTCS.Data.Repository
                 .Where(p => p.Status == 1)
                 .MaxAsync(p => p.Version ?? 0);
 
-            return (allVersions, activeVersion);
+            var versionsInfo = new List<VersionInfo>();
+
+            foreach (var version in allVersions)
+            {
+                var startDate = await _context.PriceTables
+                    .AsNoTracking()
+                    .Where(p => p.Version == version)
+                    .MinAsync(p => p.CreatedDate);
+
+                DateTime? endDate = null;
+                if (version < activeVersion)
+                {
+                    endDate = await _context.PriceTables
+                        .AsNoTracking()
+                        .Where(p => p.Version == version && p.Status == 0)
+                        .MaxAsync(p => p.ModifiedDate);
+                }
+
+                versionsInfo.Add(new VersionInfo
+                {
+                    Version = version,
+                    StartDate = startDate,
+                    EndDate = endDate
+                });
+            }
+
+            return (versionsInfo, activeVersion);
         }
+
 
         public async Task<PriceTable?> GetPriceForCalculation(double distance, int containerType, int containerSize, int deliveryType)
         {

@@ -42,7 +42,7 @@ namespace MTCS.Data.Request
     public class PriceTablesHistoryDTO
     {
         public List<PriceTable> PriceTables { get; set; } = new List<PriceTable>();
-        public List<int> AvailableVersions { get; set; } = new List<int>();
+        public List<VersionInfo> VersionsInfo { get; set; } = new List<VersionInfo>();
         public int CurrentVersion { get; set; }
         public int ActiveVersion { get; set; }
         public int TotalCount { get; set; }
@@ -56,5 +56,12 @@ namespace MTCS.Data.Request
         public double MinKm { get; set; }
         public double MaxKm { get; set; }
         public List<PriceTable> Changes { get; set; } = new();
+    }
+
+    public class VersionInfo
+    {
+        public int Version { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
     }
 }

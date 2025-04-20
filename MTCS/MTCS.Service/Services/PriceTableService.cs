@@ -303,7 +303,7 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var (availableVersions, activeVersion) = await _unitOfWork.PriceTableRepository.GetPriceTableVersions();
+                var (versionsInfo, activeVersion) = await _unitOfWork.PriceTableRepository.GetPriceTableVersions();
 
                 var priceTables = await _unitOfWork.PriceTableRepository.GetPriceTables(version);
 
@@ -318,8 +318,8 @@ namespace MTCS.Service.Services
                         new PriceTablesHistoryDTO
                         {
                             PriceTables = new List<PriceTable>(),
-                            AvailableVersions = availableVersions,
-                            CurrentVersion = version ?? availableVersions.FirstOrDefault(),
+                            VersionsInfo = versionsInfo,
+                            CurrentVersion = version ?? versionsInfo.FirstOrDefault()?.Version ?? 0,
                             ActiveVersion = activeVersion,
                             TotalCount = 0
                         },
@@ -336,7 +336,7 @@ namespace MTCS.Service.Services
                 var response = new PriceTablesHistoryDTO
                 {
                     PriceTables = priceTables,
-                    AvailableVersions = availableVersions,
+                    VersionsInfo = versionsInfo,
                     ActiveVersion = activeVersion,
                     CurrentVersion = currentVersion,
                     TotalCount = priceTables.Count
