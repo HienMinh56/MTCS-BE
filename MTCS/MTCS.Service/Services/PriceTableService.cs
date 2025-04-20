@@ -5,8 +5,6 @@ using MTCS.Data.Request;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
 using OfficeOpenXml;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace MTCS.Service.Services
 {
@@ -14,13 +12,15 @@ namespace MTCS.Service.Services
     public interface IPriceTableService
     {
         public Task<BusinessResult> GetPriceTableById(string id);
-        public Task<BusinessResult> UpdatePriceTable(List<UpdatePriceTableRequest> priceTable, ClaimsPrincipal claims);
+
         public Task<BusinessResult> DownloadPriceTableTemplate();
         public Task<BusinessResult> DeletePriceTable(string id);
         Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType);
         Task<ApiResponse<List<PriceTable>>> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName);
         Task<ApiResponse<List<PriceTable>>> ImportPriceTable(IFormFile excelFile, string userName);
         Task<ApiResponse<PriceTablesHistoryDTO>> GetPriceTables(int? version = null);
+        Task<ApiResponse<List<PriceChangeGroup>>> GetPriceChangesInVersion(int version);
+        Task<ApiResponse<PriceTable>> UpdatePriceTable(UpdatePriceTableRequest priceTable, string userName);
     }
     public class PriceTableService : IPriceTableService
     {
@@ -30,52 +30,80 @@ namespace MTCS.Service.Services
         {
             _unitOfWork = unitOfWork;
         }
-        #region UpdatePriceTable
-        public async Task<BusinessResult> UpdatePriceTable(List<UpdatePriceTableRequest> priceTable, ClaimsPrincipal claims)
+
+        public async Task<ApiResponse<PriceTable>> UpdatePriceTable(UpdatePriceTableRequest priceTable, string userName)
         {
             try
             {
-                var customerId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                                ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 await _unitOfWork.BeginTransactionAsync();
-                foreach (var price in priceTable)
+
+                var existingPrice = _unitOfWork.PriceTableRepository.Get(pt => pt.PriceId == priceTable.PriceId);
+                if (existingPrice == null)
                 {
-                    var existingPrice = _unitOfWork.PriceTableRepository.Get(pt => pt.PriceId == price.PriceId);
-                    if (existingPrice == null)
-                    {
-                        return new BusinessResult(400, "Price Table cannot find");
-                    }
-                    existingPrice.Status = 0;
-                    existingPrice.ModifiedBy = userName;
-                    existingPrice.ModifiedDate = DateTime.Now;
-                    await _unitOfWork.PriceTableRepository.UpdateAsync(existingPrice);
-
-
-                    var newPrice = new PriceTable
-                    {
-                        PriceId = Guid.NewGuid().ToString(),
-                        MinKm = price.MinKm,
-                        MaxKm = price.MaxKm,
-                        //ContainerSize = price.ContainerSize,
-                        //ContainerType = price.ContainerType,
-                        MinPricePerKm = price.MinPricePerKm,
-                        MaxPricePerKm = price.MaxPricePerKm,
-                        Status = 1,
-                        CreatedBy = userName,
-                        CreatedDate = DateTime.Now
-                    };
-                    await _unitOfWork.PriceTableRepository.CreateAsync(newPrice);
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return new ApiResponse<PriceTable>(
+                        false,
+                        null,
+                        $"Price Table with ID {priceTable.PriceId} not found",
+                        $"Không tìm thấy bảng giá có ID {priceTable.PriceId}",
+                        null);
                 }
-                return new BusinessResult(200, "Price table created successfully");
+
+                if (existingPrice.Status == 0)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    return new ApiResponse<PriceTable>(
+                        false,
+                        null,
+                        $"Can not update inactive price",
+                        $"Không thể cập nhật giá không hiện hành",
+                        null);
+                }
+
+                existingPrice.Status = 0;
+                existingPrice.ModifiedBy = userName;
+                existingPrice.ModifiedDate = DateTime.Now;
+                await _unitOfWork.PriceTableRepository.UpdateAsync(existingPrice);
+
+                var newPrice = new PriceTable
+                {
+                    PriceId = Guid.NewGuid().ToString(),
+                    MinKm = existingPrice.MinKm,
+                    MaxKm = existingPrice.MaxKm,
+                    ContainerSize = existingPrice.ContainerSize,
+                    ContainerType = existingPrice.ContainerType,
+                    DeliveryType = existingPrice.DeliveryType,
+                    Version = existingPrice.Version,
+
+                    MinPricePerKm = priceTable.MinPricePerKm,
+                    MaxPricePerKm = priceTable.MaxPricePerKm,
+
+                    Status = 1,
+                    CreatedBy = userName,
+                    CreatedDate = DateTime.Now
+                };
+
+                await _unitOfWork.PriceTableRepository.CreateAsync(newPrice);
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new ApiResponse<PriceTable>(
+                    true,
+                    newPrice,
+                    "Successfully updated price record",
+                    "Đã cập nhật thành công bản ghi giá",
+                    null);
             }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return new BusinessResult(500, ex.Message);
+                return new ApiResponse<PriceTable>(
+                    false,
+                    null,
+                    "Failed to update price table",
+                    "Cập nhật bảng giá thất bại",
+                    ex.Message);
             }
         }
-        #endregion
 
         public async Task<ApiResponse<List<PriceTable>>> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName)
         {
@@ -363,6 +391,38 @@ namespace MTCS.Service.Services
             return new ApiResponse<CalculatedPriceResponse>(true, calculatedPrice, "Price calculated successfully", "Tính giá thành công", null);
         }
 
+        public async Task<ApiResponse<List<PriceChangeGroup>>> GetPriceChangesInVersion(int version)
+        {
+            try
+            {
+                var priceChanges = await _unitOfWork.PriceTableRepository.GetPriceChangesInVersion(version);
 
+                if (priceChanges == null || !priceChanges.Any())
+                {
+                    return new ApiResponse<List<PriceChangeGroup>>(
+                        false,
+                        new List<PriceChangeGroup>(),
+                        $"No price changes found in version {version}",
+                        $"Không tìm thấy thay đổi giá trong phiên bản {version}",
+                        null);
+                }
+
+                return new ApiResponse<List<PriceChangeGroup>>(
+                    true,
+                    priceChanges,
+                    $"Retrieved {priceChanges.Count} price change groups for version {version}",
+                    $"Đã lấy {priceChanges.Count} thay đổi giá cho phiên bản {version}",
+                    null);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<PriceChangeGroup>>(
+                    false,
+                    null,
+                    "Failed to retrieve price changes",
+                    "Lấy thay đổi giá thất bại",
+                    ex.Message);
+            }
+        }
     }
 }
