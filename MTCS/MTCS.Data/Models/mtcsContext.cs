@@ -46,8 +46,6 @@ public partial class MTCSContext : DbContext
 
     public virtual DbSet<IncidentReportsFile> IncidentReportsFiles { get; set; }
 
-    public virtual DbSet<InspectionLog> InspectionLogs { get; set; }
-
     public virtual DbSet<InternalUser> InternalUsers { get; set; }
 
     public virtual DbSet<Order> Orders { get; set; }
@@ -401,35 +399,6 @@ public partial class MTCSContext : DbContext
                 .HasForeignKey(d => d.ReportId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__IncidentR__Repor__1F98B2C1");
-        });
-
-        modelBuilder.Entity<InspectionLog>(entity =>
-        {
-            entity.HasKey(e => e.InspectionId).HasName("PK__Inspecti__30B2DC08ACA20906");
-
-            entity.Property(e => e.InspectionId)
-                .HasMaxLength(255)
-                .IsUnicode(false);
-            entity.Property(e => e.InspectionDate).HasColumnType("datetime");
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.TractorStatus)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.TrailerStatus)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.TripId)
-                .HasMaxLength(255)
-                .IsUnicode(false);
-            entity.Property(e => e.VehicleRegistration)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-
-            entity.HasOne(d => d.Trip).WithMany(p => p.InspectionLogs)
-                .HasForeignKey(d => d.TripId)
-                .HasConstraintName("FK__Inspectio__TripI__0D7A0286");
         });
 
         modelBuilder.Entity<InternalUser>(entity =>

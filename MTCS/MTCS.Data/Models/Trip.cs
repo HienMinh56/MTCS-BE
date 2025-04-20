@@ -29,6 +29,8 @@ public partial class Trip
 
     public DateTime? MatchTime { get; set; }
 
+    public string Note { get; set; }
+
     public virtual ICollection<DeliveryReport> DeliveryReports { get; set; } = new List<DeliveryReport>();
 
     public virtual Driver Driver { get; set; }
@@ -36,8 +38,6 @@ public partial class Trip
     public virtual ICollection<FuelReport> FuelReports { get; set; } = new List<FuelReport>();
 
     public virtual ICollection<IncidentReport> IncidentReports { get; set; } = new List<IncidentReport>();
-
-    public virtual ICollection<InspectionLog> InspectionLogs { get; set; } = new List<InspectionLog>();
 
     public virtual Order Order { get; set; }
 

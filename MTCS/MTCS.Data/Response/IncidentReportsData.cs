@@ -27,6 +27,8 @@ namespace MTCS.Data.Response
 
         public int? Type { get; set; }
 
+        public int? VehicleType { get; set; }
+
         public string Status { get; set; }
 
         public string ResolutionDetails { get; set; }

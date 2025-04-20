@@ -3,10 +3,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Request;
+using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
@@ -25,6 +27,7 @@ namespace MTCS.Service.Services
         Task<IBusinessResult> UpdateIncidentReportMO(UpdateIncidentReportMORequest updateIncidentReportMO, ClaimsPrincipal claims);
         Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
+        Task<ApiResponse<List<IncidentReportAdminDTO>>> GetIncidentReportsByVehicleAsync(string vehicleId, int vehicleType);
     }
 
     public class IncidentReportsService : IIncidentReportsService
@@ -97,6 +100,7 @@ namespace MTCS.Service.Services
                 IncidentTime = DateTime.Now,
                 Location = request.Location,
                 Type = request.Type,
+                VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
                 CreatedDate = DateTime.Now
             });
@@ -134,6 +138,9 @@ namespace MTCS.Service.Services
                     }
                 }
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+                var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
+                var owner = order.CreatedBy;
                 if (request.Type == 1)
                 {
                     trip.Status = "delaying";
@@ -147,10 +154,54 @@ namespace MTCS.Service.Services
                         StartTime = DateTime.Now
                     };
                     await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
+                    // Gửi thông báo sau khi cập nhật thành công
+                    await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {userName}.", userName);
                 }
                 else if (request.Type == 2)
                 {
                     trip.Status = "canceled";
+                    trip.EndTime = DateTime.Now;
+                    if (request.VehicleType == 1)
+                    {
+                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                        tractor.Status = VehicleStatus.Inactive.ToString();
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    }
+                    if (request.VehicleType == 2)
+                    {
+                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
+                        trailer.Status = VehicleStatus.Inactive.ToString();
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                    }
+                        await _unitOfWork.TripRepository.UpdateAsync(trip);
+
+                    var tripStatusHistory = new TripStatusHistory
+                    {
+                        HistoryId = Guid.NewGuid().ToString(),
+                        TripId = request.TripId,
+                        StatusId = "canceled",
+                        StartTime = DateTime.Now
+                    };
+                    await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
+                    // Gửi thông báo sau khi cập nhật thành công
+                    await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {userName}.", userName);
+                }
+                else if (request.Type == 3)
+                {
+                    trip.Status = "canceled";
+                    trip.EndTime = DateTime.Now;
+                    if (request.VehicleType == 1)
+                    {
+                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                        tractor.Status = VehicleStatus.Inactive.ToString();
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    }
+                    if (request.VehicleType == 2)
+                    {
+                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
+                        trailer.Status = VehicleStatus.Inactive.ToString();
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                    }
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
 
                     var tripStatusHistory = new TripStatusHistory
@@ -161,6 +212,8 @@ namespace MTCS.Service.Services
                         StartTime = DateTime.Now
                     };
                     await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
+                    // Gửi thông báo sau khi cập nhật thành công
+                    await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {userName}, cần hủy bỏ các chuyến trong ngày có liên quan tới báo cáo này.", userName);
                 }
             }
             catch (Exception ex)
@@ -170,13 +223,9 @@ namespace MTCS.Service.Services
             }
 
             var result = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(reportId);
-            var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
-            var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
-            var owner = order.CreatedBy;
+            
             if (result is not null)
-            {
-                // Gửi thông báo sau khi cập nhật thành công
-                await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {result.ReportedBy}.", result.ReportedBy);
+            {                
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, result);
             }
             else
@@ -308,6 +357,7 @@ namespace MTCS.Service.Services
                 incident.Description = request.Description is null ? incident.Description : request.Description;
                 incident.Location = request.Location is null ? incident.Location : request.Location;
                 incident.Type = request.Type is null ? incident.Type : request.Type;
+                incident.VehicleType = request.VehicleType is null ? incident.VehicleType : request.VehicleType;
                 incident.Status = request.Status is null ? incident.Status : request.Status;
                 incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
                 incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
@@ -453,8 +503,6 @@ namespace MTCS.Service.Services
                 var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == incidentReportRequest.reportId);
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
                 var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
-                var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
                 if (incident == null)
                 {
@@ -499,13 +547,45 @@ namespace MTCS.Service.Services
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
                         driver.Status = 1; // Free
-                        tractor.Status = VehicleStatus.Active.ToString();
-                        trailer.Status = VehicleStatus.Active.ToString();
                         trip.EndTime = DateTime.Now;
+                        if (incident.VehicleType == 1)
+                        {
+                            var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                            tractor.Status = VehicleStatus.Inactive.ToString();
+                            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        }
+                        if (incident.VehicleType == 2)
+                        {
+                            var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
+                            trailer.Status = VehicleStatus.Inactive.ToString();
+                            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                        }
 
                         await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                        await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    }
+                    else if (incident.Type == 3) // Cancellation incident
+                    {
+                        incident.Status = "Resolved";
+                        incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.HandledBy = userName;
+                        incident.HandledTime = DateTime.Now;
+                        driver.Status = 1; // Free
+                        trip.EndTime = DateTime.Now;
+                        if (incident.VehicleType == 1)
+                        {
+                            var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                            tractor.Status = VehicleStatus.Inactive.ToString();
+                            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        }
+                        if (incident.VehicleType == 2)
+                        {
+                            var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
+                            trailer.Status = VehicleStatus.Inactive.ToString();
+                            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                        }
+
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TripRepository.UpdateAsync(trip);
                     }
 
@@ -554,6 +634,7 @@ namespace MTCS.Service.Services
                     incident.Description = updateIncidentReportMO.Description is null ? incident.Description : updateIncidentReportMO.Description;
                     incident.Location = updateIncidentReportMO.Location is null ? incident.Location : updateIncidentReportMO.Location;
                     incident.Type = updateIncidentReportMO.Type is null ? incident.Type : updateIncidentReportMO.Type;
+                    incident.VehicleType = updateIncidentReportMO.VehicleType is null ? incident.VehicleType : updateIncidentReportMO.VehicleType;
                 }
 
                 
@@ -623,5 +704,46 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
+        public async Task<ApiResponse<List<IncidentReportAdminDTO>>> GetIncidentReportsByVehicleAsync(string vehicleId, int vehicleType)
+        {
+            try
+            {
+                var incidents = await _unitOfWork.IncidentReportsRepository.GetIncidentsByVehicleAsync(vehicleId, vehicleType);
+
+                var incidentDtos = incidents.Select(incident => new IncidentReportAdminDTO
+                {
+                    ReportId = incident.ReportId,
+                    TripId = incident.TripId,
+                    IncidentType = incident.IncidentType,
+                    Description = incident.Description,
+                    IncidentTime = incident.IncidentTime,
+                    Status = incident.Status,
+                    ResolutionDetails = incident.ResolutionDetails,
+                    HandledBy = incident.HandledBy,
+                    HandledTime = incident.HandledTime,
+                    ReportedBy = incident.ReportedBy,
+                }).ToList();
+
+                return new ApiResponse<List<IncidentReportAdminDTO>>(
+                    success: true,
+                    data: incidentDtos,
+                    message: "Lấy dữ liệu sự cố thành công",
+                    messageVN: "Lấy dữ liệu sự cố thành công",
+                    errors: null
+                );
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<IncidentReportAdminDTO>>(
+                    success: false,
+                    data: null,
+                    message: "Lỗi khi lấy dữ liệu sự cố",
+                    messageVN: "Lỗi khi lấy dữ liệu sự cố",
+                    errors: ex.Message
+                );
+            }
+        }
+
     }
 }

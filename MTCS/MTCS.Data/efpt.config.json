@@ -71,10 +71,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[InspectionLogs]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[InternalUser]",
          "ObjectType": 0
       },

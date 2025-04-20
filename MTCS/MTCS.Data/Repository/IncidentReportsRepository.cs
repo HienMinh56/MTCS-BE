@@ -57,6 +57,7 @@ namespace MTCS.Data.Repository
                 IncidentTime = i.IncidentTime,
                 Location = i.Location,
                 Type = i.Type,
+                VehicleType = i.VehicleType,
                 Status = i.Status,
                 ResolutionDetails = i.ResolutionDetails,
                 HandledBy = i.HandledBy,
@@ -116,6 +117,49 @@ namespace MTCS.Data.Repository
                                  .Include(i => i.Trip)
                                  .Include(i => i.IncidentReportsFiles)
                                  .SingleOrDefaultAsync();
+        }
+
+        public async Task<List<IncidentReport>> GetIncidentsByVehicleAsync(string vehicleId, int vehicleType)
+        {
+            IQueryable<IncidentReport> query = _context.IncidentReports
+                .Include(ir => ir.Trip)
+                .ThenInclude(trip => trip.Order); 
+
+            if (vehicleType == 1) 
+            {
+                query = query.Where(ir =>
+                    ir.VehicleType == 1 &&
+                    ir.Trip != null &&
+                    ir.Trip.TractorId == vehicleId);
+            }
+            else if (vehicleType == 2)
+            {
+                query = query.Where(ir =>
+                    ir.VehicleType == 2 &&
+                    ir.Trip != null &&
+                    ir.Trip.TrailerId == vehicleId);
+            }
+            else
+            {
+                return new List<IncidentReport>(); 
+            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<IncidentReport> GetRecentIncidentReport(string tripId)
+        {
+            var recentIncidentReport = await _context.IncidentReports
+                .OrderByDescending(i => i.CreatedDate)
+                .FirstOrDefaultAsync(t => t.TripId == tripId);
+            if (recentIncidentReport != null)
+            {
+                return recentIncidentReport;
+            }
+            else
+            {
+                throw new Exception("No incident report found.");
+            }
         }
     }
 }

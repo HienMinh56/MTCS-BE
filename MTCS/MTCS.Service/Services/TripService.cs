@@ -165,6 +165,17 @@ namespace MTCS.Service.Services
                 if (oldTrip == null)
                     return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
 
+                // Get order to retrieve completion time and delivery date
+                var order = await _unitOfWork.OrderRepository.GetByIdAsync(oldTrip.OrderId);
+                if (order == null || !order.DeliveryDate.HasValue)
+                    return new BusinessResult(Const.FAIL_READ_CODE, "Không tìm thấy đơn hàng hoặc đơn hàng không có ngày giao hàng!");
+
+                var deliveryDate = order.DeliveryDate.Value;
+
+                // Calculate completion time in minutes
+                var completionTimeSpan = order.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
+                int completionMinutes = (int)completionTimeSpan.TotalMinutes;
+
                 // Validate trailer if being changed
                 if (!string.IsNullOrEmpty(model.TrailerId) && model.TrailerId != oldTrip.TrailerId)
                 {
@@ -204,7 +215,11 @@ namespace MTCS.Service.Services
                 }
 
                 // Validate driver if being changed
-                if (!string.IsNullOrEmpty(model.DriverId) && model.DriverId != oldTrip.DriverId)
+                string oldDriverId = oldTrip.DriverId;
+                string newDriverId = model.DriverId ?? oldDriverId;
+                bool isDriverChanged = !string.IsNullOrEmpty(model.DriverId) && model.DriverId != oldDriverId;
+
+                if (isDriverChanged)
                 {
                     var newDriver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(model.DriverId);
 
@@ -215,7 +230,42 @@ namespace MTCS.Service.Services
                     // Check driver status - must be Active (1)
                     if (newDriver.Status != (int)DriverStatus.Active)
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, "Driver phải ở trạng thái Active để được chỉ định cho Trip");
+
+                    // Get driver working hour limits
+                    var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
+                    var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
+
+                    if (dailyLimitConfig == null || weeklyLimitConfig == null)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Không tìm thấy cấu hình giới hạn thời gian!");
+
+                    if (!int.TryParse(dailyLimitConfig.ConfigValue, out int dailyHourLimit))
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Cấu hình giới hạn thời gian ngày không hợp lệ!");
+
+                    if (!int.TryParse(weeklyLimitConfig.ConfigValue, out int weeklyHourLimit))
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, "Cấu hình giới hạn thời gian tuần không hợp lệ!");
+
+                    // Check daily working time for new driver
+                    var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                        .GetByDriverIdAndDateAsync(newDriverId, deliveryDate);
+
+                    int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
+                    if (totalDailyTime > dailyHourLimit * 60)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, $"Tài xế đã vượt quá thời gian làm việc trong ngày ({dailyHourLimit} giờ)!");
+
+                    // Calculate week boundaries
+                    var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                    var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
+                    var weekEnd = weekStart.AddDays(6);
+
+                    // Check weekly working time for new driver
+                    var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                        .GetByDriverIdAndWeekAsync(newDriverId, weekStart, weekEnd);
+
+                    int totalWeeklyTime = (weeklyRecord?.TotalHours ?? 0) + completionMinutes;
+                    if (totalWeeklyTime > weeklyHourLimit * 60)
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, $"Tài xế đã vượt quá thời gian làm việc trong tuần ({weeklyHourLimit} giờ)!");
                 }
+
                 var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(oldTrip.TripId);
 
                 // Create new trip with updated values
@@ -223,7 +273,7 @@ namespace MTCS.Service.Services
                 {
                     TripId = Guid.NewGuid().ToString(),
                     OrderId = oldTrip.OrderId,
-                    DriverId = model.DriverId ?? oldTrip.DriverId,
+                    DriverId = newDriverId,
                     TractorId = model.TractorId ?? oldTrip.TractorId,
                     TrailerId = model.TrailerId ?? oldTrip.TrailerId,
                     Status = previousStatus.StatusId,
@@ -251,11 +301,93 @@ namespace MTCS.Service.Services
                     await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                 }
 
-                if (model.DriverId != null && model.DriverId != oldTrip.DriverId)
+                if (isDriverChanged)
                 {
-                    var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(model.DriverId);
+                    // Update driver status
+                    var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(newDriverId);
                     driver.Status = (int)DriverStatus.OnDuty;
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
+
+                    // Calculate week boundaries for working time
+                    var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                    var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
+                    var weekEnd = weekStart.AddDays(6);
+
+                    // Update or create daily working time record for new driver
+                    var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                        .GetByDriverIdAndDateAsync(newDriverId, deliveryDate);
+
+                    if (dailyRecord != null)
+                    {
+                        dailyRecord.TotalTime += completionMinutes;
+                        dailyRecord.ModifiedDate = DateTime.Now;
+                        dailyRecord.ModifiedBy = userName;
+                        await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
+                    }
+                    else
+                    {
+                        var newDaily = new DriverDailyWorkingTime
+                        {
+                            RecordId = Guid.NewGuid().ToString(),
+                            DriverId = newDriverId,
+                            WorkDate = deliveryDate,
+                            TotalTime = completionMinutes,
+                            CreatedBy = userName,
+                            ModifiedDate = DateTime.Now,
+                            ModifiedBy = userName
+                        };
+                        await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
+                    }
+
+                    // Update or create weekly working time record for new driver
+                    var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                        .GetByDriverIdAndWeekAsync(newDriverId, weekStart, weekEnd);
+
+                    if (weeklyRecord != null)
+                    {
+                        weeklyRecord.TotalHours = (weeklyRecord.TotalHours ?? 0) + completionMinutes;
+                        await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
+                    }
+                    else
+                    {
+                        var newWeekly = new DriverWeeklySummary
+                        {
+                            SummaryId = Guid.NewGuid().ToString(),
+                            DriverId = newDriverId,
+                            WeekStart = weekStart,
+                            WeekEnd = weekEnd,
+                            TotalHours = completionMinutes,
+                        };
+                        await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
+                    }
+
+                    // Remove hours from old driver's records if needed
+                    if (oldDriverId != newDriverId)
+                    {
+                        // Update old driver's daily record
+                        var oldDailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                            .GetByDriverIdAndDateAsync(oldDriverId, deliveryDate);
+
+                        if (oldDailyRecord != null)
+                        {
+                            oldDailyRecord.TotalTime = oldDailyRecord.TotalTime.HasValue
+                                                       ? Math.Max(0, oldDailyRecord.TotalTime.Value - completionMinutes)
+                                                       : 0;
+                            oldDailyRecord.ModifiedDate = DateTime.Now;
+                            oldDailyRecord.ModifiedBy = userName;
+                            await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(oldDailyRecord);
+                        }
+
+                        // Update old driver's weekly record
+                        var oldWeeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                            .GetByDriverIdAndWeekAsync(oldDriverId, weekStart, weekEnd);
+
+                        if (oldWeeklyRecord != null)
+                        {
+                            oldWeeklyRecord.TotalHours = Math.Max(0, (oldWeeklyRecord.TotalHours ?? 0) - completionMinutes);
+                            await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(oldWeeklyRecord);
+                        }
+                    }
                 }
 
                 // Create trip status history entry
@@ -269,6 +401,9 @@ namespace MTCS.Service.Services
 
                 await _unitOfWork.CommitTransactionAsync();
 
+                var incident = await _unitOfWork.IncidentReportsRepository.GetRecentIncidentReport(tripId);
+                await _notificationService.SendNotificationAsync(newTrip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {newTrip.TripId} bắt đầu từ {incident.Location} để thay thế chuyến {tripId}.", "Hệ thống");
+
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", newTrip);
             }
             catch (Exception ex)
@@ -277,6 +412,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message);
             }
         }
+
         #endregion
 
         #region Create Trip Manual
@@ -447,7 +583,7 @@ namespace MTCS.Service.Services
                 }
                     var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
                     // Gửi thông báo sau khi cập nhật thành công
-                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
+                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} xuất phát từ {existingOrder.PickUpLocation}.", "Hệ thống");
 
                     return new BusinessResult(1, "Tạo trip thành công!", trip);
             }
@@ -458,6 +594,31 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
+        public async Task<IBusinessResult> CancelTrip (CancelTripRequest request ,ClaimsPrincipal claims)
+        {
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+
+            var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+            if (trip == null)
+                return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
+            trip.Note = request.Note;
+            trip.Status = "canceled";
+            trip.StartTime = DateTime.Now;
+            trip.EndTime = DateTime.Now;
+            await _unitOfWork.TripRepository.UpdateAsync(trip);
+
+            await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
+            {
+                HistoryId = Guid.NewGuid().ToString(),
+                TripId = trip.TripId,
+                StatusId = trip.Status,
+                StartTime = DateTime.Now
+            });
+
+            await _notificationService.SendNotificationAsync(trip.DriverId, "Chuyến đi đã bị hủy", $"Chuyến {request.TripId} đã được cập nhật thành '{trip.Status}' lý do {request.Note} vào lúc {trip.EndTime} bởi {userName}.", userName);
+            return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", trip);
+        }
 
         #region
         public async Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId)
@@ -547,7 +708,7 @@ namespace MTCS.Service.Services
                         if (usedTractor != null && usedTrailer != null)
                         {
                             usedTractorIds.Add(tractorId);
-                            usedTrailerIds.Add(trailerId);
+                            usedTrailerIds.Add(trailerId);                           
                             return await CreateTrip(order, driver, usedTractor, usedTrailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
                         }
                     }
@@ -632,7 +793,7 @@ namespace MTCS.Service.Services
             }
 
             var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
-            await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} chịu trách nhiệm bởi {existingOrder.CreatedBy}.", "Hệ thống");
+            await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} bắt đầu từ {existingOrder.PickUpLocation}.", "Hệ thống");
 
             return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
         }
