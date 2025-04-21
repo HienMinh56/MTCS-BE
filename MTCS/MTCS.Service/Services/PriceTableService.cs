@@ -134,7 +134,6 @@ namespace MTCS.Service.Services
                     ContainerType = price.ContainerType,
                     MinPricePerKm = price.MinPricePerKm,
                     MaxPricePerKm = price.MaxPricePerKm,
-                    DeliveryType = price.DeliveryType,
                     Status = 1,
                     Version = newVersion,
                     CreatedBy = userName,
@@ -241,7 +240,6 @@ namespace MTCS.Service.Services
                                     ContainerType = Convert.ToInt32(worksheet.Cells[row, 4].Value),
                                     MinPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 5].Value),
                                     MaxPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 6].Value),
-                                    DeliveryType = Convert.ToInt32(worksheet.Cells[row, 7].Value)
                                 };
                                 priceTableList.Add(priceTable);
                             }
@@ -282,7 +280,6 @@ namespace MTCS.Service.Services
                     worksheet.Cells[1, 4].Value = "Loại Container (1 Khô/ 2 Lạnh)";
                     worksheet.Cells[1, 5].Value = "Giá nhỏ nhất mỗi km";
                     worksheet.Cells[1, 6].Value = "Giá lớn nhất mỗi km";
-                    worksheet.Cells[1, 7].Value = "Loại vận chuyển(1 Nhập / 2 Xuất)";
 
                     var stream = new MemoryStream();
                     package.SaveAs(stream);
