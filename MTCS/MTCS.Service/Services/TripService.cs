@@ -70,7 +70,7 @@ namespace MTCS.Service.Services
 
                 var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
 
-                if (newStatus.StatusId == "completed")
+                if (currentStatus?.StatusId == "completed")
                     return new BusinessResult(400, "Cannot update completed order");
 
                 if (currentStatus != null &&
