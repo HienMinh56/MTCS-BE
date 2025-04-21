@@ -48,6 +48,7 @@ namespace MTCS.Data.Repository
                 .Include(t => t.FuelReports)
                 .ThenInclude(t => t.FuelReportFiles)
                 .Include(t => t.DeliveryReports)
+                .ThenInclude(t => t.DeliveryReportsFiles)
                 .ToListAsync();
 
             return trips.Select(t => new TripData
