@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MTCS.Data.Models;
 
 namespace MTCS.Data.DTOs
 {
@@ -21,5 +17,7 @@ namespace MTCS.Data.DTOs
         public DateTime? HandledTime { get; set; }
 
         public string ReportedBy { get; set; }
+
+        public List<IncidentReportsFile> Files { get; set; } = new List<IncidentReportsFile>();
     }
 }

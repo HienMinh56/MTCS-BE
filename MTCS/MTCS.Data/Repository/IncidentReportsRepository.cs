@@ -1,13 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.Models;
-using MTCS.Data.Request;
 using MTCS.Data.Response;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MTCS.Data.Repository
 {
@@ -110,7 +104,7 @@ namespace MTCS.Data.Repository
         /// </summary>
         /// <author name="Đoàn Lê Hiển Minh"></author>
         /// <returns></returns>
-        public async Task <IncidentReport?> GetIncidentReportDetails(string reportId)
+        public async Task<IncidentReport?> GetIncidentReportDetails(string reportId)
         {
             return await _context.IncidentReports
                                  .Where(i => i.ReportId == reportId)
@@ -121,30 +115,66 @@ namespace MTCS.Data.Repository
 
         public async Task<List<IncidentReport>> GetIncidentsByVehicleAsync(string vehicleId, int vehicleType)
         {
-            IQueryable<IncidentReport> query = _context.IncidentReports
-                .Include(ir => ir.Trip)
-                .ThenInclude(trip => trip.Order); 
+            IQueryable<string> incidentIds = null;
 
-            if (vehicleType == 1) 
+            if (vehicleType == 1) // Tractor
             {
-                query = query.Where(ir =>
-                    ir.VehicleType == 1 &&
-                    ir.Trip != null &&
-                    ir.Trip.TractorId == vehicleId);
+                incidentIds = _context.IncidentReports
+                    .Where(ir => ir.VehicleType == 1 && ir.Trip != null && ir.Trip.TractorId == vehicleId)
+                    .Select(ir => ir.ReportId);
             }
-            else if (vehicleType == 2)
+            else if (vehicleType == 2) // Trailer
             {
-                query = query.Where(ir =>
-                    ir.VehicleType == 2 &&
-                    ir.Trip != null &&
-                    ir.Trip.TrailerId == vehicleId);
+                incidentIds = _context.IncidentReports
+                    .Where(ir => ir.VehicleType == 2 && ir.Trip != null && ir.Trip.TrailerId == vehicleId)
+                    .Select(ir => ir.ReportId);
             }
             else
             {
-                return new List<IncidentReport>(); 
+                return new List<IncidentReport>();
             }
 
-            return await query.ToListAsync();
+            var incidents = await _context.IncidentReports
+                .Where(ir => incidentIds.Contains(ir.ReportId))
+                .OrderByDescending(ir => ir.IncidentTime)
+                .Select(ir => new IncidentReport
+                {
+                    ReportId = ir.ReportId,
+                    TripId = ir.TripId,
+                    ReportedBy = ir.ReportedBy,
+                    IncidentType = ir.IncidentType,
+                    Description = ir.Description,
+                    IncidentTime = ir.IncidentTime,
+                    Location = ir.Location,
+                    Type = ir.Type,
+                    Status = ir.Status,
+                    ResolutionDetails = ir.ResolutionDetails,
+                    HandledBy = ir.HandledBy,
+                    HandledTime = ir.HandledTime,
+                    CreatedDate = ir.CreatedDate,
+                    VehicleType = ir.VehicleType,
+                    IncidentReportsFiles = ir.IncidentReportsFiles.Select(f => new IncidentReportsFile
+                    {
+                        FileId = f.FileId,
+                        ReportId = f.ReportId,
+                        FileName = f.FileName,
+                        FileType = f.FileType,
+                        UploadDate = f.UploadDate,
+                        UploadBy = f.UploadBy,
+                        Description = f.Description,
+                        Note = f.Note,
+                        DeletedDate = f.DeletedDate,
+                        DeletedBy = f.DeletedBy,
+                        FileUrl = f.FileUrl,
+                        ModifiedDate = f.ModifiedDate,
+                        ModifiedBy = f.ModifiedBy,
+                        Type = f.Type
+                    }).ToList()
+                })
+                .AsNoTracking()
+                .ToListAsync();
+
+            return incidents;
         }
 
         public async Task<IncidentReport> GetRecentIncidentReport(string tripId)

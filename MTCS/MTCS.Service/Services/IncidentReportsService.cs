@@ -1,12 +1,9 @@
 ﻿using Google.Cloud.Firestore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Identity.Client;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
-using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
@@ -173,7 +170,7 @@ namespace MTCS.Service.Services
                         trailer.Status = VehicleStatus.Inactive.ToString();
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
-                        await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    await _unitOfWork.TripRepository.UpdateAsync(trip);
 
                     var tripStatusHistory = new TripStatusHistory
                     {
@@ -223,9 +220,9 @@ namespace MTCS.Service.Services
             }
 
             var result = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(reportId);
-            
+
             if (result is not null)
-            {                
+            {
                 return new BusinessResult(Const.SUCCESS_CREATE_CODE, Const.SUCCESS_CREATE_MSG, result);
             }
             else
@@ -637,7 +634,7 @@ namespace MTCS.Service.Services
                     incident.VehicleType = updateIncidentReportMO.VehicleType is null ? incident.VehicleType : updateIncidentReportMO.VehicleType;
                 }
 
-                
+
 
                 if (updateIncidentReportMO.RemovedImage != null && updateIncidentReportMO.RemovedImage.Count > 0)
                 {
@@ -723,12 +720,13 @@ namespace MTCS.Service.Services
                     HandledBy = incident.HandledBy,
                     HandledTime = incident.HandledTime,
                     ReportedBy = incident.ReportedBy,
+                    Files = incident.IncidentReportsFiles?.ToList() ?? new List<IncidentReportsFile>()
                 }).ToList();
 
                 return new ApiResponse<List<IncidentReportAdminDTO>>(
                     success: true,
                     data: incidentDtos,
-                    message: "Lấy dữ liệu sự cố thành công",
+                    message: "Get incident history successfully",
                     messageVN: "Lấy dữ liệu sự cố thành công",
                     errors: null
                 );
@@ -738,7 +736,7 @@ namespace MTCS.Service.Services
                 return new ApiResponse<List<IncidentReportAdminDTO>>(
                     success: false,
                     data: null,
-                    message: "Lỗi khi lấy dữ liệu sự cố",
+                    message: "Get incident failed",
                     messageVN: "Lỗi khi lấy dữ liệu sự cố",
                     errors: ex.Message
                 );
