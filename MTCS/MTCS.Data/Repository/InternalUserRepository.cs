@@ -32,6 +32,13 @@ namespace MTCS.Data.Repository
             return order?.CreatedBy;
         }
 
+        public async Task<List<InternalUser>> GetStaffList()
+        {
+            return await _context.InternalUsers
+                .Where(u => u.Role == 1 && u.DeletedBy == null)
+                .ToListAsync();
+        }
+
         public async Task<ProfileResponseDTO?> GetUserProfile(string userId)
         {
             var profile = await _context.InternalUsers

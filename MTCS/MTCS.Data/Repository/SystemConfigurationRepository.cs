@@ -1,11 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿
+using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MTCS.Data.Repository
 {
@@ -19,6 +15,10 @@ namespace MTCS.Data.Repository
         {
             return await _context.SystemConfigurations.ToListAsync();
         }
-
+        public async Task<SystemConfiguration> GetConfigByKey(string key)
+        {
+            return await _context.SystemConfigurations
+                .FirstOrDefaultAsync(x => x.ConfigKey == key);
+        }
     }
 }

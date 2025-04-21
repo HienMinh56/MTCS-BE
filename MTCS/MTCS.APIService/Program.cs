@@ -1,20 +1,16 @@
 ﻿using DotNetEnv;
-using Google.Api;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 using Google.Cloud.Firestore.V1;
 using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MTCS.APIService.Middlewares;
 using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Helpers;
-using MTCS.Data.Models;
-using MTCS.Data.Repository;
 using MTCS.Service;
 using MTCS.Service.Handler;
 using MTCS.Service.Interfaces;
@@ -22,8 +18,6 @@ using MTCS.Service.Services;
 using OfficeOpenXml;
 using System.Security.Claims;
 using System.Text;
-using static MTCS.Service.Services.DriverWeeklySummaryService;
-using Microsoft.Extensions.Configuration; 
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +51,8 @@ builder.Services.AddScoped<ISystemConfigurationServices, SystemConfigurationServ
 builder.Services.AddScoped<IDriverDailyWorkingTimeService, DriverDailyWorkingTimeService>();
 builder.Services.AddScoped<IDriverWeeklySummaryService, DriverWeeklySummaryService>();
 builder.Services.AddSingleton<WebSocketHandler>();
+builder.Services.AddHostedService<VehicleRegistrationService>();
+builder.Services.AddHostedService<VehicleMaintenanceService>();
 
 
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
