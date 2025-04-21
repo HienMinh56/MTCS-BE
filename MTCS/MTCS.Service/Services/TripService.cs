@@ -70,7 +70,7 @@ namespace MTCS.Service.Services
 
                 var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
 
-                if (currentStatus?.StatusIndex == higherSecondStatus.StatusIndex + 1)
+                if (newStatus.StatusId == "completed")
                     return new BusinessResult(400, "Cannot update completed order");
 
                 if (currentStatus != null &&
@@ -89,7 +89,7 @@ namespace MTCS.Service.Services
 
                 trip.Status = newStatusId;
 
-                if (newStatus.StatusIndex == higherSecondStatus.StatusIndex + 1)
+                if (newStatus.StatusId == "completed")
                 {
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
@@ -210,7 +210,7 @@ namespace MTCS.Service.Services
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tractor phải ở trạng thái Active để được chỉ định cho Trip");
 
                     // Check load weight compatibility
-                    if (newTractor.MaxLoadWeight < oldTractor.MaxLoadWeight)
+                    if (newTractor.MaxLoadWeight < order.Weight)
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, "Tải trọng của Tractor mới không phù hợp");
                 }
 

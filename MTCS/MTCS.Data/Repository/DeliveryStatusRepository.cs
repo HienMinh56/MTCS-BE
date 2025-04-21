@@ -28,7 +28,7 @@ namespace MTCS.Data.Repository
 
         public async Task<DeliveryStatus> GetSecondHighestStatusIndexAsync()
         {
-            return await _context.DeliveryStatuses.OrderByDescending(ds => ds.StatusIndex).Skip(1).FirstOrDefaultAsync();
+            return await _context.DeliveryStatuses.OrderByDescending(ds => ds.StatusIndex).Skip(1).FirstOrDefaultAsync(s => s.IsActive == 1);
         }
         public async Task BulkUpdateAsync(List<DeliveryStatus> statuses)
         {
