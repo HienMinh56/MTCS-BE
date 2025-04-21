@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Service.Services;
 
 namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DriverDailyWorkingTimeController : ControllerBase
     {
         private readonly IDriverDailyWorkingTimeService _driverDailyWorkingTimeService;

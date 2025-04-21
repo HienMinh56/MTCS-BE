@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Request;
 using MTCS.Service.Services;
@@ -7,6 +8,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/delivery-reports")]
     [ApiController]
+    [Authorize]
     public class DeliveryReportController : ControllerBase
     {
         private readonly IDeliveryReportService _deliveryReportService;

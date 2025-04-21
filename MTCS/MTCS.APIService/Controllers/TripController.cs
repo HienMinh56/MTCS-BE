@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Common;
 using MTCS.Data.Helpers;
 using MTCS.Data.Request;
@@ -12,6 +13,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/trips")]
     [ApiController]
+    [Authorize]
     public class TripController : ControllerBase
     {
         private readonly ITripService _tripService;

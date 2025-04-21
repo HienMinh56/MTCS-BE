@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Service.Services;
 using static MTCS.Service.Services.DriverWeeklySummaryService;
 
@@ -6,6 +7,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DriverWeeklySummaryController : ControllerBase
     {
         private readonly IDriverWeeklySummaryService _weeklySummaryService;

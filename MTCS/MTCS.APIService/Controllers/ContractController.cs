@@ -10,6 +10,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/contract")]
     [ApiController]
+    [Authorize]
     public class ContractController : ControllerBase
     {
         private readonly IContractService _contractService;

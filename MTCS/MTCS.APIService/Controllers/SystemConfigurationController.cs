@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Request;
 using MTCS.Service.Services;
 
@@ -6,6 +7,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class SystemConfigurationController : ControllerBase
     {
         private readonly ISystemConfigurationServices _systemConfigurationServices;

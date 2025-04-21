@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
@@ -8,6 +9,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class IncidentReportController : ControllerBase
     {
         private readonly IIncidentReportsService _incidentReportsService;

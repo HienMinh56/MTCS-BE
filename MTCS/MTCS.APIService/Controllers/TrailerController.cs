@@ -9,7 +9,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Policy = "Staff")]
+    [Authorize]
     public class TrailerController : ControllerBase
     {
         private readonly ITrailerService _trailerService;
