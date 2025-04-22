@@ -8,7 +8,7 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/delivery-statuses")]
     [ApiController]
-    [Authorize]
+
     public class DeliveryStatusController : ControllerBase
     {
         private readonly IDeliveryStatusService _deliveryStatusService;

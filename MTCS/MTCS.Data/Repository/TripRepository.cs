@@ -70,7 +70,8 @@ namespace MTCS.Data.Repository
                 DeliveryReports = t.DeliveryReports,
                 FuelReports = t.FuelReports,
                 IncidentReports = t.IncidentReports,
-                TripStatusHistories = t.TripStatusHistories
+                TripStatusHistories = t.TripStatusHistories,
+                Order = t.Order,
             }).ToList();
         }
 
