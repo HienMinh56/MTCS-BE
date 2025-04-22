@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using MTCS.Data;
+﻿using MTCS.Data;
 using MTCS.Data.Models;
-using MTCS.Data.Repository;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
+using System.Security.Claims;
 
 namespace MTCS.Service.Services
 {
@@ -35,42 +28,65 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var customerId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-                                ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-
                 await _unitOfWork.BeginTransactionAsync();
 
-                foreach (var status in deliveryStatus)
+                try
                 {
-                    var existingStatus = _unitOfWork.DeliveryStatusRepository.Get(ds => ds.StatusId == status.StatusId);
-                    if (existingStatus != null)
-                    {
-                        existingStatus.StatusName = status.StatusName;
-                        existingStatus.StatusIndex = status.StatusIndex;
-                        existingStatus.IsActive = status.IsActive;
-                        existingStatus.ModifiedBy = userName;
-                        existingStatus.ModifiedDate = DateTime.Now;
-                        _unitOfWork.DeliveryStatusRepository.Update(existingStatus);
-                    }
-                    else
-                    {
-                        var newStatus = new DeliveryStatus
-                        {
-                            StatusId = status.StatusId,
-                            StatusName = status.StatusName,
-                            StatusIndex = status.StatusIndex,
-                            IsActive = status.IsActive,
-                            CreatedBy = userName,
-                            CreatedDate = DateTime.Now
-                        };
+                    // Get all existing statuses
+                    var existingStatuses = (await _unitOfWork.DeliveryStatusRepository.GetDeliveryStatusesAsync()).ToDictionary(s => s.StatusId);
 
-                        await _unitOfWork.DeliveryStatusRepository.CreateAsync(newStatus);
+                    // Separate statuses by category
+                    var notStartedStatus = deliveryStatus.FirstOrDefault(s => s.StatusId == "not_started");
+                    var completedStatus = deliveryStatus.FirstOrDefault(s => s.StatusId == "completed");
+                    var activeMiddleStatuses = deliveryStatus
+                        .Where(s => s.StatusId != "not_started" && s.StatusId != "completed" && s.IsActive == 1)
+                        .OrderBy(s => s.StatusIndex)
+                        .ToList();
+                    var inactiveMiddleStatuses = deliveryStatus
+                        .Where(s => s.StatusId != "not_started" && s.StatusId != "completed" && s.IsActive != 1)
+                        .OrderBy(s => s.StatusIndex)
+                        .ToList();
+
+                    // Track indices for each status category
+                    int currentIndex = 0;
+                    int maxActiveIndex = 0;
+
+                    // 1. Process not_started (always index 0)
+                    if (notStartedStatus != null)
+                    {
+                        currentIndex = await ProcessStatus("not_started", notStartedStatus, 0, existingStatuses, userName);
                     }
+
+                    // 2. Process active middle statuses (indices start at 1)
+                    currentIndex = 1;
+                    foreach (var status in activeMiddleStatuses)
+                    {
+                        currentIndex = await ProcessStatus(status.StatusId, status, currentIndex, existingStatuses, userName);
+                        maxActiveIndex = currentIndex - 1; // Track the highest active status index
+                    }
+
+                    // 3. Process completed status (right after active statuses)
+                    int completedIndex = maxActiveIndex + 1;
+                    if (completedStatus != null)
+                    {
+                        currentIndex = await ProcessStatus("completed", completedStatus, completedIndex, existingStatuses, userName);
+                    }
+
+                    // 4. Process inactive middle statuses (after completed)
+                    foreach (var status in inactiveMiddleStatuses)
+                    {
+                        currentIndex = await ProcessStatus(status.StatusId, status, currentIndex, existingStatuses, userName);
+                    }
+
+                    await _unitOfWork.CommitTransactionAsync();
+                    return new BusinessResult(200, "Create delivery status success");
                 }
-
-                return new BusinessResult(200, "Create delivery status success");
-
+                catch (Exception)
+                {
+                    await _unitOfWork.RollbackTransactionAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -78,7 +94,38 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, ex.Message);
             }
         }
+
+        // Helper method to process a single status - returns the next index to use
+        private async Task<int> ProcessStatus(string statusId, CreateDeliveryStatusRequest statusRequest, int assignedIndex, Dictionary<string, DeliveryStatus> existingStatuses, string userName)
+        {
+            if (existingStatuses.TryGetValue(statusId, out var existingStatus))
+            {
+                // Update existing status
+                existingStatus.StatusName = statusRequest.StatusName;
+                existingStatus.StatusIndex = assignedIndex;
+                existingStatus.IsActive = statusRequest.IsActive;
+                existingStatus.ModifiedBy = userName;
+                existingStatus.ModifiedDate = DateTime.Now;
+                _unitOfWork.DeliveryStatusRepository.Update(existingStatus);
+            }
+            else
+            {
+                // Create new status
+                await _unitOfWork.DeliveryStatusRepository.CreateAsync(new DeliveryStatus
+                {
+                    StatusId = statusId,
+                    StatusName = statusRequest.StatusName,
+                    StatusIndex = assignedIndex,
+                    IsActive = statusRequest.IsActive,
+                    CreatedBy = userName,
+                    CreatedDate = DateTime.Now
+                });
+            }
+
+            return assignedIndex + 1; // Return the next index to use
+        }
         #endregion
+
 
         #region GetDeliveryStatusById
         public async Task<BusinessResult> GetDeliveryStatusById(string id)
