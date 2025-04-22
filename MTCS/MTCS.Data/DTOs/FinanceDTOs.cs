@@ -6,6 +6,24 @@
         public int CompletedOrders { get; set; }
         public decimal AverageRevenuePerOrder { get; set; }
         public string Period { get; set; }
+        public decimal PaidRevenue { get; set; }
+        public decimal UnpaidRevenue { get; set; }
+        public int PaidOrders { get; set; }
+        public int UnpaidOrders { get; set; }
+        public List<OrderSummaryDTO> PaidOrdersList { get; set; } = new List<OrderSummaryDTO>();
+        public List<OrderSummaryDTO> UnpaidOrdersList { get; set; } = new List<OrderSummaryDTO>();
+    }
+
+    public class OrderSummaryDTO
+    {
+        public string OrderId { get; set; }
+        public string TrackingCode { get; set; }
+        public string CustomerId { get; set; }
+        public string CompanyName { get; set; }
+        public DateOnly? DeliveryDate { get; set; }
+        public int? Price { get; set; }
+        public string Status { get; set; }
+        public DateTime? CreatedDate { get; set; }
     }
 
     public class CustomerRevenueDTO
@@ -15,6 +33,10 @@
         public decimal TotalRevenue { get; set; }
         public int CompletedOrders { get; set; }
         public decimal AverageRevenuePerOrder { get; set; }
+        public decimal PaidRevenue { get; set; }
+        public decimal UnpaidRevenue { get; set; }
+        public int PaidOrders { get; set; }
+        public int UnpaidOrders { get; set; }
     }
 
     public class TripFinancialDTO
@@ -29,12 +51,44 @@
         public decimal ProfitMarginPercentage { get; set; }
     }
 
-    public class ProfitAnalyticsDTO
+    public class TripPerformanceDTO
     {
-        public decimal TotalRevenue { get; set; }
-        public decimal TotalFuelCost { get; set; }
-        public decimal NetProfit { get; set; }
-        public decimal ProfitMarginPercentage { get; set; }
         public string Period { get; set; }
+
+        public int TotalTrips { get; set; }
+        public decimal TotalDistance { get; set; }
+        public decimal AverageDistance { get; set; }
+
+        public decimal TotalFuelCost { get; set; }
+        public decimal AverageFuelCost { get; set; }
+        public decimal FuelCostPerDistance { get; set; }
+
+        // Performance metrics
+        public decimal IncidentRate { get; set; }
+        public decimal OnTimeDeliveryRate { get; set; }
+
+        // Driver metrics - sorted lists
+        public List<DriverTripDTO> DriversWithMostTrips { get; set; } = new List<DriverTripDTO>();
+        public List<DriverHoursDTO> DriversWithMostHours { get; set; } = new List<DriverHoursDTO>();
+    }
+
+    public class DriverTripDTO
+    {
+        public string DriverId { get; set; }
+        public string DriverName { get; set; }
+        public int CompletedTrips { get; set; }
+        public decimal TotalDistance { get; set; }
+        public int OnTimeDeliveries { get; set; }
+        public decimal OnTimePercentage { get; set; }
+        public int IncidentsCount { get; set; }
+        public decimal IncidentRate { get; set; }
+    }
+    public class DriverHoursDTO
+    {
+        public string DriverId { get; set; }
+        public string DriverName { get; set; }
+        public decimal TotalHours { get; set; }
+        public int DaysWorked { get; set; }
+        public decimal DailyAverageHours { get; set; }
     }
 }

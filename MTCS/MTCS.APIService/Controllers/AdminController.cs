@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
+using MTCS.Data.Helpers;
 using MTCS.Data.Response;
 using MTCS.Service.Services;
 
@@ -30,10 +31,16 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("revenue/customers")]
-        public async Task<ActionResult<ApiResponse<List<CustomerRevenueDTO>>>> GetRevenueByCustomer(
-            [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
+        public async Task<ActionResult<ApiResponse<PagedList<CustomerRevenueDTO>>>> GetRevenueByCustomer(
+    [FromQuery] PaginationParams paginationParams,
+    [FromQuery] DateTime? startDate = null,
+    [FromQuery] DateTime? endDate = null)
         {
-            var response = await _adminService.GetRevenueByCustomerAsync(startDate, endDate);
+            var response = await _adminService.GetRevenueByCustomerAsync(
+                paginationParams,
+                startDate,
+                endDate);
+
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
@@ -54,14 +61,6 @@ namespace MTCS.APIService.Controllers
             return response.Success ? Ok(response) : BadRequest(response);
         }
 
-        [HttpGet("profit")]
-        public async Task<ActionResult<ApiResponse<ProfitAnalyticsDTO>>> GetProfitAnalytics(
-            [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
-        {
-            var response = await _adminService.GetProfitAnalyticsAsync(startDate, endDate);
-            return response.Success ? Ok(response) : BadRequest(response);
-        }
-
         [HttpGet("fuel/average-cost")]
         public async Task<ActionResult<ApiResponse<decimal>>> GetAverageFuelCostPerDistance(
             [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
@@ -69,5 +68,14 @@ namespace MTCS.APIService.Controllers
             var response = await _adminService.GetAverageFuelCostPerDistanceAsync(startDate, endDate);
             return response.Success ? Ok(response) : BadRequest(response);
         }
+
+        [HttpGet("trips/performance")]
+        public async Task<ActionResult<ApiResponse<TripPerformanceDTO>>> GetTripPerformance(
+    [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            var response = await _adminService.GetTripPerformanceAsync(startDate, endDate);
+            return response.Success ? Ok(response) : BadRequest(response);
+        }
+
     }
 }

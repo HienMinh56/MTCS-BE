@@ -1,6 +1,7 @@
 ﻿using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
+using MTCS.Data.Helpers;
 using MTCS.Data.Repository;
 using MTCS.Data.Response;
 
@@ -9,11 +10,11 @@ namespace MTCS.Service.Services
     public interface IAdminService
     {
         Task<ApiResponse<RevenueAnalyticsDTO>> GetRevenueAnalyticsAsync(RevenuePeriodType periodType, DateTime startDate, DateTime? endDate = null);
-        Task<ApiResponse<List<CustomerRevenueDTO>>> GetRevenueByCustomerAsync(DateTime? startDate = null, DateTime? endDate = null);
         Task<ApiResponse<TripFinancialDTO>> GetTripFinancialDetailsAsync(string tripId);
         Task<ApiResponse<List<TripFinancialDTO>>> GetTripsFinancialDetailsAsync(DateTime? startDate = null, DateTime? endDate = null, string customerId = null);
-        Task<ApiResponse<ProfitAnalyticsDTO>> GetProfitAnalyticsAsync(DateTime startDate, DateTime endDate);
         Task<ApiResponse<decimal>> GetAverageFuelCostPerDistanceAsync(DateTime? startDate = null, DateTime? endDate = null);
+        Task<ApiResponse<TripPerformanceDTO>> GetTripPerformanceAsync(DateTime startDate, DateTime endDate);
+        Task<ApiResponse<PagedList<CustomerRevenueDTO>>> GetRevenueByCustomerAsync(PaginationParams paginationParams, DateTime? startDate = null, DateTime? endDate = null);
     }
 
     public class AdminService : IAdminService
@@ -31,7 +32,6 @@ namespace MTCS.Service.Services
         {
             try
             {
-                // Validate date parameters based on period type
                 if (periodType == RevenuePeriodType.Custom && !endDate.HasValue)
                 {
                     return new ApiResponse<RevenueAnalyticsDTO>(
@@ -90,12 +90,19 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<ApiResponse<List<CustomerRevenueDTO>>> GetRevenueByCustomerAsync(DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<ApiResponse<PagedList<CustomerRevenueDTO>>> GetRevenueByCustomerAsync(
+            PaginationParams paginationParams,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
         {
             try
             {
-                var result = await _financialRepository.GetRevenueByCustomerAsync(startDate, endDate);
-                return new ApiResponse<List<CustomerRevenueDTO>>(
+                var result = await _financialRepository.GetRevenueByCustomerAsync(
+                    paginationParams,
+                    startDate,
+                    endDate);
+
+                return new ApiResponse<PagedList<CustomerRevenueDTO>>(
                     true,
                     result,
                     "Customer revenue data retrieved successfully",
@@ -104,7 +111,7 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                return new ApiResponse<List<CustomerRevenueDTO>>(
+                return new ApiResponse<PagedList<CustomerRevenueDTO>>(
                     false,
                     null,
                     "Failed to retrieve customer revenue data",
@@ -112,6 +119,7 @@ namespace MTCS.Service.Services
                     ex.Message);
             }
         }
+
 
         public async Task<ApiResponse<TripFinancialDTO>> GetTripFinancialDetailsAsync(string tripId)
         {
@@ -167,7 +175,7 @@ namespace MTCS.Service.Services
                 if (result == null || result.Count == 0)
                 {
                     return new ApiResponse<List<TripFinancialDTO>>(
-                        false,
+                        true,
                         new List<TripFinancialDTO>(),
                         "No trips found matching the criteria",
                         "Không tìm thấy chuyến đi nào phù hợp với tiêu chí",
@@ -188,39 +196,6 @@ namespace MTCS.Service.Services
                     null,
                     "Failed to retrieve trips financial details",
                     "Không thể truy xuất chi tiết tài chính của các chuyến đi",
-                    ex.Message);
-            }
-        }
-
-        public async Task<ApiResponse<ProfitAnalyticsDTO>> GetProfitAnalyticsAsync(DateTime startDate, DateTime endDate)
-        {
-            try
-            {
-                if (startDate > endDate)
-                {
-                    return new ApiResponse<ProfitAnalyticsDTO>(
-                        false,
-                        null,
-                        "Start date cannot be later than end date",
-                        "Ngày bắt đầu không thể muộn hơn ngày kết thúc",
-                        null);
-                }
-
-                var result = await _financialRepository.GetProfitAnalyticsAsync(startDate, endDate);
-                return new ApiResponse<ProfitAnalyticsDTO>(
-                    true,
-                    result,
-                    "Profit analytics data retrieved successfully",
-                    "Dữ liệu phân tích lợi nhuận đã được truy xuất thành công",
-                    null);
-            }
-            catch (Exception ex)
-            {
-                return new ApiResponse<ProfitAnalyticsDTO>(
-                    false,
-                    null,
-                    "Failed to retrieve profit analytics data",
-                    "Không thể truy xuất dữ liệu phân tích lợi nhuận",
                     ex.Message);
             }
         }
@@ -254,6 +229,39 @@ namespace MTCS.Service.Services
                     0,
                     "Failed to retrieve average fuel cost per distance",
                     "Không thể truy xuất chi phí nhiên liệu trung bình trên mỗi đơn vị khoảng cách",
+                    ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<TripPerformanceDTO>> GetTripPerformanceAsync(DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                if (startDate > endDate)
+                {
+                    return new ApiResponse<TripPerformanceDTO>(
+                        false,
+                        null,
+                        "Start date cannot be later than end date",
+                        "Ngày bắt đầu không thể muộn hơn ngày kết thúc",
+                        null);
+                }
+
+                var result = await _financialRepository.GetTripPerformanceAsync(startDate, endDate);
+                return new ApiResponse<TripPerformanceDTO>(
+                    true,
+                    result,
+                    "Trip performance data retrieved successfully",
+                    "Dữ liệu hiệu suất chuyến đi đã được truy xuất thành công",
+                    null);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<TripPerformanceDTO>(
+                    false,
+                    null,
+                    "Failed to retrieve trip performance data",
+                    "Không thể truy xuất dữ liệu hiệu suất chuyến đi",
                     ex.Message);
             }
         }
