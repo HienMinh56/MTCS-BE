@@ -8,7 +8,6 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/price-tables")]
     [ApiController]
-    [Authorize]
     public class PriceTableController : ControllerBase
     {
         private readonly IPriceTableService _priceTableService;
