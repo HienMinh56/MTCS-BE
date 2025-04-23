@@ -57,7 +57,7 @@ namespace MTCS.Data.Repository
                 OrderId = t.OrderId,
                 TrackingCode = t.Order?.TrackingCode,
                 DriverId = t.DriverId,
-                DriverName = t.Driver?.FullName, 
+                DriverName = t.Driver?.FullName,
                 TractorId = t.TractorId,
                 TrailerId = t.TrailerId,
                 StartTime = t.StartTime,
@@ -81,7 +81,8 @@ namespace MTCS.Data.Repository
             var activeTrips = await _context.Trips
                 .Where(t => t.TractorId == tractorId &&
                            t.Status != "completed" &&
-                           t.Status != "not_started")
+                           t.Status != "not_started" &&
+                           t.Status != "canceled")
                 .ToListAsync();
 
             return (activeTrips.Any(), activeTrips);
@@ -92,7 +93,8 @@ namespace MTCS.Data.Repository
             var activeTrips = await _context.Trips
                 .Where(t => t.TrailerId == trailerId &&
                            t.Status != "completed" &&
-                           t.Status != "not_started")
+                           t.Status != "not_started" &&
+                           t.Status != "canceled")
                 .ToListAsync();
 
             return (activeTrips.Any(), activeTrips);
