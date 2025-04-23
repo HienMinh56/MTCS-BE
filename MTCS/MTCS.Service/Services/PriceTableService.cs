@@ -15,12 +15,12 @@ namespace MTCS.Service.Services
 
         public Task<BusinessResult> DownloadPriceTableTemplate();
         public Task<BusinessResult> DeletePriceTable(string id);
-        Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType);
         Task<ApiResponse<List<PriceTable>>> CreatePriceTable(List<CreatePriceTableRequest> priceTable, string userName);
         Task<ApiResponse<List<PriceTable>>> ImportPriceTable(IFormFile excelFile, string userName);
         Task<ApiResponse<PriceTablesHistoryDTO>> GetPriceTables(int? version = null);
         Task<ApiResponse<List<PriceChangeGroup>>> GetPriceChangesInVersion(int version);
         Task<ApiResponse<PriceTable>> UpdatePriceTable(UpdatePriceTableRequest priceTable, string userName);
+        Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize);
     }
     public class PriceTableService : IPriceTableService
     {
@@ -361,10 +361,10 @@ namespace MTCS.Service.Services
             }
         }
 
-        public async Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType)
+        public async Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize)
         {
             var matchedPrice = await _unitOfWork.PriceTableRepository.GetPriceForCalculation(
-            distance, containerType, containerSize, deliveryType);
+            distance, containerType, containerSize);
 
             if (matchedPrice == null)
             {

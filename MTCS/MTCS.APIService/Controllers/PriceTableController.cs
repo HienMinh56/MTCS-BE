@@ -84,9 +84,9 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("calculate-price")]
-        public async Task<IActionResult> CalculatePrice(double distance, int containerType, int containerSize, int deliveryType)
+        public async Task<IActionResult> CalculatePrice(double distance, int containerType, int containerSize)
         {
-            var result = await _priceTableService.CalculatePrice(distance, containerType, containerSize, deliveryType);
+            var result = await _priceTableService.CalculatePrice(distance, containerType, containerSize);
             return Ok(result);
         }
     }
