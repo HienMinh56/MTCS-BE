@@ -2,6 +2,7 @@
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
+using MTCS.Data.Models;
 using MTCS.Data.Repository;
 using MTCS.Data.Response;
 
@@ -15,6 +16,8 @@ namespace MTCS.Service.Services
         Task<ApiResponse<decimal>> GetAverageFuelCostPerDistanceAsync(DateTime? startDate = null, DateTime? endDate = null);
         Task<ApiResponse<TripPerformanceDTO>> GetTripPerformanceAsync(DateTime startDate, DateTime endDate);
         Task<ApiResponse<PagedList<CustomerRevenueDTO>>> GetRevenueByCustomerAsync(PaginationParams paginationParams, DateTime? startDate = null, DateTime? endDate = null);
+        Task<ApiResponse<InternalUser>> GetInternalUserProfileAsync(string userId);
+
     }
 
     public class AdminService : IAdminService
@@ -265,5 +268,50 @@ namespace MTCS.Service.Services
                     ex.Message);
             }
         }
+
+        public async Task<ApiResponse<InternalUser>> GetInternalUserProfileAsync(string userId)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return new ApiResponse<InternalUser>(
+                        false,
+                        null,
+                        $"No user found with ID: {userId}",
+                        $"Không tìm thấy người dùng với ID: {userId}",
+                        null);
+                }
+
+                var result = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(userId);
+
+                if (result == null)
+                {
+                    return new ApiResponse<InternalUser>(
+                        false,
+                        null,
+                        $"No staff found with ID: {userId}",
+                        $"Không tìm thấy nhân viên với ID: {userId}",
+                        null);
+                }
+
+                return new ApiResponse<InternalUser>(
+                    true,
+                    result,
+                    "Staff details retrieved successfully",
+                    "Chi tiết nhân viên đã được truy xuất thành công",
+                    null);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<InternalUser>(
+                    false,
+                    null,
+                    "Failed to retrieve staff details",
+                    "Không thể truy xuất chi tiết nhân viên",
+                    ex.Message);
+            }
+        }
+
     }
 }

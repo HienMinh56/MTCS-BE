@@ -2,9 +2,8 @@
 {
     public enum UserStatus
     {
+        Inactive = 0,
         Active = 1,
-        Inactive = 2,
-        Deleted = 3
     }
 
     public enum VehicleStatus

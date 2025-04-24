@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.DTOs;
+using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 
 namespace MTCS.Data.Repository
@@ -39,6 +40,33 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
+        public async Task<PagedList<InternalUser>> GetInternalUserWithFilter(
+            PaginationParams paginationParams,
+            string? keyword = null,
+            int? role = null)
+        {
+            var query = _context.InternalUsers
+                .AsNoTracking();
+
+            if (role.HasValue)
+            {
+                query = query.Where(u => u.Role == role.Value);
+            }
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                query = query
+                    .Where(u => u.FullName.Contains(keyword) ||
+                                u.Email.Contains(keyword) ||
+                                u.PhoneNumber.Contains(keyword));
+            }
+
+            query = query.OrderByDescending(x => x.Status)
+                          .ThenByDescending(x => x.CreatedDate);
+
+            return await PagedList<InternalUser>.CreateAsync(query, paginationParams.PageNumber, paginationParams.PageSize);
+        }
+
         public async Task<ProfileResponseDTO?> GetUserProfile(string userId)
         {
             var profile = await _context.InternalUsers
@@ -57,5 +85,6 @@ namespace MTCS.Data.Repository
 
             return profile;
         }
+
     }
 }

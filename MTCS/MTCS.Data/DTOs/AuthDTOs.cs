@@ -1,6 +1,6 @@
+using System.ComponentModel.DataAnnotations;
 using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
-using System.ComponentModel.DataAnnotations;
 
 namespace MTCS.Data.DTOs
 {
@@ -92,4 +92,25 @@ namespace MTCS.Data.DTOs
         public DateTime? CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
     }
+
+    public class AdminUpdateUserDTO
+    {
+        [MaxLength(25)]
+        public string? FullName { get; set; }
+
+        [EmailAddress]
+        public string? Email { get; set; }
+
+        [Phone]
+        [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits and start with 0")]
+        public string? PhoneNumber { get; set; }
+
+        public DateOnly? Birthday { get; set; }
+
+        public string? Gender { get; set; }
+
+        [MinLength(6)]
+        public string? NewPassword { get; set; }
+    }
+
 }

@@ -49,6 +49,7 @@ namespace MTCS.Service.Services
                 PhoneNumber = userDto.PhoneNumber,
                 Role = (int)InternalUserRole.Staff,
                 Gender = userDto.Gender.ToString(),
+                Status = (int)UserStatus.Active,
                 Birthday = userDto.BirthDate,
                 CreatedDate = DateTime.Now
             };
@@ -82,6 +83,7 @@ namespace MTCS.Service.Services
                 PhoneNumber = userDto.PhoneNumber,
                 Role = (int)InternalUserRole.Admin,
                 Gender = userDto.Gender.ToString(),
+                Status = (int)UserStatus.Active,
                 Birthday = userDto.BirthDate,
                 CreatedDate = DateTime.Now
             };
@@ -204,5 +206,139 @@ namespace MTCS.Service.Services
 
             return new ApiResponse<TokenDTO>(true, token, "Login successful", "Đăng nhập thành công", null);
         }
+
+        public async Task<ApiResponse<PagedList<InternalUser>>> GetInternalUserWithFilter(
+            PaginationParams paginationParams,
+            string? keyword = null,
+            int? role = null)
+        {
+            var pagedUsers = await _unitOfWork.InternalUserRepository.GetInternalUserWithFilter(
+                paginationParams,
+                keyword,
+                role);
+
+            return new ApiResponse<PagedList<InternalUser>>(
+                true,
+                pagedUsers,
+                "Users retrieved successfully",
+                "Lấy danh sách người dùng thành công",
+                null);
+        }
+
+        public async Task<ApiResponse<string>> ChangeUserActivationStatus(string userId, int newStatus, string modifierId)
+        {
+            var user = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return new ApiResponse<string>(false, null, "User not found", "Không tìm thấy người dùng", null);
+            }
+
+            if (user.Status == newStatus)
+            {
+                string message = newStatus == (int)UserStatus.Active
+                    ? "User is already active"
+                    : "User is already inactive";
+                string messageVN = newStatus == (int)UserStatus.Active
+                    ? "Người dùng đã được kích hoạt"
+                    : "Người dùng đã bị vô hiệu hóa";
+                return new ApiResponse<string>(false, null, message, messageVN, null);
+            }
+
+            if (newStatus == (int)UserStatus.Active)
+            {
+                user.DeletedDate = null;
+                user.DeletedBy = null;
+                user.Status = (int)UserStatus.Active;
+                user.ModifiedDate = DateTime.Now;
+                user.ModifiedBy = modifierId;
+            }
+            else
+            {
+                user.DeletedDate = DateTime.Now;
+                user.DeletedBy = modifierId;
+                user.Status = (int)UserStatus.Inactive;
+            }
+
+            await _unitOfWork.InternalUserRepository.UpdateAsync(user);
+
+            string successMessage = newStatus == (int)UserStatus.Active
+                ? "User activated successfully"
+                : "User deactivated successfully";
+            string successMessageVN = newStatus == (int)UserStatus.Active
+                ? "Kích hoạt người dùng thành công"
+                : "Vô hiệu hóa người dùng thành công";
+
+            return new ApiResponse<string>(
+                true,
+                user.FullName,
+                successMessage,
+                successMessageVN,
+                null);
+        }
+
+        public async Task<ApiResponse<ProfileResponseDTO>> UpdateUserInformation(string userId, AdminUpdateUserDTO updateDto, string modifierId)
+        {
+            var user = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return new ApiResponse<ProfileResponseDTO>(false, null, "User not found", "Không tìm thấy người dùng", null);
+            }
+
+            bool emailChanged = updateDto.Email != null && updateDto.Email != user.Email;
+            bool phoneChanged = updateDto.PhoneNumber != null && updateDto.PhoneNumber != user.PhoneNumber;
+
+            if (emailChanged || phoneChanged)
+            {
+                string emailToCheck = emailChanged ? updateDto.Email : user.Email;
+                string phoneToCheck = phoneChanged ? updateDto.PhoneNumber : user.PhoneNumber;
+
+                var contactValidation = await _unitOfWork.ContactHelper.ValidateContact(emailToCheck, phoneToCheck, userId);
+
+                if (!contactValidation.Success)
+                {
+                    return new ApiResponse<ProfileResponseDTO>(
+                        false,
+                        null,
+                        contactValidation.Message,
+                        contactValidation.MessageVN,
+                        null);
+                }
+            }
+
+            user.FullName = updateDto.FullName ?? user.FullName;
+            if (emailChanged) user.Email = updateDto.Email;
+            if (phoneChanged) user.PhoneNumber = updateDto.PhoneNumber;
+            user.Gender = updateDto.Gender ?? user.Gender;
+            user.Birthday = updateDto.Birthday ?? user.Birthday;
+
+            if (!string.IsNullOrEmpty(updateDto.NewPassword))
+            {
+                user.Password = _passwordHasher.HashPassword(updateDto.NewPassword);
+            }
+
+            user.ModifiedDate = DateTime.Now;
+            user.ModifiedBy = modifierId;
+
+            await _unitOfWork.InternalUserRepository.UpdateAsync(user);
+
+            var updatedProfile = new ProfileResponseDTO
+            {
+                UserId = user.UserId,
+                FullName = user.FullName,
+                Email = user.Email,
+                Gender = user.Gender,
+                PhoneNumber = user.PhoneNumber,
+                Birthday = user.Birthday,
+                ModifiedDate = user.ModifiedDate
+            };
+
+            return new ApiResponse<ProfileResponseDTO>(
+                true,
+                updatedProfile,
+                "Updated user profile successfully",
+                "Cập nhật hồ sơ người dùng thành công",
+                null);
+        }
+
     }
 }

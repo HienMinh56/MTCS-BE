@@ -1,4 +1,6 @@
 using MTCS.Data.DTOs;
+using MTCS.Data.Helpers;
+using MTCS.Data.Models;
 using MTCS.Data.Response;
 
 namespace MTCS.Service.Interfaces
@@ -11,5 +13,8 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<TokenDTO>> LoginDriver(LoginRequestDTO loginDto);
         Task<ApiResponse<ProfileResponseDTO>> GetUserProfile(string userId);
         Task<ApiResponse<ProfileResponseDTO>> UpdateInternalUserProfile(string userId, ProfileDTO profileDto);
+        Task<ApiResponse<string>> ChangeUserActivationStatus(string userId, int newStatus, string modifierId);
+        Task<ApiResponse<PagedList<InternalUser>>> GetInternalUserWithFilter(PaginationParams paginationParams, string? keyword = null, int? role = null);
+        Task<ApiResponse<ProfileResponseDTO>> UpdateUserInformation(string userId, AdminUpdateUserDTO updateDto, string modifierId);
     }
 }

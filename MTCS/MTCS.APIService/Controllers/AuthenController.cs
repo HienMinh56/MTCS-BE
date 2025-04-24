@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MTCS.Data.DTOs;
 using MTCS.Data.Helpers;
+using MTCS.Data.Models;
 using MTCS.Data.Response;
 using MTCS.Service.Interfaces;
 
@@ -23,7 +24,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("register-staff")]
-        [Authorize(Policy = "Staff")]
+        [Authorize]
         public async Task<ActionResult<ApiResponse<string>>> RegisterStaff([FromBody] RegisterUserDTO registerDto)
         {
             var result = await _authService.RegisterStaff(registerDto);
@@ -31,6 +32,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("register-admin")]
+        [Authorize]
         public async Task<ActionResult<ApiResponse<string>>> RegisterAdmin([FromBody] RegisterUserDTO registerDto)
         {
             var result = await _authService.RegisterAdmin(registerDto);
@@ -103,5 +105,60 @@ namespace MTCS.APIService.Controllers
             }
             return Ok(result);
         }
+
+        [HttpGet("users")]
+        [Authorize(Policy = "Admin")]
+        public async Task<ActionResult<ApiResponse<PagedList<InternalUser>>>> GetUsers(
+    [FromQuery] PaginationParams paginationParams,
+    [FromQuery] string? keyword = null,
+    [FromQuery] int? role = null)
+        {
+            var result = await _authService.GetInternalUserWithFilter(
+                paginationParams,
+                keyword,
+                role);
+
+            return Ok(result);
+        }
+
+        [HttpPut("users/{userId}/status")]
+        [Authorize(Policy = "Admin")]
+        public async Task<ActionResult<ApiResponse<string>>> ChangeUserStatus(
+            string userId,
+            [FromBody] int newStatus)
+        {
+            var modifierId = User.GetUserId();
+
+            var result = await _authService.ChangeUserActivationStatus(
+                userId,
+                newStatus,
+                modifierId);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
+        [HttpPut("users/{userId}/admin-update")]
+        [Authorize(Policy = "Admin")]
+        public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> AdminUpdateUser(
+     string userId,
+     [FromBody] AdminUpdateUserDTO updateDto)
+        {
+            var modifierId = User.GetUserId();
+
+            var result = await _authService.UpdateUserInformation(userId, updateDto, modifierId);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
+
     }
 }

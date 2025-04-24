@@ -60,7 +60,7 @@ namespace MTCS.Service.Services
                 DateOfBirth = driverDto.DateOfBirth,
                 Password = _passwordHasher.HashPassword(driverDto.Password),
                 PhoneNumber = driverDto.PhoneNumber,
-                Status = (int)UserStatus.Active,
+                Status = (int)DriverStatus.Active,
                 TotalProcessedOrders = 0,
                 CreatedDate = DateTime.Now,
                 CreatedBy = userId
