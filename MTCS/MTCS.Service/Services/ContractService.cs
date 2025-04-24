@@ -264,9 +264,9 @@ namespace MTCS.Service.Services
                     return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
 
 
-                contract.StartDate = model.StartDate ?? contract.StartDate;
-                contract.EndDate = model.EndDate ?? contract.EndDate;
-                contract.Status = model.Status ?? contract.Status;
+                contract.StartDate = model.StartDate;
+                contract.EndDate = model.EndDate;
+                contract.Status = model.Status;
 
                 if (model.FileIdsToRemove?.Any() == true)
                 {
