@@ -267,7 +267,7 @@ namespace MTCS.Service.Services
                 contract.StartDate = model.StartDate;
                 contract.EndDate = model.EndDate;
                 contract.Status = model.Status;
-
+                await _unitOfWork.ContractRepository.UpdateAsync(contract);
                 if (model.FileIdsToRemove?.Any() == true)
                 {
                     foreach (var fileId in model.FileIdsToRemove)
