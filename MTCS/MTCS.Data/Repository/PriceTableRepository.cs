@@ -106,14 +106,13 @@ namespace MTCS.Data.Repository
         }
 
 
-        public async Task<PriceTable?> GetPriceForCalculation(double distance, int containerType, int containerSize, int deliveryType)
+        public async Task<PriceTable?> GetPriceForCalculation(double distance, int containerType, int containerSize)
         {
             return await _context.PriceTables
                 .AsNoTracking()
                 .Where(pt => pt.Status == 1 &&
                        pt.ContainerType == containerType &&
                        pt.ContainerSize == containerSize &&
-                       pt.DeliveryType == deliveryType &&
                        pt.MinKm <= distance &&
                        pt.MaxKm >= distance)
                 .FirstOrDefaultAsync();
