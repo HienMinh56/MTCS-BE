@@ -69,9 +69,17 @@ public partial class MTCSContext : DbContext
     public virtual DbSet<TripStatusHistory> TripStatusHistories { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.UseSqlServer(GetConnectionString());
-    }
+{
+    optionsBuilder.UseSqlServer(GetConnectionString(), 
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
+}
+
 
     private string GetConnectionString()
     {

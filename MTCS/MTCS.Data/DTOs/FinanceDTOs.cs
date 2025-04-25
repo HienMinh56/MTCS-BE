@@ -12,6 +12,7 @@
         public int UnpaidOrders { get; set; }
         public List<OrderSummaryDTO> PaidOrdersList { get; set; } = new List<OrderSummaryDTO>();
         public List<OrderSummaryDTO> UnpaidOrdersList { get; set; } = new List<OrderSummaryDTO>();
+        public List<PeriodicRevenueItemDTO> PeriodicData { get; set; } = new List<PeriodicRevenueItemDTO>();
     }
 
     public class OrderSummaryDTO
@@ -91,4 +92,20 @@
         public int DaysWorked { get; set; }
         public decimal DailyAverageHours { get; set; }
     }
+
+    public class PeriodicRevenueItemDTO
+    {
+        public string PeriodLabel { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public int CompletedOrders { get; set; }
+        public decimal AverageRevenuePerOrder { get; set; }
+        public decimal PaidRevenue { get; set; }
+        public decimal UnpaidRevenue { get; set; }
+        public int PaidOrders { get; set; }
+        public int UnpaidOrders { get; set; }
+    }
+
+
 }

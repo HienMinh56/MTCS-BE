@@ -13,30 +13,51 @@ namespace MTCS.Data.Repository
         public FinancialRepository(MTCSContext context) : base(context) { }
 
         public async Task<RevenueAnalyticsDTO> GetRevenueAnalyticsAsync(
-     RevenuePeriodType periodType,
-     DateTime startDate,
-     DateTime? endDate = null)
+    RevenuePeriodType periodType,
+    DateTime startDate,
+    DateTime? endDate = null)
         {
             DateTime periodEndDate;
             string periodLabel;
+            List<PeriodicRevenueItemDTO> periodicData = new List<PeriodicRevenueItemDTO>();
 
             switch (periodType)
             {
-                case RevenuePeriodType.Weekly:
-                    periodEndDate = startDate.AddDays(7);
-                    periodLabel = $"{startDate:MM/dd/yyyy} - {periodEndDate.AddDays(-1):MM/dd/yyyy}";
-                    break;
 
                 case RevenuePeriodType.Monthly:
                     startDate = new DateTime(startDate.Year, startDate.Month, 1);
                     periodEndDate = startDate.AddMonths(1);
                     periodLabel = $"{startDate:MMMM yyyy}";
+
+                    // Generate data for each day in the month
+                    for (DateTime day = startDate; day < periodEndDate; day = day.AddDays(1))
+                    {
+                        periodicData.Add(new PeriodicRevenueItemDTO
+                        {
+                            PeriodLabel = day.ToString("MM/dd/yyyy"),
+                            StartDate = day,
+                            EndDate = day.AddDays(1)
+                        });
+                    }
                     break;
 
                 case RevenuePeriodType.Yearly:
                     startDate = new DateTime(startDate.Year, 1, 1);
                     periodEndDate = startDate.AddYears(1);
                     periodLabel = $"{startDate.Year}";
+
+                    // Generate data for each month in the year
+                    for (int month = 1; month <= 12; month++)
+                    {
+                        var monthStart = new DateTime(startDate.Year, month, 1);
+                        var monthEnd = monthStart.AddMonths(1);
+                        periodicData.Add(new PeriodicRevenueItemDTO
+                        {
+                            PeriodLabel = monthStart.ToString("MMMM yyyy"),
+                            StartDate = monthStart,
+                            EndDate = monthEnd
+                        });
+                    }
                     break;
 
                 case RevenuePeriodType.Custom:
@@ -69,6 +90,26 @@ namespace MTCS.Data.Repository
             decimal unpaidRevenue = unpaidOrders.Sum(o => o.Price ?? 0);
             int paidOrderCount = paidOrders.Count;
             int unpaidOrderCount = unpaidOrders.Count;
+
+            foreach (var item in periodicData)
+            {
+                var periodOrders = orders.Where(o =>
+                    o.CreatedDate >= item.StartDate &&
+                    o.CreatedDate < item.EndDate).ToList();
+
+                var periodPaidOrders = periodOrders.Where(o => o.IsPay == 1).ToList();
+                var periodUnpaidOrders = periodOrders.Where(o => o.IsPay != 1).ToList();
+
+                item.TotalRevenue = periodOrders.Sum(o => o.Price ?? 0);
+                item.CompletedOrders = periodOrders.Count;
+                item.AverageRevenuePerOrder = item.CompletedOrders > 0
+                    ? Math.Round(item.TotalRevenue / item.CompletedOrders, 2)
+                    : 0;
+                item.PaidRevenue = periodPaidOrders.Sum(o => o.Price ?? 0);
+                item.UnpaidRevenue = periodUnpaidOrders.Sum(o => o.Price ?? 0);
+                item.PaidOrders = periodPaidOrders.Count;
+                item.UnpaidOrders = periodUnpaidOrders.Count;
+            }
 
             var paidOrdersList = paidOrders.Select(o => new OrderSummaryDTO
             {
@@ -105,9 +146,11 @@ namespace MTCS.Data.Repository
                 PaidOrders = paidOrderCount,
                 UnpaidOrders = unpaidOrderCount,
                 PaidOrdersList = paidOrdersList,
-                UnpaidOrdersList = unpaidOrdersList
+                UnpaidOrdersList = unpaidOrdersList,
+                PeriodicData = periodicData
             };
         }
+
 
         public async Task<PagedList<CustomerRevenueDTO>> GetRevenueByCustomerAsync(
             PaginationParams paginationParams,
