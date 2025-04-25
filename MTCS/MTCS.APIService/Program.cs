@@ -208,6 +208,7 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowSpecificOrigin");
 app.MapHub<LocationHub>("/locationHub");
+app.MapHub<ChatHub>("/chatHub");
 app.UseWebSockets();
 
 app.Use(async (context, next) =>
