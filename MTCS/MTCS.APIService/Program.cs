@@ -13,6 +13,7 @@ using MTCS.Data.DTOs;
 using MTCS.Data.Helpers;
 using MTCS.Service;
 using MTCS.Service.Handler;
+using MTCS.Service.Hubs;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using OfficeOpenXml;
@@ -53,6 +54,7 @@ builder.Services.AddScoped<IDriverWeeklySummaryService, DriverWeeklySummaryServi
 builder.Services.AddSingleton<WebSocketHandler>();
 builder.Services.AddHostedService<VehicleRegistrationService>();
 builder.Services.AddHostedService<VehicleMaintenanceService>();
+builder.Services.AddSignalR();
 
 
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
@@ -205,6 +207,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("AllowSpecificOrigin");
+app.MapHub<LocationHub>("/locationHub");
 app.UseWebSockets();
 
 app.Use(async (context, next) =>
