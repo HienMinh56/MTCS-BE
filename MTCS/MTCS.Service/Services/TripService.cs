@@ -620,7 +620,7 @@ namespace MTCS.Service.Services
             return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", trip);
         }
 
-        #region
+        #region create trip auto
         public async Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId)
         {
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
