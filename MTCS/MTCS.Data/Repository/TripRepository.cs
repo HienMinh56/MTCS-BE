@@ -49,8 +49,10 @@ namespace MTCS.Data.Repository
                 .ThenInclude(t => t.FuelReportFiles)
                 .Include(t => t.DeliveryReports)
                 .ThenInclude(t => t.DeliveryReportsFiles)
+                .AsNoTracking()
+                .OrderByDescending(t => t.MatchTime)
                 .ToListAsync();
-
+                
             return trips.Select(t => new TripData
             {
                 TripId = t.TripId,
