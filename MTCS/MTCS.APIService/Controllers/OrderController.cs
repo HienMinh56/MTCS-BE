@@ -11,7 +11,6 @@ namespace MTCS.APIService.Controllers
 {
     [Route("api/order")]
     [ApiController]
-    [Authorize]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -20,7 +19,7 @@ namespace MTCS.APIService.Controllers
         {
             _orderService = orderService;
         }
-
+        [Authorize]
         #region Get order by fillter
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders(
@@ -39,14 +38,14 @@ namespace MTCS.APIService.Controllers
             return Ok(result);
         }
         #endregion
-
+        [Authorize]
         [HttpGet("{orderId}/order-file")]
         public async Task<IActionResult> GetOrderFiles(string orderId)
         {
             var result = await _orderService.GetOrderFiles(orderId);
             return Ok(result);
         }
-
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> CreateOrderWithFile([FromForm] OrderRequest orderRequest, [FromForm] List<string> descriptions, [FromForm] List<string> notes, [FromForm] List<IFormFile> files)
         {
@@ -59,7 +58,7 @@ namespace MTCS.APIService.Controllers
             var result = await _orderService.CreateOrder(orderRequest, currentUser, files, descriptions, notes);
             return Ok(result);
         }
-
+        [Authorize]
         [HttpGet("export-excel")]
         public async Task<IActionResult> ExportOrdersToExcel([FromQuery] string fromDateStr, [FromQuery] string toDateStr)
         {
@@ -84,7 +83,7 @@ namespace MTCS.APIService.Controllers
                 return StatusCode(500, $"Lỗi khi xuất file Excel: {ex.Message}");
             }
         }
-
+        [Authorize]
         [HttpPut("update/{orderId}")]
         public async Task<IActionResult> UpdateOrderAsync(string orderId, [FromForm] UpdateOrderRequest model)
         {
@@ -117,7 +116,7 @@ namespace MTCS.APIService.Controllers
             return Ok(order);
         }
         #endregion
-
+        [Authorize]
         [HttpPatch("{orderId}/toggle-is-pay")]
         public async Task<IActionResult> ToggleIsPay(string orderId)
         {
