@@ -45,7 +45,7 @@ namespace MTCS.Service.Services
                     tripId, driverId, status, tractorId, trailerId, orderId, trackingCode, tractorlicensePlate, trailerlicensePlate
                 );
 
-                if (trips == null || !trips.Any())
+                if (trips == null)
                 {
                     return new BusinessResult(404, "No trips found.");
                 }
