@@ -28,15 +28,26 @@ namespace MTCS.Service.Services
         }
 
         #region GetTripsByFilter
-        public async Task<BusinessResult> GetTripsByFilterAsync(string? tripId, string? driverId, string? status, string? tractorId, string? trailerId, string? orderId, string? trackingCode, string? tractorlicensePlate, string? trailerlicensePlate)
+        public async Task<BusinessResult> GetTripsByFilterAsync(
+            string? tripId,
+            string? driverId,
+            string? status,
+            string? tractorId,
+            string? trailerId,
+            string? orderId,
+            string? trackingCode,
+            string? tractorlicensePlate,
+            string? trailerlicensePlate)
         {
             try
             {
-                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(tripId,driverId, status, tractorId, trailerId, orderId, trackingCode, tractorlicensePlate, trailerlicensePlate);
+                var trips = await _unitOfWork.TripRepository.GetTripsByFilterAsync(
+                    tripId, driverId, status, tractorId, trailerId, orderId, trackingCode, tractorlicensePlate, trailerlicensePlate
+                );
 
-                if (trips == null)
+                if (trips == null || !trips.Any())
                 {
-                    return new BusinessResult(404, "Not Found");
+                    return new BusinessResult(404, "No trips found.");
                 }
 
                 return new BusinessResult(200, "Success", trips);
@@ -521,7 +532,7 @@ namespace MTCS.Service.Services
             // Tạo Trip
             var trip = new Trip
             {
-                TripId = Guid.NewGuid().ToString(),
+                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 8),
                 OrderId = tripRequestModel.OrderId,
                 DriverId = tripRequestModel.DriverId,
                 TractorId = tripRequestModel.TractorId,
@@ -595,6 +606,7 @@ namespace MTCS.Service.Services
         }
         #endregion
 
+        #region CancelTrip
         public async Task<IBusinessResult> CancelTrip (CancelTripRequest request ,ClaimsPrincipal claims)
         {
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
@@ -619,8 +631,9 @@ namespace MTCS.Service.Services
             await _notificationService.SendNotificationAsync(trip.DriverId, "Chuyến đi đã bị hủy", $"Chuyến {request.TripId} đã được cập nhật thành '{trip.Status}' lý do {request.Note} vào lúc {trip.EndTime} bởi {userName}.", userName);
             return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", trip);
         }
+        #endregion
 
-        #region create trip auto
+        #region Create trip auto
         public async Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId)
         {
             var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderId);
@@ -740,7 +753,7 @@ namespace MTCS.Service.Services
         {
             var trip = new Trip
             {
-                TripId = Guid.NewGuid().ToString(),
+                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 8),
                 OrderId = order.OrderId,
                 DriverId = driver.DriverId,
                 TractorId = tractor.TractorId,
