@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
+using MTCS.Data.DTOs.TripsDTO;
 using MTCS.Data.Models;
 using MTCS.Data.Response;
 
@@ -12,17 +13,17 @@ namespace MTCS.Data.Repository
         public TripRepository(MTCSContext context) : base(context) { }
 
 
-        public async Task<IEnumerable<TripData>> GetTripsByFilterAsync(
-     string? tripId,
-     string? driverId,
-     string? status,
-     string? tractorId,
-     string? trailerId,
-     string? orderId,
-     string? trackingCode,
-     string? tractorlicensePlate,
-     string? trailerlicensePlate
- )
+        public async Task<IEnumerable<TripDto>> GetTripsByFilterAsync(
+    string? tripId,
+    string? driverId,
+    string? status,
+    string? tractorId,
+    string? trailerId,
+    string? orderId,
+    string? trackingCode,
+    string? tractorlicensePlate,
+    string? trailerlicensePlate
+)
         {
             var query = _context.Trips.AsQueryable();
 
@@ -36,8 +37,6 @@ namespace MTCS.Data.Repository
             if (!string.IsNullOrEmpty(tractorlicensePlate)) query = query.Where(t => t.Tractor.LicensePlate == tractorlicensePlate);
             if (!string.IsNullOrEmpty(trailerlicensePlate)) query = query.Where(t => t.Trailer.LicensePlate == trailerlicensePlate);
 
-            query = query.AsNoTracking();
-
             var trips = await query
                 .Include(t => t.Order)
                 .Include(t => t.Driver)
@@ -45,15 +44,16 @@ namespace MTCS.Data.Repository
                 .Include(t => t.Trailer)
                 .Include(t => t.TripStatusHistories)
                 .Include(t => t.IncidentReports)
+                    .ThenInclude(i => i.IncidentReportsFiles)
                 .Include(t => t.FuelReports)
-                .ThenInclude(t => t.FuelReportFiles)
+                    .ThenInclude(f => f.FuelReportFiles)
                 .Include(t => t.DeliveryReports)
-                .ThenInclude(t => t.DeliveryReportsFiles)
+                    .ThenInclude(d => d.DeliveryReportsFiles)
                 .AsNoTracking()
                 .OrderByDescending(t => t.MatchTime)
                 .ToListAsync();
-                
-            return trips.Select(t => new TripData
+
+            return trips.Select(t => new TripDto
             {
                 TripId = t.TripId,
                 OrderId = t.OrderId,
@@ -68,12 +68,104 @@ namespace MTCS.Data.Repository
                 MatchType = t.MatchType,
                 MatchBy = t.MatchBy,
                 MatchTime = t.MatchTime,
-                Driver = t.Driver,
-                DeliveryReports = t.DeliveryReports,
-                FuelReports = t.FuelReports,
-                IncidentReports = t.IncidentReports,
-                TripStatusHistories = t.TripStatusHistories,
-                Order = t.Order,
+                Driver = t.Driver == null ? null : new DriverDto
+                {
+                    DriverId = t.Driver.DriverId,
+                    FullName = t.Driver.FullName,
+                    PhoneNumber = t.Driver.PhoneNumber,
+                    Status = t.Driver.Status
+                },
+                DeliveryReports = t.DeliveryReports?.Select(dr => new DeliveryReportDto
+                {
+                    ReportId = dr.ReportId,
+                    TripId = dr.TripId,
+                    Notes = dr.Notes,
+                    ReportTime = dr.ReportTime,
+                    ReportBy = dr.ReportBy,
+                    DeliveryReportsFiles = dr.DeliveryReportsFiles?.Select(f => new DeliveryReportFileDto
+                    {
+                        FileId = f.FileId,
+                        ReportId = f.ReportId,
+                        FileName = f.FileName,
+                        FileType = f.FileType,
+                        UploadDate = f.UploadDate,
+                        UploadBy = f.UploadBy,
+                        Description = f.Description,
+                        Note = f.Note,
+                        FileUrl = f.FileUrl,
+                        ModifiedDate = f.ModifiedDate,
+                        ModifiedBy = f.ModifiedBy
+                    }).ToList()
+                }).ToList(),
+
+                FuelReports = t.FuelReports?.Select(fr => new FuelReportDto
+                {
+                    ReportId = fr.ReportId,
+                    TripId = fr.TripId,
+                    RefuelAmount = fr.RefuelAmount,
+                    FuelCost = fr.FuelCost,
+                    Location = fr.Location,
+                    ReportTime = fr.ReportTime,
+                    ReportBy = fr.ReportBy,
+                    FuelReportFiles = fr.FuelReportFiles?.Select(ff => new FuelReportFileDto
+                    {
+                        FileId = ff.FileId,
+                        ReportId = ff.ReportId,
+                        FileName = ff.FileName,
+                        FileType = ff.FileType,
+                        UploadDate = ff.UploadDate,
+                        UploadBy = ff.UploadBy,
+                        Description = ff.Description,
+                        Note = ff.Note,
+                        FileUrl = ff.FileUrl,
+                        ModifiedDate = ff.ModifiedDate,
+                        ModifiedBy = ff.ModifiedBy
+                    }).ToList()
+                }).ToList(),
+
+                IncidentReports = t.IncidentReports?.Select(ir => new IncidentReportDto
+                {
+                    ReportId = ir.ReportId,
+                    TripId = ir.TripId,
+                    ReportedBy = ir.ReportedBy,
+                    IncidentType = ir.IncidentType,
+                    Description = ir.Description,
+                    IncidentTime = ir.IncidentTime,
+                    Location = ir.Location,
+                    Type = ir.Type,
+                    Status = ir.Status,
+                    ResolutionDetails = ir.ResolutionDetails,
+                    HandledBy = ir.HandledBy,
+                    HandledTime = ir.HandledTime,
+                    CreatedDate = ir.CreatedDate,
+                    VehicleType = ir.VehicleType,
+                    IncidentReportsFiles = ir.IncidentReportsFiles?.Select(iff => new IncidentReportFileDto
+                    {
+                        FileId = iff.FileId,
+                        ReportId = iff.ReportId,
+                        FileName = iff.FileName,
+                        FileType = iff.FileType,
+                        UploadDate = iff.UploadDate,
+                        UploadBy = iff.UploadBy,
+                        Description = iff.Description,
+                        Note = iff.Note,
+                        FileUrl = iff.FileUrl,
+                        ModifiedDate = iff.ModifiedDate,
+                        ModifiedBy = iff.ModifiedBy,
+                        Type = iff.Type,
+                        DeletedDate = iff.DeletedDate,
+                        DeletedBy = iff.DeletedBy
+                    }).ToList()
+                }).ToList(),
+
+                TripStatusHistories = t.TripStatusHistories?.Select(th => new TripStatusHistoryDto
+                {
+                    HistoryId = th.HistoryId,
+                    TripId = th.TripId,
+                    StatusId = th.StatusId,
+                    StartTime = th.StartTime,
+                    Status = th.Status?.StatusName
+                }).ToList()
             }).ToList();
         }
 
