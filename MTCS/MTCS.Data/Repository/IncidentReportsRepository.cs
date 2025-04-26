@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
+using MTCS.Data.DTOs.IncidentReportDTO;
 using MTCS.Data.Models;
 using MTCS.Data.Response;
 
@@ -11,55 +12,135 @@ namespace MTCS.Data.Repository
         {
         }
 
-        public async Task<List<IncidentReportsData>> GetAllIncidentReport(string? driverId, string? tripId, string? reportId)
+        public async Task<List<IncidentReportDTO>> GetAllIncidentReport(string? driverId, string? tripId, string? reportId)
         {
-            var query = _context.IncidentReports.Include(i => i.IncidentReportsFiles)
-                                                .Include(i => i.Trip)
-                                                .ThenInclude(t => t.Driver)
-                                                .Include(i => i.Trip)
-                                                .ThenInclude(i => i.Order)
-                                                .OrderByDescending(i => i.CreatedDate)
-                                                .AsNoTracking()
-                                                .AsQueryable();
+            var query = _context.IncidentReports
+                .Include(i => i.IncidentReportsFiles)
+                .Include(i => i.Trip)
+                    .ThenInclude(t => t.Driver)
+                .Include(i => i.Trip)
+                    .ThenInclude(t => t.Order)
+                        .ThenInclude(o => o.Trips) // <-- thêm Include Trips
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(driverId))
             {
                 query = query.Where(i => i.Trip.DriverId == driverId);
             }
-
             if (!string.IsNullOrEmpty(tripId))
             {
                 query = query.Where(i => i.TripId == tripId);
             }
-
             if (!string.IsNullOrEmpty(reportId))
             {
                 query = query.Where(i => i.ReportId == reportId);
             }
 
-            var incidentReports = await query.ToListAsync();
+            var incidentReports = await query
+                .Select(i => new IncidentReportDTO
+                {
+                    ReportId = i.ReportId,
+                    TripId = i.TripId,
+                    TrackingCode = i.Trip.Order.TrackingCode,
+                    ReportedBy = i.ReportedBy,
+                    IncidentType = i.IncidentType,
+                    Description = i.Description,
+                    IncidentTime = i.IncidentTime,
+                    Location = i.Location,
+                    Type = i.Type,
+                    VehicleType = i.VehicleType,
+                    Status = i.Status,
+                    ResolutionDetails = i.ResolutionDetails,
+                    HandledBy = i.HandledBy,
+                    HandledTime = i.HandledTime,
+                    CreatedDate = i.CreatedDate,
+                    IncidentReportsFiles = i.IncidentReportsFiles.Select(f => new IncidentReportsFileDTO
+                    {
+                        FileId = f.FileId,
+                        FileName = f.FileName,
+                        FileUrl = f.FileUrl
+                    }).ToList(),
+                    Trip = i.Trip == null ? null : new TripDTO
+                    {
+                        TripId = i.Trip.TripId,
+                        OrderId = i.Trip.OrderId,
+                        DriverId = i.Trip.DriverId,
+                        TractorId = i.Trip.TractorId,
+                        TrailerId = i.Trip.TrailerId,
+                        StartTime = i.Trip.StartTime,
+                        EndTime = i.Trip.EndTime,
+                        Status = i.Trip.Status,
+                        MatchType = i.Trip.MatchType,
+                        MatchBy = i.Trip.MatchBy,
+                        MatchTime = i.Trip.MatchTime,
+                        Note = i.Trip.Note,
+                        Driver = i.Trip.Driver == null ? null : new DriverDTO
+                        {
+                            DriverId = i.Trip.Driver.DriverId,
+                            FullName = i.Trip.Driver.FullName,
+                            PhoneNumber = i.Trip.Driver.PhoneNumber,
+                            Email = i.Trip.Driver.Email,
+                            Status = i.Trip.Driver.Status,
+                            CreatedDate = i.Trip.Driver.CreatedDate
+                        }
+                    },
+                    Driver = i.Trip.Driver == null ? null : new DriverDTO
+                    {
+                        DriverId = i.Trip.Driver.DriverId,
+                        FullName = i.Trip.Driver.FullName,
+                        PhoneNumber = i.Trip.Driver.PhoneNumber,
+                        Email = i.Trip.Driver.Email,
+                        Status = i.Trip.Driver.Status,
+                        CreatedDate = i.Trip.Driver.CreatedDate
+                    },
+                    Order = i.Trip.Order == null ? null : new OrderDTO
+                    {
+                        OrderId = i.Trip.Order.OrderId,
+                        TrackingCode = i.Trip.Order.TrackingCode,
+                        CustomerId = i.Trip.Order.CustomerId,
+                        Temperature = i.Trip.Order.Temperature,
+                        Weight = i.Trip.Order.Weight,
+                        PickUpDate = i.Trip.Order.PickUpDate,
+                        DeliveryDate = i.Trip.Order.DeliveryDate,
+                        Status = i.Trip.Order.Status,
+                        Note = i.Trip.Order.Note,
+                        CreatedDate = i.Trip.Order.CreatedDate,
+                        CreatedBy = i.Trip.Order.CreatedBy,
+                        ModifiedDate = i.Trip.Order.ModifiedDate,
+                        ModifiedBy = i.Trip.Order.ModifiedBy,
+                        ContainerType = i.Trip.Order.ContainerType,
+                        PickUpLocation = i.Trip.Order.PickUpLocation,
+                        DeliveryLocation = i.Trip.Order.DeliveryLocation,
+                        ConReturnLocation = i.Trip.Order.ConReturnLocation,
+                        DeliveryType = i.Trip.Order.DeliveryType,
+                        Price = i.Trip.Order.Price,
+                        ContainerNumber = i.Trip.Order.ContainerNumber,
+                        ContactPerson = i.Trip.Order.ContactPerson,
+                        ContactPhone = i.Trip.Order.ContactPhone,
+                        OrderPlacer = i.Trip.Order.OrderPlacer,
+                        Distance = i.Trip.Order.Distance,
+                        ContainerSize = i.Trip.Order.ContainerSize,
+                        IsPay = i.Trip.Order.IsPay,
+                        CompletionTime = i.Trip.Order.CompletionTime,
+                        Trips = i.Trip.Order.Trips.Select(t => new TripDTO
+                        {
+                            TripId = t.TripId,
+                            OrderId = t.OrderId,
+                            DriverId = t.DriverId,
+                            TractorId = t.TractorId,
+                            TrailerId = t.TrailerId,
+                            StartTime = t.StartTime,
+                            EndTime = t.EndTime,
+                            Status = t.Status,
+                            MatchType = t.MatchType,
+                            MatchBy = t.MatchBy,
+                            MatchTime = t.MatchTime,
+                            Note = t.Note
+                        }).ToList()
+                    }
+                }).ToListAsync();
 
-            // Map the IncidentReport entities to IncidentReportsData objects
-            return incidentReports.Select(i => new IncidentReportsData
-            {
-                ReportId = i.ReportId,
-                TripId = i.TripId,
-                TrackingCode = i.Trip?.Order?.TrackingCode,
-                ReportedBy = i.ReportedBy,
-                IncidentType = i.IncidentType,
-                Description = i.Description,
-                IncidentTime = i.IncidentTime,
-                Location = i.Location,
-                Type = i.Type,
-                VehicleType = i.VehicleType,
-                Status = i.Status,
-                ResolutionDetails = i.ResolutionDetails,
-                HandledBy = i.HandledBy,
-                HandledTime = i.HandledTime,
-                CreatedDate = i.CreatedDate,
-                IncidentReportsFiles = i.IncidentReportsFiles,
-                Trip = i.Trip
-            }).ToList();
+            return incidentReports;
         }
 
         public async Task<string> GetNextIncidentCodeAsync()
