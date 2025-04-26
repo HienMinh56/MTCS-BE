@@ -3,62 +3,90 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FirebaseAdmin.Messaging;
 using Google.Cloud.Firestore;
+using Microsoft.Extensions.Logging;
 
 namespace MTCS.Service.Services
 {
     public interface IChatService
     {
-        Task SaveMessageAsync(string driverId, string staffId, string senderId, string content);
-        Task MarkMessageAsReadAsync(string driverId, string staffId, string messageId);
+        Task SendMessageAsync(string senderId, string receiverId, string message);
     }
     public class ChatService : IChatService
     {
-        private readonly FirestoreDb _firestoreDb;
+        private readonly IFCMService _fcmService;
+        private readonly ILogger<ChatService> _logger;
 
-        public ChatService(FirestoreDb firestoreDb)
+        public ChatService(IFCMService fcmService, ILogger<ChatService> logger)
         {
-            _firestoreDb = firestoreDb;
+            _fcmService = fcmService;
+            _logger = logger;
         }
 
-        public async Task SaveMessageAsync(string driverId, string staffId, string senderId, string content)
+        public async Task SendMessageAsync(string senderId, string receiverId, string message)
         {
-            var chatId = $"{driverId}_{staffId}";
-            var chatRef = _firestoreDb.Collection("chats").Document(chatId);
+            var db = _fcmService.GetFirestoreDb();
 
-            var message = new Dictionary<string, object>
-        {
-            { "senderId", senderId },
-            { "content", content },
-            { "sentAt", Timestamp.GetCurrentTimestamp() },  // Thêm thời gian gửi
-            { "readAt", null } // Thời gian xem, lúc đầu là null
-        };
+            // Chat ID được tạo dựa trên 2 userId theo thứ tự chữ cái
+            var chatId = string.Compare(senderId, receiverId) < 0
+                ? $"{senderId}_{receiverId}"
+                : $"{receiverId}_{senderId}";
 
-            // Lưu tin nhắn vào subcollection "messages"
-            await chatRef.Collection("messages").AddAsync(message);
+            var chatDoc = db.Collection("chats").Document(chatId);
 
-            // Cập nhật metadata của cuộc trò chuyện
-            var chatMeta = new Dictionary<string, object>
-        {
-            { "participants", new[] { driverId, staffId } },
-            { "lastMessage", content },
-            { "timestamp", Timestamp.GetCurrentTimestamp() }
-        };
+            // Đảm bảo participants có tồn tại (nếu là lần đầu chat)
+            await chatDoc.SetAsync(new { participants = new[] { senderId, receiverId } }, SetOptions.MergeAll);
 
-            await chatRef.SetAsync(chatMeta, SetOptions.MergeAll);
+            // Ghi message vào Firestore
+            var messageDoc = chatDoc.Collection("messages").Document();
+            await messageDoc.SetAsync(new
+            {
+                senderId,
+                receiverId,
+                text = message,
+                timestamp = Timestamp.GetCurrentTimestamp(),
+                read = false
+            });
+
+            _logger.LogInformation($"💬 Message sent from {senderId} to {receiverId}");
+
+            // 🔔 Gửi FCM notification
+            await SendFCMNotificationAsync(receiverId, senderId, message);
         }
 
-        // Hàm cập nhật thời gian xem tin nhắn
-        public async Task MarkMessageAsReadAsync(string driverId, string staffId, string messageId)
+        private async Task SendFCMNotificationAsync(string receiverId, string senderId, string message)
         {
-            var chatId = $"{driverId}_{staffId}";
-            var messageRef = _firestoreDb.Collection("chats")
-                                          .Document(chatId)
-                                          .Collection("messages")
-                                          .Document(messageId);
+            var db = _fcmService.GetFirestoreDb();
+            var userDoc = await db.Collection("users").Document(receiverId).GetSnapshotAsync();
 
-            // Cập nhật trường readAt khi người dùng xem tin nhắn
-            await messageRef.UpdateAsync("readAt", Timestamp.GetCurrentTimestamp());
+            if (!userDoc.Exists || !userDoc.ContainsField("fcmToken"))
+            {
+                _logger.LogWarning($"⚠️ No FCM token for {receiverId}, message will be delivered silently.");
+                return; // Không gửi FCM, nhưng tin nhắn vẫn được lưu Firestore
+            }
+
+            var fcmToken = userDoc.GetValue<string>("fcmToken");
+
+            var fcm = _fcmService.GetMessagingClient();
+
+            var notification = new Message
+            {
+                Token = fcmToken,
+                Notification = new Notification
+                {
+                    Title = "Tin nhắn mới",
+                    Body = message
+                },
+                Data = new Dictionary<string, string>
+        {
+            { "senderId", senderId }
         }
+            };
+
+            await fcm.SendAsync(notification);
+            _logger.LogInformation($"🔔 Sent message notification to {receiverId}");
+        }
+
     }
 }

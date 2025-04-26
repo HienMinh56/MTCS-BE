@@ -51,6 +51,7 @@ builder.Services.AddSingleton<IFCMService, FCMService>();
 builder.Services.AddScoped<ISystemConfigurationServices, SystemConfigurationServices>();
 builder.Services.AddScoped<IDriverDailyWorkingTimeService, DriverDailyWorkingTimeService>();
 builder.Services.AddScoped<IDriverWeeklySummaryService, DriverWeeklySummaryService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddSingleton<WebSocketHandler>();
 builder.Services.AddHostedService<VehicleRegistrationService>();
 builder.Services.AddHostedService<VehicleMaintenanceService>();
@@ -208,7 +209,7 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowSpecificOrigin");
 app.MapHub<LocationHub>("/locationHub");
-app.MapHub<ChatHub>("/chatHub");
+//app.MapHub<ChatHub>("/chatHub");
 app.UseWebSockets();
 
 app.Use(async (context, next) =>
