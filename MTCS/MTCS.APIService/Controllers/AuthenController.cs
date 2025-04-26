@@ -4,6 +4,7 @@ using MTCS.Data.DTOs;
 using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 using MTCS.Data.Response;
+using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
 
 namespace MTCS.APIService.Controllers
@@ -122,7 +123,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpGet("staff")]
-        public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> GetStaffForDriver()
+        public async Task<IActionResult> GetStaffForDriver()
         {
             var result = await _authService.GetStaffForDriver();
             return Ok(result);
