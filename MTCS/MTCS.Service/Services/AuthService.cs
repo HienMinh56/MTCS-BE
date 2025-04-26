@@ -1,10 +1,12 @@
 ﻿using Microsoft.Extensions.Configuration;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 using MTCS.Data.Response;
+using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
 
 namespace MTCS.Service.Services
@@ -225,6 +227,18 @@ namespace MTCS.Service.Services
                 null);
         }
 
+        public async Task<BusinessResult> GetStaffForDriver()
+        {
+            try
+            {
+                var staff =  _unitOfWork.InternalUserRepository.GetList(i => i.Role == (int)InternalUserRole.Staff && i.Status == (int)UserStatus.Active);
+                return new BusinessResult { Status = Const.SUCCESS_READ_CODE,Message = Const.SUCCESS_READ_MSG, Data= staff };
+            }
+            catch(Exception ex)
+            {
+                return new BusinessResult { Status = Const.FAIL_READ_CODE, Message = ex.Message };
+            }
+        }
         public async Task<ApiResponse<string>> ChangeUserActivationStatus(string userId, int newStatus, string modifierId)
         {
             var user = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(userId);

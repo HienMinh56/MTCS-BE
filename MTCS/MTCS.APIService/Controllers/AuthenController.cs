@@ -121,6 +121,13 @@ namespace MTCS.APIService.Controllers
             return Ok(result);
         }
 
+        [HttpGet("staff")]
+        public async Task<ActionResult<ApiResponse<ProfileResponseDTO>>> GetStaffForDriver()
+        {
+            var result = await _authService.GetStaffForDriver();
+            return Ok(result);
+        }
+
         [HttpPut("users/{userId}/status")]
         [Authorize(Policy = "Admin")]
         public async Task<ActionResult<ApiResponse<string>>> ChangeUserStatus(
