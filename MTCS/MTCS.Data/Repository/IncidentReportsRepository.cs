@@ -58,7 +58,9 @@ namespace MTCS.Data.Repository
                     {
                         FileId = f.FileId,
                         FileName = f.FileName,
-                        FileUrl = f.FileUrl
+                        FileUrl = f.FileUrl,
+                        Type = f.Type
+
                     }).ToList(),
                     Trip = i.Trip == null ? null : new TripDTO
                     {
