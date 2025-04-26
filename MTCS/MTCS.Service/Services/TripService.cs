@@ -413,7 +413,7 @@ namespace MTCS.Service.Services
                 await _unitOfWork.CommitTransactionAsync();
 
                 var incident = await _unitOfWork.IncidentReportsRepository.GetRecentIncidentReport(tripId);
-                await _notificationService.SendNotificationAsync(newTrip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {newTrip.TripId} bắt đầu từ {incident.Location} để thay thế chuyến {tripId}.", "Hệ thống");
+                await _notificationService.SendNotificationAsync(newTrip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {newTrip.TripId} bắt đầu từ {incident.Location} để thay thế chuyến {tripId}.", "Hệ thống");
 
                 return new BusinessResult(Const.SUCCESS_UPDATE_CODE, "Cập nhật thành công", newTrip);
             }
@@ -594,7 +594,7 @@ namespace MTCS.Service.Services
                 }
                     var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
                     // Gửi thông báo sau khi cập nhật thành công
-                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} xuất phát từ {existingOrder.PickUpLocation}.", "Hệ thống");
+                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} xuất phát từ {existingOrder.PickUpLocation}.", "Hệ thống");
 
                     return new BusinessResult(1, "Tạo trip thành công!", trip);
             }
@@ -806,7 +806,7 @@ namespace MTCS.Service.Services
             }
 
             var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
-            await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vùa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} bắt đầu từ {existingOrder.PickUpLocation}.", "Hệ thống");
+            await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} bắt đầu từ {existingOrder.PickUpLocation}.", "Hệ thống");
 
             return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
         }
