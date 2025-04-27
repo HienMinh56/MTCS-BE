@@ -24,6 +24,21 @@ namespace MTCS.Data.Helpers
                 : new ValidationResult("Date cannot be in the future");
         }
 
+        public static ValidationResult NotPastDateTime(DateTime? date, ValidationContext context)
+        {
+            return date >= DateTime.Now.Date
+                ? ValidationResult.Success
+                : new ValidationResult("Date cannot be in the past");
+        }
+
+        public static ValidationResult NotPastDateOnly(DateOnly? date, ValidationContext context)
+        {
+            return date >= DateOnly.FromDateTime(DateTime.Today)
+                ? ValidationResult.Success
+                : new ValidationResult("Date cannot be in the past");
+        }
+
+
         public static ValidationResult DoB(object value, ValidationContext context)
         {
             const int minAge = 18;

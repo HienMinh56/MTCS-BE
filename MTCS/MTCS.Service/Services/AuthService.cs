@@ -41,10 +41,11 @@ namespace MTCS.Service.Services
                     contactValidation.MessageVN,
                     null);
             }
+            var staffId = await _unitOfWork.InternalUserRepository.GenerateStaffIdAsync();
 
             var internalUser = new InternalUser
             {
-                UserId = Guid.NewGuid().ToString(),
+                UserId = staffId,
                 FullName = userDto.FullName,
                 Email = userDto.Email,
                 Password = _passwordHasher.HashPassword(userDto.Password),
@@ -75,10 +76,11 @@ namespace MTCS.Service.Services
                     contactValidation.MessageVN,
                     null);
             }
+            var adminId = await _unitOfWork.InternalUserRepository.GenerateAdminIdAsync();
 
             var internalUser = new InternalUser
             {
-                UserId = Guid.NewGuid().ToString(),
+                UserId = adminId,
                 FullName = userDto.FullName,
                 Email = userDto.Email,
                 Password = _passwordHasher.HashPassword(userDto.Password),
@@ -231,10 +233,10 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var staff =  _unitOfWork.InternalUserRepository.GetList(i => i.Role == (int)InternalUserRole.Staff && i.Status == (int)UserStatus.Active);
-                return new BusinessResult { Status = Const.SUCCESS_READ_CODE,Message = Const.SUCCESS_READ_MSG, Data= staff };
+                var staff = _unitOfWork.InternalUserRepository.GetList(i => i.Role == (int)InternalUserRole.Staff && i.Status == (int)UserStatus.Active);
+                return new BusinessResult { Status = Const.SUCCESS_READ_CODE, Message = Const.SUCCESS_READ_MSG, Data = staff };
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return new BusinessResult { Status = Const.FAIL_READ_CODE, Message = ex.Message };
             }

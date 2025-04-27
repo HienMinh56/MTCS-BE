@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.DTOs;
+using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 
@@ -84,6 +85,54 @@ namespace MTCS.Data.Repository
                 .FirstOrDefaultAsync();
 
             return profile;
+        }
+
+        public async Task<string> GenerateStaffIdAsync()
+        {
+            const string prefix = "STF";
+
+            var highestId = await _context.InternalUsers
+                .Where(d => d.UserId.StartsWith(prefix) && d.Role == (int)InternalUserRole.Staff)
+                .Select(d => d.UserId)
+                .OrderByDescending(id => id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (!string.IsNullOrEmpty(highestId) && highestId.Length > prefix.Length)
+            {
+                var numericPart = highestId.Substring(prefix.Length);
+                if (int.TryParse(numericPart, out int currentNumber))
+                {
+                    nextNumber = currentNumber + 1;
+                }
+            }
+
+            return $"{prefix}{nextNumber:D3}";
+        }
+
+        public async Task<string> GenerateAdminIdAsync()
+        {
+            const string prefix = "ADM";
+
+            var highestId = await _context.InternalUsers
+                .Where(d => d.UserId.StartsWith(prefix) && d.Role == (int)InternalUserRole.Admin)
+                .Select(d => d.UserId)
+                .OrderByDescending(id => id)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 1;
+
+            if (!string.IsNullOrEmpty(highestId) && highestId.Length > prefix.Length)
+            {
+                var numericPart = highestId.Substring(prefix.Length);
+                if (int.TryParse(numericPart, out int currentNumber))
+                {
+                    nextNumber = currentNumber + 1;
+                }
+            }
+
+            return $"{prefix}{nextNumber:D3}";
         }
 
     }

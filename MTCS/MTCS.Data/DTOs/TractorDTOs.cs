@@ -1,6 +1,6 @@
-﻿using MTCS.Data.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
-using System.ComponentModel.DataAnnotations;
 
 namespace MTCS.Data.DTOs
 {
@@ -23,7 +23,10 @@ namespace MTCS.Data.DTOs
         [CustomValidation(typeof(DateValidator), "NotFutureDateTime")]
         public DateTime? LastMaintenanceDate { get; set; }
 
+        [Required(ErrorMessage = "Next maintenance date is required")]
+        [CustomValidation(typeof(DateValidator), "NotPastDateTime")]
         public DateTime NextMaintenanceDate { get; set; }
+
 
         [Required(ErrorMessage = "Registration date is required")]
         [CustomValidation(typeof(DateValidator), "NotFutureDateOnly")]
