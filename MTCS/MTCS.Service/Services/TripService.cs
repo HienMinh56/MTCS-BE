@@ -532,7 +532,7 @@ namespace MTCS.Service.Services
             // Tạo Trip
             var trip = new Trip
             {
-                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
                 OrderId = tripRequestModel.OrderId,
                 DriverId = tripRequestModel.DriverId,
                 TractorId = tripRequestModel.TractorId,
@@ -753,7 +753,7 @@ namespace MTCS.Service.Services
         {
             var trip = new Trip
             {
-                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
                 OrderId = order.OrderId,
                 DriverId = driver.DriverId,
                 TractorId = tractor.TractorId,
@@ -813,6 +813,7 @@ namespace MTCS.Service.Services
 
         #endregion
 
+        #region Get all basic trips
         public async Task<BusinessResult> GetAllTripsAsync()
         {
             try
@@ -835,6 +836,7 @@ namespace MTCS.Service.Services
                 };
             }
         }
+        #endregion
     }
 }
 
