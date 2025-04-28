@@ -109,5 +109,12 @@ namespace MTCS.APIService.Controllers
                 return BadRequest($"Lỗi: {ex.Message}");
             }
         }
+
+        [HttpGet("getAll")]
+        public async Task<IActionResult> GetAllTrips()
+        {
+            var result = await _tripService.GetAllTripsAsync();
+            return Ok(result);
+        }
     }
 }

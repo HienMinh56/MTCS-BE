@@ -812,6 +812,29 @@ namespace MTCS.Service.Services
         }
 
         #endregion
+
+        public async Task<BusinessResult> GetAllTripsAsync()
+        {
+            try
+            {
+                var trips = await _unitOfWork.TripRepository.GetAllTripsAsync();
+
+                return new BusinessResult
+                {
+                    Status = 1,
+                    Message = "Success",
+                    Data = trips
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult
+                {
+                    Status = -1,
+                    Message = $"Error: {ex.Message}"
+                };
+            }
+        }
     }
 }
 
