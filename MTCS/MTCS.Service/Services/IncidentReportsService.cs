@@ -619,21 +619,57 @@ namespace MTCS.Service.Services
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
                 var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(updateIncidentReportMO.ReportId);
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident!.TripId);
                 if (incident is null)
                 {
                     return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
                 }
-                else
-                {
-                    incident.ReportId = updateIncidentReportMO.ReportId is null ? incident.ReportId : updateIncidentReportMO.ReportId;
-                    incident.ReportedBy = userName;
-                    incident.IncidentType = updateIncidentReportMO.IncidentType is null ? incident.IncidentType : updateIncidentReportMO.IncidentType;
-                    incident.Description = updateIncidentReportMO.Description is null ? incident.Description : updateIncidentReportMO.Description;
-                    incident.Location = updateIncidentReportMO.Location is null ? incident.Location : updateIncidentReportMO.Location;
-                    incident.Type = updateIncidentReportMO.Type is null ? incident.Type : updateIncidentReportMO.Type;
-                    incident.VehicleType = updateIncidentReportMO.VehicleType is null ? incident.VehicleType : updateIncidentReportMO.VehicleType;
-                }
+                int? previousVehicleType = incident.VehicleType;
 
+
+                incident.ReportId = updateIncidentReportMO.ReportId is null ? incident.ReportId : updateIncidentReportMO.ReportId;
+                incident.ReportedBy = userName;
+                incident.IncidentType = updateIncidentReportMO.IncidentType is null ? incident.IncidentType : updateIncidentReportMO.IncidentType;
+                incident.Description = updateIncidentReportMO.Description is null ? incident.Description : updateIncidentReportMO.Description;
+                incident.Location = updateIncidentReportMO.Location is null ? incident.Location : updateIncidentReportMO.Location;
+                incident.Type = updateIncidentReportMO.Type is null ? incident.Type : updateIncidentReportMO.Type;
+                incident.VehicleType = updateIncidentReportMO.VehicleType is null ? incident.VehicleType : updateIncidentReportMO.VehicleType;
+
+                if (previousVehicleType != incident.VehicleType && incident.Type >= 2)
+                {
+                    if (previousVehicleType == 1 && incident.VehicleType == 2)
+                    {
+                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                        if (tractor != null && tractor.Status == VehicleStatus.Inactive.ToString())
+                        {
+                            tractor.Status = VehicleStatus.Active.ToString();
+                            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        }
+
+                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
+                        if (trailer != null)
+                        {
+                            trailer.Status = VehicleStatus.Inactive.ToString();
+                            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                        }
+                    }
+                    else if (previousVehicleType == 2 && incident.VehicleType == 1)
+                    {
+                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
+                        if (trailer != null && trailer.Status == VehicleStatus.Inactive.ToString())
+                        {
+                            trailer.Status = VehicleStatus.Active.ToString();
+                            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                        }
+
+                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                        if (tractor != null)
+                        {
+                            tractor.Status = VehicleStatus.Inactive.ToString();
+                            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        }
+                    }
+                }
 
 
                 if (updateIncidentReportMO.RemovedImage != null && updateIncidentReportMO.RemovedImage.Count > 0)
@@ -681,7 +717,6 @@ namespace MTCS.Service.Services
 
                 var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                 var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
                 var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
                 var owner = order.CreatedBy;
                 if (result > 0)
