@@ -532,7 +532,7 @@ namespace MTCS.Service.Services
             // Tạo Trip
             var trip = new Trip
             {
-                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
                 OrderId = tripRequestModel.OrderId,
                 DriverId = tripRequestModel.DriverId,
                 TractorId = tripRequestModel.TractorId,
@@ -753,7 +753,7 @@ namespace MTCS.Service.Services
         {
             var trip = new Trip
             {
-                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 8),
+                TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
                 OrderId = order.OrderId,
                 DriverId = driver.DriverId,
                 TractorId = tractor.TractorId,
@@ -811,6 +811,31 @@ namespace MTCS.Service.Services
             return new BusinessResult(1, "Tạo trip tự động thành công!", trip);
         }
 
+        #endregion
+
+        #region Get all basic trips
+        public async Task<BusinessResult> GetAllTripsAsync()
+        {
+            try
+            {
+                var trips = await _unitOfWork.TripRepository.GetAllTripsAsync();
+
+                return new BusinessResult
+                {
+                    Status = 1,
+                    Message = "Success",
+                    Data = trips
+                };
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult
+                {
+                    Status = -1,
+                    Message = $"Error: {ex.Message}"
+                };
+            }
+        }
         #endregion
     }
 }

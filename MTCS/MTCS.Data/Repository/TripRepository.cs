@@ -207,5 +207,25 @@ namespace MTCS.Data.Repository
                 .Where(t => t.Order.DeliveryDate == deliveryDate)
                 .ToListAsync();
         }
+
+        public async Task<List<TripData>> GetAllTripsAsync()
+        {
+            var trips = await _context.Trips
+                .Include(t => t.Order)
+                .Include(t => t.Driver)
+                .OrderByDescending(t => t.MatchTime)
+                .Select(t => new TripData
+                {
+                    TripId = t.TripId,
+                    TrackingCode = t.Order != null ? t.Order.TrackingCode : null,
+                    DriverName = t.Driver != null ? t.Driver.FullName : null,
+                    StartTime = t.StartTime,
+                    EndTime = t.EndTime,
+                    Status = t.Status,
+                })
+                .ToListAsync();
+
+            return trips;
+        }
     }
 }
