@@ -1,11 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MTCS.Data.Base;
 using MTCS.Data.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MTCS.Data.Repository
 {
@@ -25,8 +20,8 @@ namespace MTCS.Data.Repository
                 .Where(c => c.ContractId.StartsWith($"CTR{timestamp}"))
                 .ToListAsync();
 
-            int nextNumber = existingContracts.Count + 1; 
-            return $"CTR{timestamp}{nextNumber:D2}"; 
+            int nextNumber = existingContracts.Count + 1;
+            return $"CTR{timestamp}{nextNumber:D2}";
         }
 
 
@@ -43,5 +38,11 @@ namespace MTCS.Data.Repository
             return contract;
         }
 
+        public async Task<List<Contract>> GetContractsWithCustomerAsync()
+        {
+            return await _context.Contracts
+                .Include(c => c.Customer)
+                .ToListAsync();
+        }
     }
 }
