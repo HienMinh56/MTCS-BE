@@ -105,7 +105,13 @@ namespace MTCS.Service.Services
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
                     var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
-                    await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
+                    var driverStatus = DriverStatus.OnDuty;
+                    if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
+                    {
+                        driverStatus = DriverStatus.Active;
+                    }
+
+                    await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, driverStatus);
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
                     await _notificationService.SendNotificationAsync(order.CreatedBy, "Chuyến đi đã được cập nhật", $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}", driver.FullName);
                 }

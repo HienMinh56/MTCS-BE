@@ -543,7 +543,7 @@ namespace MTCS.Service.Services
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
-                        if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId) == false)
+                        if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                         {
                             driver.Status = 1; // Free
                         }
@@ -570,7 +570,7 @@ namespace MTCS.Service.Services
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
-                        if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId) == false)
+                        if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                         {
                             driver.Status = 1; // Free
                         }
