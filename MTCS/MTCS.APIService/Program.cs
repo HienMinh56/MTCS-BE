@@ -20,6 +20,10 @@ using MTCS.Service.Hubs;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using OfficeOpenXml;
+using StackExchange.Redis;
+using System.Security.Claims;
+using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -200,6 +204,12 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var configuration = builder.Configuration.GetConnectionString("Redis");
+    return ConnectionMultiplexer.Connect(configuration);
 });
 
 var app = builder.Build();
