@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using MTCS.Data;
 using MTCS.Service.Services;
 
-namespace MTCS.Service
+namespace MTCS.Service.BackgroundServices
 {
     public class VehicleMaintenanceService : BackgroundService
     {

@@ -100,7 +100,7 @@ namespace MTCS.Service.Services
         {
             var user = await _unitOfWork.InternalUserRepository.GetUserByEmailAsync(loginDto.Email);
 
-            if (user == null || user.DeletedBy != null)
+            if (user == null || user.Status == (int)UserStatus.Inactive)
             {
                 throw new KeyNotFoundException("User not found");
             }
@@ -196,7 +196,7 @@ namespace MTCS.Service.Services
         {
             var driver = await _unitOfWork.DriverRepository.GetDriverByEmailAsync(loginDto.Email);
 
-            if (driver == null)
+            if (driver == null || driver.Status == (int)UserStatus.Inactive)
             {
                 throw new KeyNotFoundException("Không tìm thấy tài xế");
             }

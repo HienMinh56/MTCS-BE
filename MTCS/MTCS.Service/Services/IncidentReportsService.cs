@@ -551,13 +551,13 @@ namespace MTCS.Service.Services
                         if (incident.VehicleType == 1)
                         {
                             var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                            tractor.Status = VehicleStatus.Inactive.ToString();
+                            tractor.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                         }
                         if (incident.VehicleType == 2)
                         {
                             var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
-                            trailer.Status = VehicleStatus.Inactive.ToString();
+                            trailer.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                         }
 
@@ -578,13 +578,13 @@ namespace MTCS.Service.Services
                         if (incident.VehicleType == 1)
                         {
                             var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                            tractor.Status = VehicleStatus.Inactive.ToString();
+                            tractor.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                         }
                         if (incident.VehicleType == 2)
                         {
                             var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
-                            trailer.Status = VehicleStatus.Inactive.ToString();
+                            trailer.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                         }
 
