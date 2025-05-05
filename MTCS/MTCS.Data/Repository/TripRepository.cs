@@ -228,15 +228,21 @@ namespace MTCS.Data.Repository
             return trips;
         }
 
-        public async Task<bool> IsDriverHaveProcessTrip(string driverId)
+        public async Task<bool> IsDriverHaveProcessTrip(string driverId, string? excludeTripId = null)
         {
-            var activeTrips = await _context.Trips
-                .Where(t => t.DriverId == driverId &&
-                           t.Status != "completed" &&
-                           t.Status != "not_started" &&
-                           t.Status != "canceled")
-                .ToListAsync();
-            return activeTrips.Any();
+            var query = _context.Trips.AsQueryable();
+
+            query = query.Where(t => t.DriverId == driverId &&
+                                     t.Status != "completed" &&
+                                     t.Status != "not_started" &&
+                                     t.Status != "canceled");
+
+            if (!string.IsNullOrEmpty(excludeTripId))
+            {
+                query = query.Where(t => t.TripId != excludeTripId);
+            }
+
+            return await query.AnyAsync();
         }
     }
 }

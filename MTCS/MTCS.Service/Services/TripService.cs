@@ -106,7 +106,7 @@ namespace MTCS.Service.Services
                     driver.TotalProcessedOrders++;
                     var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
                     var driverStatus = DriverStatus.OnDuty;
-                    if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId) == false)
+                    if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                     {
                         driverStatus = DriverStatus.Active;
                     }
