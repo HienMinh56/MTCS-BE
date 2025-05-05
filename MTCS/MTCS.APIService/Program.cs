@@ -1,4 +1,6 @@
-﻿using DotNetEnv;
+﻿using System.Security.Claims;
+using System.Text;
+using DotNetEnv;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 using Google.Cloud.Firestore.V1;
@@ -12,6 +14,7 @@ using MTCS.Data;
 using MTCS.Data.DTOs;
 using MTCS.Data.Helpers;
 using MTCS.Service;
+using MTCS.Service.BackgroundServices;
 using MTCS.Service.Handler;
 using MTCS.Service.Hubs;
 using MTCS.Service.Interfaces;
@@ -20,6 +23,7 @@ using OfficeOpenXml;
 using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -56,6 +60,7 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddSingleton<WebSocketHandler>();
 builder.Services.AddHostedService<VehicleRegistrationService>();
 builder.Services.AddHostedService<VehicleMaintenanceService>();
+builder.Services.AddHostedService<ContractExpirationService>();
 builder.Services.AddSignalR();
 
 
