@@ -116,5 +116,11 @@ namespace MTCS.APIService.Controllers
             var result = await _tripService.GetAllTripsAsync();
             return Ok(result);
         }
+        [HttpGet("getTripsMo")]
+        public async Task<IActionResult> GetTripsByGroupAsync(string driverId, string groupType)
+        {
+            var result = await _tripService.GetTripsByGroupAsync(driverId, groupType);
+            return Ok(result);
+        }
     }
 }
