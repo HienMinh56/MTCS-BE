@@ -1,5 +1,4 @@
 ﻿using System.Text.Json;
-using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -14,26 +13,26 @@ namespace MTCS.Service.Cache
         Task<bool> ExistsAsync(string key);
         Task RemoveByPrefixAsync(string prefix);
         Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> dataFactory, TimeSpan? expiry = null) where T : class;
+        Task InvalidateTractorCache();
     }
 
     public class RedisCacheService : IRedisCacheService
     {
-        private readonly IDistributedCache _cache;
         private readonly IConfiguration _configuration;
         private readonly ILogger<RedisCacheService> _logger;
         private readonly IConnectionMultiplexer _redis;
+        private readonly IDatabase _db;
         private readonly TimeSpan _defaultExpiry;
 
         public RedisCacheService(
-            IDistributedCache cache,
             IConfiguration configuration,
             ILogger<RedisCacheService> logger,
             IConnectionMultiplexer redis)
         {
-            _cache = cache;
             _configuration = configuration;
             _logger = logger;
             _redis = redis;
+            _db = redis.GetDatabase();
 
             // Get default expiry from configuration or use 30 minutes
             int minutes = configuration.GetValue<int>("Redis:DefaultExpiryMinutes");
@@ -44,9 +43,9 @@ namespace MTCS.Service.Cache
         {
             try
             {
-                string cachedValue = await _cache.GetStringAsync(key);
+                var cachedValue = await _db.StringGetAsync(key);
 
-                if (string.IsNullOrEmpty(cachedValue))
+                if (cachedValue.IsNullOrEmpty)
                 {
                     return null;
                 }
@@ -64,13 +63,9 @@ namespace MTCS.Service.Cache
         {
             try
             {
-                var options = new DistributedCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = expiry ?? _defaultExpiry
-                };
-
+                var expiryTime = expiry ?? _defaultExpiry;
                 string serializedValue = JsonSerializer.Serialize(value);
-                await _cache.SetStringAsync(key, serializedValue, options);
+                await _db.StringSetAsync(key, serializedValue, expiryTime);
             }
             catch (Exception ex)
             {
@@ -82,7 +77,7 @@ namespace MTCS.Service.Cache
         {
             try
             {
-                await _cache.RemoveAsync(key);
+                await _db.KeyDeleteAsync(key);
             }
             catch (Exception ex)
             {
@@ -94,7 +89,7 @@ namespace MTCS.Service.Cache
         {
             try
             {
-                return await _redis.GetDatabase().KeyExistsAsync(key);
+                return await _db.KeyExistsAsync(key);
             }
             catch (Exception ex)
             {
@@ -107,13 +102,21 @@ namespace MTCS.Service.Cache
         {
             try
             {
-                var server = _redis.GetServer(_redis.GetEndPoints()[0]);
+                // Get all endpoints and use the first one to get the server instance
+                var endPoints = _redis.GetEndPoints();
+                if (endPoints.Length == 0)
+                {
+                    _logger.LogWarning("No Redis endpoints available for RemoveByPrefixAsync");
+                    return;
+                }
+
+                var server = _redis.GetServer(endPoints[0]);
                 var keys = server.Keys(pattern: $"{prefix}*");
 
-                var db = _redis.GetDatabase();
+                // Delete all keys with the given prefix
                 foreach (var key in keys)
                 {
-                    await db.KeyDeleteAsync(key);
+                    await _db.KeyDeleteAsync(key);
                 }
             }
             catch (Exception ex)
@@ -153,5 +156,9 @@ namespace MTCS.Service.Cache
             }
         }
 
+        public async Task InvalidateTractorCache()
+        {
+            await RemoveByPrefixAsync("tractor:");
+        }
     }
 }

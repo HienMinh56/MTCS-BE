@@ -62,10 +62,6 @@ builder.Services.AddHostedService<ContractExpirationService>();
 builder.Services.AddSignalR();
 
 //redis
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-});
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {

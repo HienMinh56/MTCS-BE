@@ -108,7 +108,7 @@ namespace MTCS.Service.Services
                             await _unitOfWork.TractorFileRepository.CreateAsync(tractorFile);
                         }
                     }
-                    await InvalidateTractorCache();
+                    await _cacheService.InvalidateTractorCache();
 
                     return new ApiResponse<TractorResponseDTO>(
                         true,
@@ -275,7 +275,7 @@ namespace MTCS.Service.Services
             tractor.ModifiedDate = DateTime.Now;
 
             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-            await InvalidateTractorCache();
+            await _cacheService.InvalidateTractorCache();
 
             return new ApiResponse<bool>(
                 true,
@@ -320,7 +320,7 @@ namespace MTCS.Service.Services
             tractor.DeletedDate = null;
 
             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-            await InvalidateTractorCache();
+            await _cacheService.InvalidateTractorCache();
 
             return new ApiResponse<bool>(
                 true,
@@ -421,7 +421,7 @@ namespace MTCS.Service.Services
                     "Cập nhật đầu kéo thất bại",
                     null);
             }
-            await InvalidateTractorCache();
+            await _cacheService.InvalidateTractorCache();
 
             var responseDto = new TractorResponseDTO
             {
@@ -498,7 +498,7 @@ namespace MTCS.Service.Services
                     "Cập nhật thông tin tệp tin thất bại",
                     "Unable to update the file details");
             }
-            await InvalidateTractorCache();
+            await _cacheService.InvalidateTractorCache();
 
             return new ApiResponse<bool>(
                 true,
@@ -563,11 +563,5 @@ namespace MTCS.Service.Services
                 $"Đã tìm thấy {useHistory.Items.Count} bản ghi lịch sử đầu kéo {tractor.LicensePlate}",
                 null);
         }
-
-        private async Task InvalidateTractorCache()
-        {
-            await _cacheService.RemoveByPrefixAsync("tractor:");
-        }
-
     }
 }

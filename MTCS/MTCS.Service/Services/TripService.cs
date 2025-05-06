@@ -66,13 +66,13 @@ namespace MTCS.Service.Services
             {
                 await _unitOfWork.BeginTransactionAsync();
 
-                var trip =  _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
+                var trip = _unitOfWork.TripRepository.Get(t => t.TripId == tripId);
                 if (trip == null) return new BusinessResult(404, "Trip Not Found");
 
                 var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
                 if (driver == null) return new BusinessResult(404, "Driver Not Found");
 
-                var beingReport =  _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
+                var beingReport = _unitOfWork.IncidentReportsRepository.Get(i => i.TripId == tripId && i.Status == "Handling");
                 if (beingReport != null) return new BusinessResult(400, "Cannot update status as there is an incident report being handled");
 
                 var currentStatus = await _unitOfWork.DeliveryStatusRepository.GetByIdAsync(trip.Status);
@@ -105,7 +105,13 @@ namespace MTCS.Service.Services
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
                     var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
-                    await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, DriverStatus.Active);
+                    var driverStatus = DriverStatus.OnDuty;
+                    if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
+                    {
+                        driverStatus = DriverStatus.Active;
+                    }
+
+                    await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, driverStatus);
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
                     await _notificationService.SendNotificationAsync(order.CreatedBy, "Chuyến đi đã được cập nhật", $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}", driver.FullName);
                 }
@@ -464,7 +470,7 @@ namespace MTCS.Service.Services
                 {
                     throw new Exception("Tractor không phù hợp với loại container lạnh của đơn hàng!");
                 }
-            }        
+            }
 
             // Tính trọng lượng container (kg)
             double containerWeight = 0;
@@ -592,11 +598,11 @@ namespace MTCS.Service.Services
                     };
                     await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
                 }
-                    var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
-                    // Gửi thông báo sau khi cập nhật thành công
-                    await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} xuất phát từ {existingOrder.PickUpLocation}.", "Hệ thống");
+                var existingOrder = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                // Gửi thông báo sau khi cập nhật thành công
+                await _notificationService.SendNotificationAsync(trip.DriverId, "Bạn vừa nhận được 1 chuyến hàng mới", $"Chuyến {trip.TripId} được xếp bởi {trip.MatchBy} xuất phát từ {existingOrder.PickUpLocation}.", "Hệ thống");
 
-                    return new BusinessResult(1, "Tạo trip thành công!", trip);
+                return new BusinessResult(1, "Tạo trip thành công!", trip);
             }
             catch (Exception ex)
             {
@@ -607,7 +613,7 @@ namespace MTCS.Service.Services
         #endregion
 
         #region CancelTrip
-        public async Task<IBusinessResult> CancelTrip (CancelTripRequest request ,ClaimsPrincipal claims)
+        public async Task<IBusinessResult> CancelTrip(CancelTripRequest request, ClaimsPrincipal claims)
         {
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
 
@@ -721,7 +727,7 @@ namespace MTCS.Service.Services
                         if (usedTractor != null && usedTrailer != null)
                         {
                             usedTractorIds.Add(tractorId);
-                            usedTrailerIds.Add(trailerId);                           
+                            usedTrailerIds.Add(trailerId);
                             return await CreateTrip(order, driver, usedTractor, usedTrailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
                         }
                     }
@@ -837,6 +843,22 @@ namespace MTCS.Service.Services
             }
         }
         #endregion
+
+        public async Task<BusinessResult> GetTripsByGroupAsync(string driverId, string groupType)
+        {
+            try
+            {
+                var trips = await _unitOfWork.TripRepository.GetTripsByGroupAsync(driverId, groupType);
+                if (trips == null)
+                    return new BusinessResult(404, "Trip không tồn tại");
+                return new BusinessResult(200, "Success", trips);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(500, ex.Message);
+
+            }
+        }
     }
 }
 
