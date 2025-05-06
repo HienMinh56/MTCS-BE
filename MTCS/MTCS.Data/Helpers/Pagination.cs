@@ -25,12 +25,12 @@ namespace MTCS.Data.Helpers
         public bool HasNext => CurrentPage < TotalPages;
         public List<T> Items { get; }
 
-        public PagedList(List<T> items, int count, int pageNumber, int pageSize)
+        public PagedList(List<T> items, int totalCount, int currentPage, int pageSize)
         {
-            CurrentPage = pageNumber;
-            TotalPages = (int)Math.Ceiling(count / (double)pageSize);
+            CurrentPage = currentPage;
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
             PageSize = pageSize;
-            TotalCount = count;
+            TotalCount = totalCount;
             Items = items;
         }
 

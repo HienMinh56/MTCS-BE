@@ -15,11 +15,13 @@ using MTCS.Data.DTOs;
 using MTCS.Data.Helpers;
 using MTCS.Service;
 using MTCS.Service.BackgroundServices;
+using MTCS.Service.Cache;
 using MTCS.Service.Handler;
 using MTCS.Service.Hubs;
 using MTCS.Service.Interfaces;
 using MTCS.Service.Services;
 using OfficeOpenXml;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +60,20 @@ builder.Services.AddHostedService<VehicleRegistrationService>();
 builder.Services.AddHostedService<VehicleMaintenanceService>();
 builder.Services.AddHostedService<ContractExpirationService>();
 builder.Services.AddSignalR();
+
+//redis
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("Redis");
+    return ConnectionMultiplexer.Connect(connectionString);
+});
+
+builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 
 
 builder.Services.AddSingleton(opt => StorageClient.Create(GoogleCredential.FromFile("..\\..\\nomnomfood-3f50b-firebase-adminsdk-pc2ef-9697ade1d4.json")));
