@@ -721,8 +721,8 @@ namespace MTCS.Service.Services
                     // Nếu chưa bị dùng bởi tài xế khác và vẫn hợp lệ
                     if (!usedTractorIds.Contains(tractorId) && !usedTrailerIds.Contains(trailerId))
                     {
-                        var usedTractor = tractors.FirstOrDefault(x => x.TractorId == tractorId && x.MaxLoadWeight >= totalWeight);
-                        var usedTrailer = trailers.FirstOrDefault(x => x.TrailerId == trailerId && x.MaxLoadWeight >= totalWeight);
+                        var usedTractor = tractors.FirstOrDefault(x =>x.TractorId == tractorId && x.MaxLoadWeight >= totalWeight && x.RegistrationExpirationDate > deliveryDate);
+                        var usedTrailer = trailers.FirstOrDefault(x =>x.TrailerId == trailerId && x.MaxLoadWeight >= totalWeight && (order.ContainerSize != 40 || x.ContainerSize == 2) && x.RegistrationExpirationDate > deliveryDate);
 
                         if (usedTractor != null && usedTrailer != null)
                         {
@@ -737,12 +737,18 @@ namespace MTCS.Service.Services
                     // Nếu tài xế chưa có trip, duyệt tất cả tractor + trailer còn trống
                     foreach (var tractor in preferredTractorList)
                     {
-                        if (!tractor.MaxLoadWeight.HasValue || tractor.MaxLoadWeight.Value < totalWeight || usedTractorIds.Contains(tractor.TractorId)) continue;
+                        if (!tractor.MaxLoadWeight.HasValue ||
+                            tractor.MaxLoadWeight.Value < totalWeight ||
+                            usedTractorIds.Contains(tractor.TractorId) ||
+                            tractor.RegistrationExpirationDate <= deliveryDate)
+                            continue;
 
-                        foreach (var trailer in trailers.Where(t => t.MaxLoadWeight >= totalWeight))
+                        foreach (var trailer in trailers.Where(t =>
+                            t.MaxLoadWeight >= totalWeight &&
+                            (order.ContainerSize != 40 || t.ContainerSize == 2) &&
+                            !usedTrailerIds.Contains(t.TrailerId) &&
+                            t.RegistrationExpirationDate > deliveryDate))
                         {
-                            if (usedTrailerIds.Contains(trailer.TrailerId)) continue;
-
                             usedTractorIds.Add(tractor.TractorId);
                             usedTrailerIds.Add(trailer.TrailerId);
 
