@@ -228,6 +228,52 @@ namespace MTCS.Data.Repository
             return trips;
         }
 
+        public async Task<List<TripMoResponse>> GetTripsByGroupAsync(string driverId, string groupType)
+        {
+            IQueryable<Trip> query = _context.Trips
+                .Include(t => t.Order)
+                .OrderByDescending(t => t.MatchTime)
+                .Where(t => t.DriverId == driverId);
+
+            // Filter theo nhóm trạng thái
+            switch (groupType)
+            {
+                case "not_started":
+                    query = query.Where(t => t.Status == "not_started");
+                    break;
+
+                case "in_progress":
+                    query = query.Where(t =>
+                        t.Status != "not_started" &&
+                        t.Status != "completed" &&
+                        t.Status != "canceled");
+                    break;
+
+                case "completed":
+                    query = query.Where(t =>
+                        t.Status == "completed" ||
+                        t.Status == "canceled");
+                    break;
+            }
+
+            var trips = await query.Select(t => new TripMoResponse
+            {
+                TripId = t.TripId,
+                TrackingCode = t.Order != null ? t.Order.TrackingCode : null,
+                ContainerNumber = t.Order != null ? t.Order.ContainerNumber : null,
+                PickUpDate = t.Order.PickUpDate,
+                DeliveryDate = t.Order.DeliveryDate,
+                PickUpLocation = t.Order.PickUpLocation,
+                DeliveryLocation = t.Order.DeliveryLocation,
+                ConReturnLocation = t.Order.ConReturnLocation,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                Status = t.Status
+            }).ToListAsync();
+
+            return trips;
+        }
+
         public async Task<bool> IsDriverHaveProcessTrip(string driverId, string? excludeTripId = null)
         {
             var query = _context.Trips.AsQueryable();
