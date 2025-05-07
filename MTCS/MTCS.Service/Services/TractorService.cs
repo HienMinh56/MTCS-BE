@@ -4,7 +4,6 @@ using MTCS.Data.Enums;
 using MTCS.Data.Helpers;
 using MTCS.Data.Models;
 using MTCS.Data.Response;
-using MTCS.Service.Cache;
 using MTCS.Service.Interfaces;
 
 namespace MTCS.Service.Services
@@ -13,13 +12,11 @@ namespace MTCS.Service.Services
     {
         private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseStorageService;
-        private readonly IRedisCacheService _cacheService;
 
-        public TractorService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseStorageService, IRedisCacheService cacheService)
+        public TractorService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseStorageService)
         {
             _unitOfWork = unitOfWork;
             _firebaseStorageService = firebaseStorageService;
-            _cacheService = cacheService;
         }
 
         public async Task<ApiResponse<TractorResponseDTO>> CreateTractorWithFiles(
@@ -108,7 +105,6 @@ namespace MTCS.Service.Services
                             await _unitOfWork.TractorFileRepository.CreateAsync(tractorFile);
                         }
                     }
-                    await _cacheService.InvalidateTractorCache();
 
                     return new ApiResponse<TractorResponseDTO>(
                         true,
@@ -145,48 +141,31 @@ namespace MTCS.Service.Services
            int? maintenanceDueDays = null,
            int? registrationExpiringDays = null)
         {
-            string cacheKey = CacheKeyBuilder.BuildCacheKey("tractor", "basic-info", new
+            var infoResult = await _unitOfWork.TractorRepository.GetTractorsBasicInfo(
+                paginationParams,
+                searchKeyword,
+                status,
+                maintenanceDueSoon,
+                registrationExpiringSoon,
+                maintenanceDueDays,
+                registrationExpiringDays);
+
+            if (infoResult.Tractors.TotalCount == 0)
             {
-                Page = paginationParams.PageNumber,
-                Size = paginationParams.PageSize,
-                Search = searchKeyword ?? "none",
-                Status = status?.ToString() ?? "all",
-                MaintenanceDue = maintenanceDueSoon,
-                RegExpiring = registrationExpiringSoon,
-                MaintenanceDays = maintenanceDueDays,
-                RegDays = registrationExpiringDays
-            });
+                return new ApiResponse<TractorBasicInfoResultDTO>(
+                    true,
+                    infoResult,
+                    "No tractors found",
+                    "Không tìm thấy đầu kéo",
+                    null);
+            }
 
-            return await _cacheService.GetOrSetAsync(
-                cacheKey,
-                async () =>
-                {
-                    var infoResult = await _unitOfWork.TractorRepository.GetTractorsBasicInfo(
-                        paginationParams,
-                        searchKeyword,
-                        status,
-                        maintenanceDueSoon,
-                        registrationExpiringSoon,
-                        maintenanceDueDays,
-                        registrationExpiringDays);
-
-                    if (infoResult.Tractors.TotalCount == 0)
-                    {
-                        return new ApiResponse<TractorBasicInfoResultDTO>(
-                            true,
-                            infoResult,
-                            "No tractors found",
-                            "Không tìm thấy đầu kéo",
-                            null);
-                    }
-
-                    return new ApiResponse<TractorBasicInfoResultDTO>(
-                        true,
-                        infoResult,
-                        $"Retrieved {infoResult.Tractors.Items.Count} tractors of {infoResult.Tractors.TotalCount} total (page {infoResult.Tractors.CurrentPage} of {infoResult.Tractors.TotalPages})",
-                        null,
-                        null);
-                });
+            return new ApiResponse<TractorBasicInfoResultDTO>(
+                true,
+                infoResult,
+                $"Retrieved {infoResult.Tractors.Items.Count} tractors of {infoResult.Tractors.TotalCount} total (page {infoResult.Tractors.CurrentPage} of {infoResult.Tractors.TotalPages})",
+                null,
+                null);
         }
 
         public async Task<ApiResponse<TractorDetailsDTO>> GetTractorDetail(string tractorId)
@@ -275,7 +254,6 @@ namespace MTCS.Service.Services
             tractor.ModifiedDate = DateTime.Now;
 
             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-            await _cacheService.InvalidateTractorCache();
 
             return new ApiResponse<bool>(
                 true,
@@ -320,7 +298,6 @@ namespace MTCS.Service.Services
             tractor.DeletedDate = null;
 
             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-            await _cacheService.InvalidateTractorCache();
 
             return new ApiResponse<bool>(
                 true,
@@ -421,7 +398,6 @@ namespace MTCS.Service.Services
                     "Cập nhật đầu kéo thất bại",
                     null);
             }
-            await _cacheService.InvalidateTractorCache();
 
             var responseDto = new TractorResponseDTO
             {
@@ -498,7 +474,6 @@ namespace MTCS.Service.Services
                     "Cập nhật thông tin tệp tin thất bại",
                     "Unable to update the file details");
             }
-            await _cacheService.InvalidateTractorCache();
 
             return new ApiResponse<bool>(
                 true,

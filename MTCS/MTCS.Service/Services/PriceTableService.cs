@@ -4,6 +4,7 @@ using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
+using MTCS.Service.Cache;
 using OfficeOpenXml;
 
 namespace MTCS.Service.Services
@@ -22,13 +23,17 @@ namespace MTCS.Service.Services
         Task<ApiResponse<PriceTable>> UpdatePriceTable(UpdatePriceTableRequest priceTable, string userName);
         Task<ApiResponse<CalculatedPriceResponse>> CalculatePrice(double distance, int containerType, int containerSize);
     }
+
     public class PriceTableService : IPriceTableService
     {
         private readonly UnitOfWork _unitOfWork;
+        private readonly IRedisCacheService _cacheService;
+        private const string PRICE_TABLE_PREFIX = "price-table";
 
-        public PriceTableService(UnitOfWork unitOfWork)
+        public PriceTableService(UnitOfWork unitOfWork, IRedisCacheService cacheService)
         {
             _unitOfWork = unitOfWork;
+            _cacheService = cacheService;
         }
 
         public async Task<ApiResponse<PriceTable>> UpdatePriceTable(UpdatePriceTableRequest priceTable, string userName)
@@ -85,6 +90,9 @@ namespace MTCS.Service.Services
 
                 await _unitOfWork.PriceTableRepository.CreateAsync(newPrice);
                 await _unitOfWork.CommitTransactionAsync();
+
+                // Invalidate cache after price table update
+                await InvalidatePriceTableCache(existingPrice.Version ?? 0);
 
                 return new ApiResponse<PriceTable>(
                     true,
@@ -145,6 +153,10 @@ namespace MTCS.Service.Services
                     await _unitOfWork.PriceTableRepository.CreateAsync(newPriceTable);
                 }
                 await _unitOfWork.CommitTransactionAsync();
+
+                // Invalidate cache after creating new price tables
+                await InvalidatePriceTableCache();
+
                 return new ApiResponse<List<PriceTable>>(true, newPriceTables, "Price table created successfully", "Đã tạo bảng giá thành công", null);
             }
             catch (Exception ex)
@@ -181,6 +193,13 @@ namespace MTCS.Service.Services
                 }
                 priceTable.Status = 0;
                 _unitOfWork.PriceTableRepository.Update(priceTable);
+
+                // Invalidate cache for the affected version
+                if (priceTable.Version.HasValue)
+                {
+                    _ = InvalidatePriceTableCache(priceTable.Version.Value);
+                }
+
                 return Task.FromResult(new BusinessResult(200, "Price Table deleted successfully"));
             }
             catch (Exception ex)
@@ -300,55 +319,64 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var (versionsInfo, activeVersion) = await _unitOfWork.PriceTableRepository.GetPriceTableVersions();
+                string cacheKey = BuildPriceTableCacheKey(version);
 
-                var priceTables = await _unitOfWork.PriceTableRepository.GetPriceTables(version);
+                return await _cacheService.GetOrSetAsync(
+                    cacheKey,
+                    async () =>
+                    {
+                        var (versionsInfo, activeVersion) = await _unitOfWork.PriceTableRepository.GetPriceTableVersions();
 
-                if (priceTables == null || !priceTables.Any())
-                {
-                    string message = version.HasValue
-                        ? $"No price tables found for version {version}"
-                        : "No price tables found in the latest version";
+                        var priceTables = await _unitOfWork.PriceTableRepository.GetPriceTables(version);
 
-                    return new ApiResponse<PriceTablesHistoryDTO>(
-                        false,
-                        new PriceTablesHistoryDTO
+                        if (priceTables == null || !priceTables.Any())
                         {
-                            PriceTables = new List<PriceTable>(),
+                            string message = version.HasValue
+                                ? $"No price tables found for version {version}"
+                                : "No price tables found in the latest version";
+
+                            return new ApiResponse<PriceTablesHistoryDTO>(
+                                false,
+                                new PriceTablesHistoryDTO
+                                {
+                                    PriceTables = new List<PriceTable>(),
+                                    VersionsInfo = versionsInfo,
+                                    CurrentVersion = version ?? versionsInfo.FirstOrDefault()?.Version ?? 0,
+                                    ActiveVersion = activeVersion,
+                                    TotalCount = 0
+                                },
+                                message,
+                                "Không tìm thấy bảng giá",
+                                null);
+                        }
+
+                        var currentVersion = version ?? priceTables.FirstOrDefault()?.Version ?? 0;
+
+                        var activePrices = priceTables.Where(p => p.Status == 1).ToList();
+                        var inactivePrices = priceTables.Where(p => p.Status == 0).ToList();
+
+                        var response = new PriceTablesHistoryDTO
+                        {
+                            PriceTables = priceTables,
                             VersionsInfo = versionsInfo,
-                            CurrentVersion = version ?? versionsInfo.FirstOrDefault()?.Version ?? 0,
                             ActiveVersion = activeVersion,
-                            TotalCount = 0
-                        },
-                        message,
-                        "Không tìm thấy bảng giá",
-                        null);
-                }
+                            CurrentVersion = currentVersion,
+                            TotalCount = priceTables.Count
+                        };
 
-                var currentVersion = version ?? priceTables.FirstOrDefault()?.Version ?? 0;
+                        string successMessage = version.HasValue
+                            ? $"Retrieved {priceTables.Count} price tables for version {version}"
+                            : $"Retrieved {priceTables.Count} price tables from the latest version";
 
-                var activePrices = priceTables.Where(p => p.Status == 1).ToList();
-                var inactivePrices = priceTables.Where(p => p.Status == 0).ToList();
-
-                var response = new PriceTablesHistoryDTO
-                {
-                    PriceTables = priceTables,
-                    VersionsInfo = versionsInfo,
-                    ActiveVersion = activeVersion,
-                    CurrentVersion = currentVersion,
-                    TotalCount = priceTables.Count
-                };
-
-                string successMessage = version.HasValue
-                    ? $"Retrieved {priceTables.Count} price tables for version {version}"
-                    : $"Retrieved {priceTables.Count} price tables from the latest version";
-
-                return new ApiResponse<PriceTablesHistoryDTO>(
-                    true,
-                    response,
-                    successMessage,
-                    "Lấy bảng giá thành công",
-                    null);
+                        return new ApiResponse<PriceTablesHistoryDTO>(
+                            true,
+                            response,
+                            successMessage,
+                            "Lấy bảng giá thành công",
+                            null);
+                    },
+                    TimeSpan.FromHours(24) // Cache for 24 hours
+                );
             }
             catch (Exception ex)
             {
@@ -392,24 +420,33 @@ namespace MTCS.Service.Services
         {
             try
             {
-                var priceChanges = await _unitOfWork.PriceTableRepository.GetPriceChangesInVersion(version);
+                string cacheKey = BuildPriceChangesCacheKey(version);
 
-                if (priceChanges == null || !priceChanges.Any())
-                {
-                    return new ApiResponse<List<PriceChangeGroup>>(
-                        false,
-                        new List<PriceChangeGroup>(),
-                        $"No price changes found in version {version}",
-                        $"Không tìm thấy thay đổi giá trong phiên bản {version}",
-                        null);
-                }
+                return await _cacheService.GetOrSetAsync(
+                    cacheKey,
+                    async () =>
+                    {
+                        var priceChanges = await _unitOfWork.PriceTableRepository.GetPriceChangesInVersion(version);
 
-                return new ApiResponse<List<PriceChangeGroup>>(
-                    true,
-                    priceChanges,
-                    $"Retrieved {priceChanges.Count} price change groups for version {version}",
-                    $"Đã lấy {priceChanges.Count} thay đổi giá cho phiên bản {version}",
-                    null);
+                        if (priceChanges == null || !priceChanges.Any())
+                        {
+                            return new ApiResponse<List<PriceChangeGroup>>(
+                                false,
+                                new List<PriceChangeGroup>(),
+                                $"No price changes found in version {version}",
+                                $"Không tìm thấy thay đổi giá trong phiên bản {version}",
+                                null);
+                        }
+
+                        return new ApiResponse<List<PriceChangeGroup>>(
+                            true,
+                            priceChanges,
+                            $"Retrieved {priceChanges.Count} price change groups for version {version}",
+                            $"Đã lấy {priceChanges.Count} thay đổi giá cho phiên bản {version}",
+                            null);
+                    },
+                    TimeSpan.FromHours(24) // Cache for 24 hours
+                );
             }
             catch (Exception ex)
             {
@@ -421,5 +458,32 @@ namespace MTCS.Service.Services
                     ex.Message);
             }
         }
+
+        #region Helper Methods
+        private string BuildPriceTableCacheKey(int? version)
+        {
+            return version.HasValue
+                ? $"{PRICE_TABLE_PREFIX}:v{version.Value}"
+                : $"{PRICE_TABLE_PREFIX}:latest";
+        }
+
+        private string BuildPriceChangesCacheKey(int version)
+        {
+            return $"{PRICE_TABLE_PREFIX}:changes:v{version}";
+        }
+
+        private async Task InvalidatePriceTableCache(int specificVersion = 0)
+        {
+            // Remove general cache
+            await _cacheService.RemoveByPrefixAsync(PRICE_TABLE_PREFIX);
+
+            // If a specific version is provided, invalidate just that version
+            if (specificVersion > 0)
+            {
+                await _cacheService.RemoveAsync(BuildPriceTableCacheKey(specificVersion));
+                await _cacheService.RemoveAsync(BuildPriceChangesCacheKey(specificVersion));
+            }
+        }
+        #endregion
     }
 }
