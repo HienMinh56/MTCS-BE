@@ -457,5 +457,62 @@ namespace MTCS.Service.Services
                 "Xoá tài xế thành công",
                 null);
         }
+
+        public async Task<ApiResponse<DriverUseHistoryPagedDTO>> GetDriverUsageHistory(string driverId, PaginationParams paginationParams)
+        {
+            try
+            {
+                var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(driverId);
+                if (driver == null)
+                {
+                    return new ApiResponse<DriverUseHistoryPagedDTO>(
+                        false,
+                        null,
+                        "Driver not found",
+                        "Không tìm thấy tài xế",
+                        $"No driver found with ID: {driverId}");
+                }
+
+                var useHistory = await _unitOfWork.DriverRepository.GetDriverUsageHistory(driverId, paginationParams);
+
+                if (useHistory == null || useHistory.Items.Count == 0)
+                {
+                    var result = new DriverUseHistoryPagedDTO
+                    {
+                        DriverUseHistories = new PagedList<DriverUseHistory>(
+                            new List<DriverUseHistory>(), 0, paginationParams.PageNumber, paginationParams.PageSize)
+                    };
+
+                    return new ApiResponse<DriverUseHistoryPagedDTO>(
+                        true,
+                        result,
+                        "No use history found for this driver",
+                        "Không tìm thấy lịch sử sử dụng cho tài xế này",
+                        null);
+                }
+
+                var responseDto = new DriverUseHistoryPagedDTO
+                {
+                    DriverUseHistories = useHistory
+                };
+
+                return new ApiResponse<DriverUseHistoryPagedDTO>(
+                    true,
+                    responseDto,
+                    $"Retrieved {useHistory.Items.Count} use history records (page {useHistory.CurrentPage} of {useHistory.TotalPages})",
+                    $"Đã tìm thấy {useHistory.Items.Count} bản ghi lịch sử sử dụng phương tiện của tài xế {driver.FullName}",
+                    null);
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<DriverUseHistoryPagedDTO>(
+                    false,
+                    null,
+                    "Failed to retrieve driver's usage history",
+                    "Lấy lịch sử sử dụng phương tiện thất bại",
+                    ex.Message);
+            }
+        }
+
     }
 }

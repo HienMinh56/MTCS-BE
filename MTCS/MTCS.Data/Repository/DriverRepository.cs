@@ -248,5 +248,41 @@ namespace MTCS.Data.Repository
                 .Where(d => d.Status == 1 || d.Status == 2)
                 .ToListAsync();
         }
+
+        public async Task<PagedList<DriverUseHistory>> GetDriverUsageHistory(
+    string driverId,
+    PaginationParams paginationParams)
+        {
+            var query = _context.Trips
+                .AsNoTracking()
+                .Include(x => x.Tractor)
+                .Include(x => x.Trailer)
+                .Join(
+                    _context.DeliveryStatuses,
+                    trip => trip.Status,
+                    status => status.StatusId,
+                    (trip, status) => new { Trip = trip, Status = status })
+                .Where(x => x.Trip.DriverId == driverId)
+                .OrderByDescending(x => x.Trip.MatchTime)
+                .Select(x => new DriverUseHistory
+                {
+                    TripId = x.Trip.TripId,
+                    TractorId = x.Trip.TractorId,
+                    TractorPlate = x.Trip.Tractor.LicensePlate,
+                    TrailerId = x.Trip.TrailerId,
+                    TrailerPlate = x.Trip.Trailer.LicensePlate,
+                    StartTime = x.Trip.StartTime,
+                    EndTime = x.Trip.EndTime,
+                    MatchBy = x.Trip.MatchBy,
+                    MatchTime = x.Trip.MatchTime,
+                    Status = x.Status.StatusName
+                });
+
+            return await PagedList<DriverUseHistory>.CreateAsync(
+                query,
+                paginationParams.PageNumber,
+                paginationParams.PageSize);
+        }
+
     }
 }

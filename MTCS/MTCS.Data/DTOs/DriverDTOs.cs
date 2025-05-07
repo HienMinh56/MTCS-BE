@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using MTCS.Data.Helpers;
 
 namespace MTCS.Data.DTOs
 {
@@ -73,4 +74,24 @@ namespace MTCS.Data.DTOs
         [RegularExpression(@"^0\d{9}$", ErrorMessage = "Phone number must be 10 digits and start with 0")]
         public required string PhoneNumber { get; set; }
     }
+
+    public class DriverUseHistory
+    {
+        public string TripId { get; set; }
+        public string TractorId { get; set; }
+        public string TractorPlate { get; set; }
+        public string TrailerId { get; set; }
+        public string TrailerPlate { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string Status { get; set; }
+        public string MatchBy { get; set; }
+        public DateTime? MatchTime { get; set; }
+    }
+
+    public class DriverUseHistoryPagedDTO
+    {
+        public PagedList<DriverUseHistory>? DriverUseHistories { get; set; }
+    }
+
 }

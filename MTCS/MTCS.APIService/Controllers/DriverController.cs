@@ -99,5 +99,16 @@ namespace MTCS.APIService.Controllers
             }
             return Ok(response);
         }
+
+        [HttpGet("history/{driverId}")]
+        public async Task<IActionResult> GetDriverUsageHistory(string driverId, [FromQuery] PaginationParams paginationParams)
+        {
+            var response = await _driverService.GetDriverUsageHistory(driverId, paginationParams);
+            if (!response.Success)
+            {
+                return NotFound(response);
+            }
+            return Ok(response);
+        }
     }
 }
