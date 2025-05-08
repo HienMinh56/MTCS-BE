@@ -93,10 +93,10 @@ namespace MTCS.APIService.Controllers
 
             if (result.Status == Const.SUCCESS_UPDATE_CODE)
             {
-                return Ok(result); 
+                return Ok(result);
             }
 
-            return BadRequest(result); 
+            return BadRequest(result);
         }
 
         #region get order by tracking code
@@ -126,9 +126,9 @@ namespace MTCS.APIService.Controllers
 
                 var result = await _orderService.ToggleIsPayAsync(orderId, userClaims);
 
-                if (result==null)
+                if (result == null)
                 {
-                    return Ok(result); 
+                    return Ok(result);
                 }
 
                 return BadRequest(result);
@@ -137,6 +137,25 @@ namespace MTCS.APIService.Controllers
             {
                 return StatusCode(500, new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message));
             }
+        }
+
+        [HttpPost("cancel/{orderId}")]
+        public async Task<IActionResult> CancelOrder(string orderId)
+        {
+            var result = await _orderService.CancelOrderAsync(orderId, User);
+
+            if (result.Status == 1)
+            {
+                return Ok(new
+                {
+                    message = result.Message
+                });
+            }
+
+            return BadRequest(new
+            {
+                message = result.Message
+            });
         }
     }
 }

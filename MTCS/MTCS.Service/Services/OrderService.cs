@@ -16,6 +16,7 @@ using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -49,7 +50,7 @@ namespace MTCS.Service.Services
 
         Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims);
 
-
+        Task<BusinessResult> CancelOrderAsync(string orderId, ClaimsPrincipal claims);
     }
 
     public class OrderService : IOrderService
@@ -57,12 +58,15 @@ namespace MTCS.Service.Services
         private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseService;
         private readonly IEmailService _emailService;
+        private readonly INotificationService _notificationService;
 
-        public OrderService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseService, IEmailService emailService)
+        public OrderService(UnitOfWork unitOfWork, IFirebaseStorageService firebaseService, IEmailService emailService, INotificationService notificationService)
         {
             _unitOfWork = unitOfWork;
             _firebaseService = firebaseService;
             _emailService = emailService;
+            _notificationService = notificationService;
+            _notificationService = notificationService;
         }
 
         #region Create Order
@@ -72,7 +76,7 @@ namespace MTCS.Service.Services
             {
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                     ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
 
                 // Lấy giới hạn đơn hàng theo ngày giao hàng từ config
                 var config = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(7); 
@@ -193,7 +197,7 @@ namespace MTCS.Service.Services
                     await _emailService.SendEmailAsync(
                             customer.Email,                            // to
                             "Thông báo đơn hàng mới",                  // subject
-                            customer.CompanyName,                         // companyName
+                            customer.CompanyName,                      // companyName
                             order.TrackingCode                         // trackingCode
                         );
                 }
@@ -584,6 +588,100 @@ namespace MTCS.Service.Services
             }
         }
 
+        public async Task<BusinessResult> CancelOrderAsync(string orderId, ClaimsPrincipal claims)
+        {
+            var order = await _unitOfWork.OrderRepository.GetOrderWithTripsAsync(orderId);
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
 
+            if (order == null)
+            {
+                return new BusinessResult { Status = 0, Message = "Không tìm thấy đơn hàng." };
+            }
+
+            if (order.Status != "Pending" && order.Status != "Scheduled")
+            {
+                return new BusinessResult { Status = 0, Message = "Chỉ có thể hủy đơn hàng khi trạng thái là Pending hoặc Scheduled." };
+            }
+
+            order.Status = "canceled";
+            order.ModifiedDate = DateTime.UtcNow;
+            order.ModifiedBy = userName;
+
+            foreach (var trip in order.Trips)
+            {
+                trip.Status = "canceled";
+                trip.Note = "Đơn hàng bị hủy";
+
+                if (!string.IsNullOrEmpty(trip.DriverId) && order.CompletionTime.HasValue)
+                {
+                    var driverId = trip.DriverId;
+                    var completionMinutes = (int)order.CompletionTime.Value.ToTimeSpan().TotalMinutes;
+
+                    var deliveryDate = order.DeliveryDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+                    // Trừ thời gian ngày
+                    var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                        .GetByDriverIdAndDateAsync(driverId, deliveryDate);
+
+                    if (dailyRecord != null)
+                    {
+                        dailyRecord.TotalTime = Math.Max(0, (dailyRecord.TotalTime ?? 0) - completionMinutes);
+                        dailyRecord.ModifiedDate = DateTime.UtcNow;
+                        dailyRecord.ModifiedBy = userName;
+                        await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
+                    }
+
+                    // Tính tuần (bắt đầu từ thứ 2)
+                    var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                    var startOfWeek = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek + 1));
+                    var endOfWeek = startOfWeek.AddDays(6);
+
+                    // Trừ thời gian tuần
+                    var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                        .GetByDriverIdAndWeekAsync(driverId, startOfWeek, endOfWeek);
+
+                    if (weeklyRecord != null)
+                    {
+                        weeklyRecord.TotalHours = Math.Max(0, (weeklyRecord.TotalHours ?? 0) - completionMinutes);
+                        await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
+                    }
+                }
+            }
+
+            await _unitOfWork.OrderRepository.UpdateAsync(order);
+
+            // Gửi thông báo cho tài xế
+            foreach (var trip in order.Trips)
+            {
+                if (!string.IsNullOrEmpty(trip.DriverId))
+                {
+                    await _notificationService.SendNotificationAsync(
+                        trip.DriverId,
+                        "Đơn hàng đã bị hủy",
+                        $"Chuyến {trip.TripId} đã bị hủy vì đơn hàng {order.OrderId} bị huỷ.",
+                        "Hệ thống"
+                    );
+                }
+            }
+
+            // Gửi email cho khách hàng
+            var customer = await _unitOfWork.CustomerRepository.GetByIdAsync(order.CustomerId);
+            if (customer != null && !string.IsNullOrEmpty(customer.Email))
+            {
+                await _emailService.SendEmailCancelAsync(
+                    customer.Email,
+                    "Đơn hàng của bạn đã bị huỷ",
+                    customer.CompanyName,
+                    order.TrackingCode
+                );
+            }
+
+            return new BusinessResult
+            {
+                Status = 1,
+                Message = "Đơn hàng đã được hủy thành công và thời gian làm việc của tài xế đã được cập nhật."
+            };
+        }
     }
 }
+

@@ -288,7 +288,7 @@ namespace MTCS.Service.Services
                 // Create new trip with updated values
                 var newTrip = new Trip
                 {
-                    TripId = Guid.NewGuid().ToString(),
+                    TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
                     OrderId = oldTrip.OrderId,
                     DriverId = newDriverId,
                     TractorId = model.TractorId ?? oldTrip.TractorId,

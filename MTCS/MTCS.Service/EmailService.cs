@@ -13,6 +13,8 @@ namespace MTCS.Service
     public interface IEmailService
     {
         Task SendEmailAsync(string to, string subject, string body, string companyName);
+        Task SendEmailCancelAsync(string to, string subject, string body, string companyName);
+        Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName);
     }
     public class EmailService : IEmailService
     {
@@ -81,6 +83,141 @@ namespace MTCS.Service
             {
                 From = new MailAddress(smtpSettings["SenderEmail"], smtpSettings["SenderName"]),
                 Subject = subject,
+                Body = body,
+                IsBodyHtml = true
+            };
+            mailMessage.To.Add(to);
+
+            using (var smtpClient = new SmtpClient(smtpSettings["Server"], int.Parse(smtpSettings["Port"])))
+            {
+                smtpClient.Credentials = new NetworkCredential(smtpSettings["Username"], smtpSettings["Password"]);
+                smtpClient.EnableSsl = bool.Parse(smtpSettings["EnableSsl"]);
+
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+        }
+
+        public async Task SendEmailCancelAsync(string to, string subject, string companyName, string trackingCode)
+        {
+            var smtpSettings = _configuration.GetSection("SmtpSettings");
+
+            string body = $@"
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background-color: #f9f9f9;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    padding: 20px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    max-width: 600px;
+                    margin: auto;
+                }}
+                h2 {{
+                    color: #4CAF50;
+                }}
+                .info {{
+                    margin-top: 20px;
+                    font-size: 16px;
+                }}
+                .link {{
+                    margin-top: 30px;
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 4px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <h2>Thông báo về việc hủy đơn hàng</h2>
+                <div class='info'>
+                    <p>Kính gửi Quý khách,</p>
+                    <p>Chúng tôi đã tiếp nhận và xác nhận yêu cầu huỷ đơn hàng của Quý khách.</p>
+                    <p><strong>Tên khách hàng:</strong> {companyName}</p>
+                    <p><strong>Mã đơn hàng:</strong> {trackingCode}</p>
+                    <p>Rất mong được phục vụ Quý khách trong những lần tiếp theo.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(smtpSettings["SenderEmail"], smtpSettings["SenderName"]),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = true
+            };
+            mailMessage.To.Add(to);
+
+            using (var smtpClient = new SmtpClient(smtpSettings["Server"], int.Parse(smtpSettings["Port"])))
+            {
+                smtpClient.Credentials = new NetworkCredential(smtpSettings["Username"], smtpSettings["Password"]);
+                smtpClient.EnableSsl = bool.Parse(smtpSettings["EnableSsl"]);
+
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+        }
+
+
+        public async Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName)
+        {
+            var smtpSettings = _configuration.GetSection("SmtpSettings");
+
+            string body = $@"
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        background-color: #f9f9f9;
+                        padding: 20px;
+                        color: #333;
+                    }}
+                    .container {{
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        padding: 20px;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        max-width: 600px;
+                        margin: auto;
+                    }}
+                    h2 {{
+                        color: #4CAF50;
+                    }}
+                    .info {{
+                        margin-top: 20px;
+                        font-size: 16px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <h2>Thông báo hợp đồng vận tải sắp hết hạn</h2>
+                    <div class='info'>
+                        <p>Kính gửi: {companyName}</p>
+                        <p>Chúng tôi xin thông báo hợp đồng vận tải của bạn đã ký vào ngày {contractDate}, sẽ hết hạn vào ngày {expirationDate}.</p>
+                        <p>Vui lòng liên hệ với chúng tôi để trao đổi về việc gia hạn hoặc ký kết hợp đồng mới.</p>
+                        <p>Chân thành cảm ơn sự hợp tác của quý công ty.</p>
+                    </div>
+                </div>
+            </body>
+            </html>";
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(smtpSettings["SenderEmail"], smtpSettings["SenderName"]),
+                Subject = "Thông báo hết hạn hợp đồng vận tải",
                 Body = body,
                 IsBodyHtml = true
             };
