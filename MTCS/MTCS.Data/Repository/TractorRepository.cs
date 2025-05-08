@@ -34,7 +34,8 @@ namespace MTCS.Data.Repository
         }
 
 
-        public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(PaginationParams paginationParams,
+        public async Task<TractorBasicInfoResultDTO> GetTractorsBasicInfo(
+    PaginationParams paginationParams,
     string? searchKeyword = null,
     TractorStatus? status = null,
     bool? maintenanceDueSoon = null,
@@ -104,13 +105,8 @@ namespace MTCS.Data.Repository
                                          t.RegistrationExpirationDate.Value >= todayOnly);
             }
 
-            if (!status.HasValue)
-            {
-                query = query
-                    .OrderByDescending(t => t.Status == TractorStatus.Active.ToString())
-                    .ThenByDescending(t => t.CreatedDate)
-                    .ThenBy(t => t.TractorId);
-            }
+            // Apply sorting by CreatedDate in descending order
+            query = query.OrderByDescending(t => t.CreatedDate);
 
             var projectedQuery = query.Select(t => new TractorBasicDTO
             {

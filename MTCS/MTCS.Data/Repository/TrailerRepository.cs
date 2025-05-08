@@ -34,13 +34,13 @@ namespace MTCS.Data.Repository
         }
 
         public async Task<TrailerBasicInfoResultDTO> GetTrailersBasicInfo(
-            PaginationParams paginationParams,
-            string? searchKeyword = null,
-            TrailerStatus? status = null,
-            bool? maintenanceDueSoon = null,
-            bool? registrationExpiringSoon = null,
-            int? maintenanceDueDays = null,
-            int? registrationExpiringDays = null)
+    PaginationParams paginationParams,
+    string? searchKeyword = null,
+    TrailerStatus? status = null,
+    bool? maintenanceDueSoon = null,
+    bool? registrationExpiringSoon = null,
+    int? maintenanceDueDays = null,
+    int? registrationExpiringDays = null)
         {
             var baseQuery = _context.Trailers
                 .AsNoTracking();
@@ -104,13 +104,8 @@ namespace MTCS.Data.Repository
                                          t.RegistrationExpirationDate.Value >= todayOnly);
             }
 
-            if (!status.HasValue)
-            {
-                query = query
-                    .OrderByDescending(t => t.Status == TrailerStatus.Active.ToString())
-                    .ThenByDescending(t => t.CreatedDate)
-                    .ThenBy(t => t.TrailerId);
-            }
+            // Apply sorting by CreatedDate in descending order
+            query = query.OrderByDescending(t => t.CreatedDate);
 
             var projectedQuery = query.Select(t => new TrailerBasicDTO
             {
