@@ -68,6 +68,7 @@ namespace MTCS.Data.Repository
                 MatchType = t.MatchType,
                 MatchBy = t.MatchBy,
                 MatchTime = t.MatchTime,
+                Note = t.Note,
                 Driver = t.Driver == null ? null : new DriverDto
                 {
                     DriverId = t.Driver.DriverId,
