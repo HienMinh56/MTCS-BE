@@ -6,6 +6,7 @@ namespace MTCS.Service
 {
     public interface IEmailService
     {
+        Task SendAccountRegistration(string to, string subject, string fullName, string email, string password);
         Task SendEmailAsync(string to, string subject, string body, string companyName);
         Task SendEmailCancelAsync(string to, string subject, string body, string companyName);
         Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName, string contractID, DateOnly? signedTime);
@@ -216,6 +217,78 @@ namespace MTCS.Service
             {
                 From = new MailAddress(smtpSettings["SenderEmail"], smtpSettings["SenderName"]),
                 Subject = "Thông báo hết hạn hợp đồng vận tải",
+                Body = body,
+                IsBodyHtml = true
+            };
+            mailMessage.To.Add(to);
+
+            using (var smtpClient = new SmtpClient(smtpSettings["Server"], int.Parse(smtpSettings["Port"])))
+            {
+                smtpClient.Credentials = new NetworkCredential(smtpSettings["Username"], smtpSettings["Password"]);
+                smtpClient.EnableSsl = bool.Parse(smtpSettings["EnableSsl"]);
+
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+        }
+
+        public async Task SendAccountRegistration(string to, string subject, string fullName, string email, string password)
+        {
+            var smtpSettings = _configuration.GetSection("SmtpSettings");
+
+            string body = $@"
+        <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    background-color: #f9f9f9;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .container {{
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    padding: 20px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    max-width: 600px;
+                    margin: auto;
+                }}
+                h2 {{
+                    color: #4CAF50;
+                }}
+                .info {{
+                    margin-top: 20px;
+                    font-size: 16px;
+                }}
+                .link {{
+                    margin-top: 30px;
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 4px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class='container'>
+                <h2>Thông báo tạo tài khoản nội bộ cho nhân viên mới - {fullName}</h2>
+                <div class='info'>
+                    <p>Kính gửi {fullName},</p>
+                    <p>Chúng tôi xin thông báo rằng tài khoản nội bộ của bạn đã được tạo. Dưới đây là thông tin đăng nhập:</p>
+                    <p>Email đăng nhập: {email}</p>
+                    <p>Mật khẩu: {password}</p>
+                    <p>Link truy cập trang web: <a href='https://mtcs-fe.vercel.app' target='_blank'>https://mtcs-fe.vercel.app</a></p>
+                </div>
+            </div>
+        </body>
+        </html>";
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(smtpSettings["SenderEmail"], smtpSettings["SenderName"]),
+                Subject = subject,
                 Body = body,
                 IsBodyHtml = true
             };
