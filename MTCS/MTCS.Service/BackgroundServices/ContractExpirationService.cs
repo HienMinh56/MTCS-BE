@@ -111,7 +111,7 @@ namespace MTCS.Service.BackgroundServices
                         {
                             _logger.LogInformation($"Contract {contract.ContractId} for customer {contract.Customer?.CompanyName} expires in {daysUntilExpiration} days. Sending notification.");
 
-                            await NotifyStaff(
+                            await NotifyStaffAndAdmin(
                                 unitOfWork,
                                 notificationService,
                                 "Hợp đồng sắp hết hạn",
@@ -134,6 +134,19 @@ namespace MTCS.Service.BackgroundServices
             foreach (var staff in staffs)
             {
                 await notificationService.SendNotificationAsync(staff.UserId, title, body, "System");
+            }
+        }
+
+        private async Task NotifyStaffAndAdmin(
+            UnitOfWork unitOfWork,
+            INotificationService notificationService,
+            string title,
+            string body)
+        {
+            var users = await unitOfWork.InternalUserRepository.GetActiveInternalList();
+            foreach (var user in users)
+            {
+                await notificationService.SendNotificationAsync(user.UserId, title, body, "System");
             }
         }
     }

@@ -117,6 +117,72 @@ namespace MTCS.Service.Services
         {
             try
             {
+                // Validate input list
+                if (priceTable == null || !priceTable.Any())
+                {
+                    return new ApiResponse<List<PriceTable>>(false, null,
+                        "No price table entries provided",
+                        "Không có bảng giá nào được cung cấp", null);
+                }
+
+                // Dictionary to track km ranges by container type and size
+                var rangesByConfig = new Dictionary<string, List<(double Min, double Max)>>();
+
+                // Validate each price table entry
+                foreach (var entry in priceTable)
+                {
+                    // Validate km ranges
+                    if (entry.MinKm < 0)
+                    {
+                        return new ApiResponse<List<PriceTable>>(false, null,
+                            "Min Km cannot be negative",
+                            "Km tối thiểu không thể âm", null);
+                    }
+
+                    if (entry.MinKm >= entry.MaxKm)
+                    {
+                        return new ApiResponse<List<PriceTable>>(false, null,
+                            "Min Km must be less than Max Km",
+                            "Km tối thiểu phải nhỏ hơn Km tối đa", null);
+                    }
+
+                    // Validate price values
+                    if (entry.MinPricePerKm <= 0)
+                    {
+                        return new ApiResponse<List<PriceTable>>(false, null,
+                            "Min Price Per Km must be greater than 0",
+                            "Giá tối thiểu mỗi km phải lớn hơn 0", null);
+                    }
+
+                    if (entry.MaxPricePerKm < entry.MinPricePerKm)
+                    {
+                        return new ApiResponse<List<PriceTable>>(false, null,
+                            "Max Price Per Km must be greater than or equal to Min Price Per Km",
+                            "Giá tối đa mỗi km phải lớn hơn hoặc bằng giá tối thiểu mỗi km", null);
+                    }
+
+                    // Check for overlapping ranges
+                    string configKey = $"{entry.ContainerSize}-{entry.ContainerType}";
+                    if (!rangesByConfig.ContainsKey(configKey))
+                    {
+                        rangesByConfig[configKey] = new List<(double Min, double Max)>();
+                    }
+
+                    foreach (var existingRange in rangesByConfig[configKey])
+                    {
+                        if ((entry.MinKm >= existingRange.Min && entry.MinKm <= existingRange.Max) ||
+                            (entry.MaxKm >= existingRange.Min && entry.MaxKm <= existingRange.Max) ||
+                            (entry.MinKm <= existingRange.Min && entry.MaxKm >= existingRange.Max))
+                        {
+                            return new ApiResponse<List<PriceTable>>(false, null,
+                                "Overlapping km ranges detected for the same container configuration",
+                                "Phát hiện khoảng km chồng chéo cho cùng một cấu hình container", null);
+                        }
+                    }
+
+                    rangesByConfig[configKey].Add((entry.MinKm ?? 0, entry.MaxKm ?? 0));
+                }
+
                 await _unitOfWork.BeginTransactionAsync();
 
                 var currentMaxVersion = await _unitOfWork.PriceTableRepository.GetMaxVersion() ?? 0;
@@ -157,12 +223,16 @@ namespace MTCS.Service.Services
                 // Invalidate cache after creating new price tables
                 await InvalidatePriceTableCache();
 
-                return new ApiResponse<List<PriceTable>>(true, newPriceTables, "Price table created successfully", "Đã tạo bảng giá thành công", null);
+                return new ApiResponse<List<PriceTable>>(true, newPriceTables,
+                    "Price table created successfully",
+                    "Đã tạo bảng giá thành công", null);
             }
             catch (Exception ex)
             {
                 await _unitOfWork.RollbackTransactionAsync();
-                return new ApiResponse<List<PriceTable>>(false, null, "Failed to create price table", "Tạo bảng giá thất bại", ex.Message);
+                return new ApiResponse<List<PriceTable>>(false, null,
+                    "Failed to create price table",
+                    "Tạo bảng giá thất bại", ex.Message);
             }
         }
 
@@ -220,6 +290,9 @@ namespace MTCS.Service.Services
                 }
 
                 var priceTableList = new List<CreatePriceTableRequest>();
+                // Dictionary to track km ranges by container type and size
+                var rangesByConfig = new Dictionary<string, List<(double Min, double Max)>>();
+
                 using (var stream = new MemoryStream())
                 {
                     await excelFile.CopyToAsync(stream);
@@ -246,25 +319,108 @@ namespace MTCS.Service.Services
                                 var minKm = Convert.ToDouble(worksheet.Cells[row, 1].Value);
                                 var maxKm = Convert.ToDouble(worksheet.Cells[row, 2].Value);
 
+                                // Validate non-negative values
+                                if (minKm < 0)
+                                {
+                                    return new ApiResponse<List<PriceTable>>(false, null,
+                                        $"Min Km cannot be negative in row {row}",
+                                        $"Km tối thiểu không thể âm ở dòng {row}", null);
+                                }
+
                                 if (minKm >= maxKm)
                                 {
-                                    return new ApiResponse<List<PriceTable>>(false, null, $"Min Km must be less than Max Km in row {row}", $"Km tối thiểu phải nhỏ hơn Km tối đa ở dòng {row}", null);
+                                    return new ApiResponse<List<PriceTable>>(false, null,
+                                        $"Min Km must be less than Max Km in row {row}",
+                                        $"Km tối thiểu phải nhỏ hơn Km tối đa ở dòng {row}", null);
                                 }
+
+                                var rawContainerSize = Convert.ToInt32(worksheet.Cells[row, 3].Value);
+                                int containerSize;
+
+                                if (rawContainerSize == 20)
+                                    containerSize = 1;
+                                else if (rawContainerSize == 40)
+                                    containerSize = 2;
+                                else
+                                    return new ApiResponse<List<PriceTable>>(
+                                        false,
+                                        null,
+                                        $"Invalid container size in row {row}. Only values 20 or 40 are allowed.",
+                                        $"Kích thước container không hợp lệ ở dòng {row}. Chỉ chấp nhận giá trị 20 hoặc 40.",
+                                        null);
+
+                                var rawContainerType = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                                int containerType;
+
+                                if (string.Equals(rawContainerType, "Khô", StringComparison.OrdinalIgnoreCase))
+                                    containerType = 1;
+                                else if (string.Equals(rawContainerType, "Lạnh", StringComparison.OrdinalIgnoreCase))
+                                    containerType = 2;
+                                else
+                                    return new ApiResponse<List<PriceTable>>(
+                                        false,
+                                        null,
+                                        $"Invalid container type in row {row}. Only values 'Khô' or 'Lạnh' are allowed.",
+                                        $"Loại container không hợp lệ ở dòng {row}. Chỉ chấp nhận giá trị Khô hoặc Lạnh.",
+                                        null);
+
+                                // Validate price values
+                                var minPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 5].Value);
+                                var maxPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 6].Value);
+
+                                if (minPricePerKm <= 0)
+                                {
+                                    return new ApiResponse<List<PriceTable>>(false, null,
+                                        $"Min Price Per Km must be greater than 0 in row {row}",
+                                        $"Giá tối thiểu mỗi km phải lớn hơn 0 ở dòng {row}", null);
+                                }
+
+                                if (maxPricePerKm < minPricePerKm)
+                                {
+                                    return new ApiResponse<List<PriceTable>>(false, null,
+                                        $"Max Price Per Km must be greater than or equal to Min Price Per Km in row {row}",
+                                        $"Giá tối đa mỗi km phải lớn hơn hoặc bằng giá tối thiểu mỗi km ở dòng {row}", null);
+                                }
+
+                                // Check for overlapping ranges
+                                string configKey = $"{containerSize}-{containerType}";
+                                if (!rangesByConfig.ContainsKey(configKey))
+                                {
+                                    rangesByConfig[configKey] = new List<(double Min, double Max)>();
+                                }
+
+                                // Check for overlapping ranges in the current import
+                                foreach (var existingRange in rangesByConfig[configKey])
+                                {
+                                    if ((minKm >= existingRange.Min && minKm <= existingRange.Max) ||
+                                        (maxKm >= existingRange.Min && maxKm <= existingRange.Max) ||
+                                        (minKm <= existingRange.Min && maxKm >= existingRange.Max))
+                                    {
+                                        return new ApiResponse<List<PriceTable>>(false, null,
+                                            $"Overlapping km range in row {row}. This conflicts with another row for the same container configuration.",
+                                            $"Khoảng km chồng chéo ở dòng {row}. Mục này xung đột với một dòng khác cho cùng cấu hình container.", null);
+                                    }
+                                }
+
+                                // Add the range to our tracking dictionary
+                                rangesByConfig[configKey].Add((minKm, maxKm));
 
                                 var priceTable = new CreatePriceTableRequest
                                 {
                                     MinKm = minKm,
                                     MaxKm = maxKm,
-                                    ContainerSize = Convert.ToInt32(worksheet.Cells[row, 3].Value),
-                                    ContainerType = Convert.ToInt32(worksheet.Cells[row, 4].Value),
-                                    MinPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 5].Value),
-                                    MaxPricePerKm = Convert.ToDecimal(worksheet.Cells[row, 6].Value),
+                                    ContainerSize = containerSize,
+                                    ContainerType = containerType,
+                                    MinPricePerKm = minPricePerKm,
+                                    MaxPricePerKm = maxPricePerKm,
                                 };
                                 priceTableList.Add(priceTable);
                             }
                             catch (FormatException)
                             {
-                                return new ApiResponse<List<PriceTable>>(false, null, $"Invalid data format in row {row}. Please ensure all cells contain the correct data type.", $"Định dạng dữ liệu không hợp lệ ở dòng {row}. Vui lòng đảm bảo tất cả các ô chứa đúng kiểu dữ liệu.", null);
+                                return new ApiResponse<List<PriceTable>>(false, null,
+                                    $"Invalid data format in row {row}. Please ensure all cells contain the correct data type.",
+                                    $"Định dạng dữ liệu không hợp lệ ở dòng {row}. Vui lòng đảm bảo tất cả các ô chứa đúng kiểu dữ liệu.", null);
                             }
                         }
                     }
@@ -272,13 +428,18 @@ namespace MTCS.Service.Services
 
                 if (priceTableList.Count == 0)
                 {
-                    return new ApiResponse<List<PriceTable>>(false, null, "No valid price table entries found in the Excel file", "Không tìm thấy bảng giá hợp lệ trong file Excel", null);
+                    return new ApiResponse<List<PriceTable>>(false, null,
+                        "No valid price table entries found in the Excel file",
+                        "Không tìm thấy bảng giá hợp lệ trong file Excel", null);
                 }
+
                 return await CreatePriceTable(priceTableList, userName);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<List<PriceTable>>(false, null, "Failed to import price table", "Nhập bảng giá thất bại", ex.Message);
+                return new ApiResponse<List<PriceTable>>(false, null,
+                    "Failed to import price table",
+                    "Nhập bảng giá thất bại", ex.Message);
             }
         }
         #endregion
@@ -292,11 +453,10 @@ namespace MTCS.Service.Services
                 {
                     var worksheet = package.Workbook.Worksheets.Add("PriceTableTemplate");
 
-                    // Add headers
                     worksheet.Cells[1, 1].Value = "Từ Km";
                     worksheet.Cells[1, 2].Value = "Đến Km";
-                    worksheet.Cells[1, 3].Value = "Kích Thước Container(1 20feet / 2 40 feet)";
-                    worksheet.Cells[1, 4].Value = "Loại Container (1 Khô/ 2 Lạnh)";
+                    worksheet.Cells[1, 3].Value = "Kích Thước Container (Chỉ nhập 20/40)";
+                    worksheet.Cells[1, 4].Value = "Loại Container (Chỉ nhập Khô/Lạnh)";
                     worksheet.Cells[1, 5].Value = "Giá nhỏ nhất mỗi km";
                     worksheet.Cells[1, 6].Value = "Giá lớn nhất mỗi km";
 
@@ -431,7 +591,7 @@ namespace MTCS.Service.Services
                         if (priceChanges == null || !priceChanges.Any())
                         {
                             return new ApiResponse<List<PriceChangeGroup>>(
-                                false,
+                                true,
                                 new List<PriceChangeGroup>(),
                                 $"No price changes found in version {version}",
                                 $"Không tìm thấy thay đổi giá trong phiên bản {version}",

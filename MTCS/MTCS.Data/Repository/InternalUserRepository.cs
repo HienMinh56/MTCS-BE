@@ -41,6 +41,13 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
+        public async Task<List<InternalUser>> GetActiveInternalList()
+        {
+            return await _context.InternalUsers
+                .Where(u => u.Status == (int)UserStatus.Active)
+                .ToListAsync();
+        }
+
         public async Task<PagedList<InternalUser>> GetInternalUserWithFilter(
             PaginationParams paginationParams,
             string? keyword = null,
