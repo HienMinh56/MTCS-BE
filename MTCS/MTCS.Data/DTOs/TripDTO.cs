@@ -15,6 +15,7 @@
         public int? MatchType { get; set; }
         public string MatchBy { get; set; }
         public DateTime? MatchTime { get; set; }
+        public string Note { get; set; }
         public List<DeliveryReportDto> DeliveryReports { get; set; }
         public DriverDto Driver { get; set; }
         public List<FuelReportDto> FuelReports { get; set; }
