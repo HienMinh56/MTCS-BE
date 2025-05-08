@@ -148,5 +148,12 @@ namespace MTCS.Data.Repository
                 .Where(o => o.DeliveryDate == deliveryDate)
                 .CountAsync();
         }
+
+        public async Task<Order> GetOrderWithTripsAsync(string orderId)
+        {
+            return await _context.Orders
+                .Include(o => o.Trips)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+        }
     }
 }
