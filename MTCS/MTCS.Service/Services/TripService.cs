@@ -618,8 +618,11 @@ namespace MTCS.Service.Services
             var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
 
             var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+            var order = _unitOfWork.OrderRepository.Get(o => o.OrderId == trip.OrderId);
+
             if (trip == null)
                 return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
+            order.Status = "Pending";
             trip.Note = request.Note;
             trip.Status = "canceled";
             trip.StartTime = DateTime.Now;

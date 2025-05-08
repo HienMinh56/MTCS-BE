@@ -51,7 +51,7 @@ namespace MTCS.Service.Services
                 await _unitOfWork.BeginTransactionAsync();
                 var fuelReport = new FuelReport
                 {
-                    ReportId = Guid.NewGuid().ToString(),
+                    ReportId = "FUEL" + Guid.NewGuid().ToString("N").Substring(0, 10),
                     TripId = createFuel.TripId,
                     RefuelAmount = createFuel.RefuelAmount,
                     FuelCost = createFuel.FuelCost,

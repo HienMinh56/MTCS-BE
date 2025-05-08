@@ -185,32 +185,19 @@ namespace MTCS.Service.Services
                 }
                 else if (request.Type == 3)
                 {
-                    trip.Status = "canceled";
-                    trip.EndTime = DateTime.Now;
-                    if (request.VehicleType == 1)
-                    {
-                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                        tractor.Status = VehicleStatus.Inactive.ToString();
-                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                    }
-                    if (request.VehicleType == 2)
-                    {
-                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
-                        trailer.Status = VehicleStatus.Inactive.ToString();
-                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
-                    }
+                    trip.Status = "delaying";
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
 
                     var tripStatusHistory = new TripStatusHistory
                     {
                         HistoryId = Guid.NewGuid().ToString(),
                         TripId = request.TripId,
-                        StatusId = "canceled",
+                        StatusId = "delaying",
                         StartTime = DateTime.Now
                     };
                     await _unitOfWork.TripStatusHistoryRepository.CreateAsync(tripStatusHistory);
                     // Gửi thông báo sau khi cập nhật thành công
-                    await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {userName}, cần hủy bỏ các chuyến trong ngày có liên quan tới báo cáo này.", userName);
+                    await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được tạo", $"Báo cáo sự cố vừa được tạo cho chuyến {existingTrip.TripId} bởi {userName}.", userName);
                 }
             }
             catch (Exception ex)
@@ -570,25 +557,27 @@ namespace MTCS.Service.Services
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
-                        if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
+                        // Restore the previous status of the trip
+                        var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
+                        if (previousStatus != null)
                         {
-                            driver.Status = 1; // Free
+                            trip.Status = previousStatus.StatusId;
+
+                            // Record the status change in history
+                            await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
+                            {
+                                HistoryId = Guid.NewGuid().ToString(),
+                                TripId = trip.TripId,
+                                StatusId = previousStatus.StatusId,
+                                StartTime = DateTime.Now
+                            });
                         }
-                        trip.EndTime = DateTime.Now;
-                        if (incident.VehicleType == 1)
+                        else
                         {
-                            var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                            tractor.Status = VehicleStatus.Active.ToString();
-                            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                        }
-                        if (incident.VehicleType == 2)
-                        {
-                            var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
-                            trailer.Status = VehicleStatus.Active.ToString();
-                            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                            // If no previous status found, set to a default like "is_delivering"
+                            return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
                         }
 
-                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TripRepository.UpdateAsync(trip);
                     }
 

@@ -65,7 +65,7 @@ namespace MTCS.Service.Services
                 }
                 var deliveryReportModel = new DeliveryReport
                 {
-                    ReportId = Guid.NewGuid().ToString(),
+                    ReportId = "DELI" + Guid.NewGuid().ToString("N").Substring(0, 10),
                     TripId = deliveryReport.TripId,
                     Notes = deliveryReport.Notes,
                     ReportBy = userName,
