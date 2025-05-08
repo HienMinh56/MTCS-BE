@@ -1,8 +1,8 @@
-﻿using MTCS.Data;
+﻿using System.Security.Claims;
+using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
-using System.Security.Claims;
 
 namespace MTCS.Service.Services
 {
@@ -40,7 +40,7 @@ namespace MTCS.Service.Services
 
                 if (hasProcessingTrip)
                 {
-                    return new BusinessResult(400, "Không thể tạo/cập nhật trạng thái giao hàng khi vẫn còn chuyến đi đang xử lý.");
+                    return new BusinessResult(400, "Can not create or update delivery status when there is a trip in use");
                 }
 
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";

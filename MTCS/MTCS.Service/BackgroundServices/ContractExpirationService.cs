@@ -55,6 +55,7 @@ namespace MTCS.Service.BackgroundServices
             using var scope = _serviceProvider.CreateScope();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
             var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
             var config = await unitOfWork.SystemConfigurationRepository.GetConfigByKey(CONTRACT_EXPIRY_ALERT_KEY);
 
@@ -103,7 +104,6 @@ namespace MTCS.Service.BackgroundServices
                         bool shouldNotify =
                             daysUntilExpiration == alertDays ||
                             daysUntilExpiration == 30 ||
-                            daysUntilExpiration == 14 ||
                             daysUntilExpiration == 7 ||
                             daysUntilExpiration == 3;
 
@@ -111,11 +111,18 @@ namespace MTCS.Service.BackgroundServices
                         {
                             _logger.LogInformation($"Contract {contract.ContractId} for customer {contract.Customer?.CompanyName} expires in {daysUntilExpiration} days. Sending notification.");
 
+                            // Notify staff and admin
                             await NotifyStaffAndAdmin(
                                 unitOfWork,
                                 notificationService,
                                 "Hợp đồng sắp hết hạn",
                                 $"Hợp đồng {contract.ContractId} với khách hàng: {contract.Customer?.CompanyName} sẽ HẾT HẠN sau {daysUntilExpiration} ngày, vào ngày {expirationDate:dd/MM/yyyy}."
+                            );
+
+                            await NotifyCustomerViaEmail(
+                                emailService,
+                                contract,
+                                daysUntilExpiration
                             );
                         }
                     }
@@ -147,6 +154,40 @@ namespace MTCS.Service.BackgroundServices
             foreach (var user in users)
             {
                 await notificationService.SendNotificationAsync(user.UserId, title, body, "System");
+            }
+        }
+
+        private async Task NotifyCustomerViaEmail(
+    IEmailService emailService,
+    Data.Models.Contract contract,
+    int daysUntilExpiration)
+        {
+            if (contract.Customer != null && !string.IsNullOrEmpty(contract.Customer.Email))
+            {
+                try
+                {
+                    var contractDate = contract.StartDate?.ToString("dd/MM/yyyy") ?? "N/A";
+                    var expirationDate = contract.EndDate?.ToString("dd/MM/yyyy") ?? "N/A";
+
+                    _logger.LogInformation($"Sending email notification to customer {contract.Customer.CompanyName} about contract expiration in {daysUntilExpiration} days");
+
+                    await emailService.SendEmailContractExpirationAsync(
+                        contract.Customer.Email,
+                        contractDate,
+                        expirationDate,
+                        contract.Customer.CompanyName,
+                        contract.ContractId,
+                        contract.SignedTime
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to send email notification to customer {contract.Customer.CompanyName}");
+                }
+            }
+            else
+            {
+                _logger.LogWarning($"Cannot send email notification for contract {contract.ContractId}: Customer email not available");
             }
         }
     }

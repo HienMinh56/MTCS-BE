@@ -1,11 +1,5 @@
-﻿using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Net;
 using System.Net.Mail;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 
 namespace MTCS.Service
@@ -14,7 +8,7 @@ namespace MTCS.Service
     {
         Task SendEmailAsync(string to, string subject, string body, string companyName);
         Task SendEmailCancelAsync(string to, string subject, string body, string companyName);
-        Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName);
+        Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName, string contractID, DateOnly? signedTime);
     }
     public class EmailService : IEmailService
     {
@@ -170,7 +164,7 @@ namespace MTCS.Service
         }
 
 
-        public async Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName)
+        public async Task SendEmailContractExpirationAsync(string to, string contractDate, string expirationDate, string companyName, string contractID, DateOnly? signedTime)
         {
             var smtpSettings = _configuration.GetSection("SmtpSettings");
 
@@ -206,9 +200,13 @@ namespace MTCS.Service
                     <h2>Thông báo hợp đồng vận tải sắp hết hạn</h2>
                     <div class='info'>
                         <p>Kính gửi: {companyName}</p>
-                        <p>Chúng tôi xin thông báo hợp đồng vận tải của bạn đã ký vào ngày {contractDate}, sẽ hết hạn vào ngày {expirationDate}.</p>
-                        <p>Vui lòng liên hệ với chúng tôi để trao đổi về việc gia hạn hoặc ký kết hợp đồng mới.</p>
+                        <p>Chúng tôi xin thông báo hợp đồng vận tải của bạn sắp hết hạn.</p>
+                        <p>Mã hợp đồng: {contractID}</p>
+                        <p>Ngày ký: {signedTime}</p>
+                        <p>Ngày hết hạn vào ngày {expirationDate}.</p>
+                        <p>Vui lòng liên hệ với chúng tôi để trao đổi về việc gia hạn hoặc ký kết hợp đồng vận tải mới.</p>
                         <p>Chân thành cảm ơn sự hợp tác của quý công ty.</p>
+                        <p>Trân trọng.</p>
                     </div>
                 </div>
             </body>
