@@ -325,6 +325,16 @@ namespace MTCS.Service.Services
                     null);
             }
 
+            if (existingTractor.Status == VehicleStatus.OnDuty.ToString())
+            {
+                return new ApiResponse<TractorResponseDTO>(
+                    false,
+                    null,
+                    "Tractor is onduty",
+                    "Đầu kéo đang vận chuyển, không thể cập nhật",
+                    null);
+            }
+
             if (existingTractor.LicensePlate != updateDto.LicensePlate)
             {
                 var (exists, vehicleType, vehicleId, vehicleBrand) = await _unitOfWork.VehicleHelper.IsLicensePlateExist(updateDto.LicensePlate);

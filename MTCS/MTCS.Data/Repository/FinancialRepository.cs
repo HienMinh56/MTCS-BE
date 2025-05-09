@@ -239,7 +239,7 @@ namespace MTCS.Data.Repository
             if (!string.IsNullOrEmpty(customerId))
                 query = query.Where(t => t.Order.CustomerId == customerId);
 
-            var trips = await query.ToListAsync();
+            var trips = await query.OrderByDescending(t => t.StartTime).ToListAsync();
 
             return trips.Select(trip =>
             {

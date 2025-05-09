@@ -13,12 +13,14 @@ namespace MTCS.Service.Services
         private readonly UnitOfWork _unitOfWork;
         private readonly IFirebaseStorageService _firebaseStorageService;
         private readonly IPasswordHasher _passwordHasher;
+        private readonly IEmailService _emailService;
 
-        public DriverService(UnitOfWork unitOfWork, IPasswordHasher passwordHasher, IFirebaseStorageService firebaseStorageService)
+        public DriverService(UnitOfWork unitOfWork, IPasswordHasher passwordHasher, IFirebaseStorageService firebaseStorageService, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _firebaseStorageService = firebaseStorageService;
             _passwordHasher = passwordHasher;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<PagedList<ViewDriverDTO>>> ViewDrivers(PaginationParams paginationParams, int? status = null, string? keyword = null)
@@ -66,8 +68,16 @@ namespace MTCS.Service.Services
                 CreatedBy = userId
             };
 
-
             await _unitOfWork.DriverRepository.CreateAsync(driver);
+
+            string subject = "Thông báo tạo tài khoản tài xế viên mới";
+            await _emailService.SendAccountRegistration(
+                driverDto.Email,
+                subject,
+                driverDto.FullName,
+                driverDto.Email,
+                driverDto.Password
+            );
 
             var responseDto = new DriverResponseDTO
             {
@@ -108,6 +118,7 @@ namespace MTCS.Service.Services
                             };
 
                             await _unitOfWork.DriverFileRepository.CreateAsync(driverFile);
+
                         }
                     }
                     return new ApiResponse<DriverResponseDTO>(
@@ -127,7 +138,6 @@ namespace MTCS.Service.Services
                         ex.Message);
                 }
             }
-
             string successMessage = $"Driver {driverDto.FullName} registered successfully";
             return new ApiResponse<DriverResponseDTO>(true, null, successMessage, "Tạo tài xế thành công", null);
         }
