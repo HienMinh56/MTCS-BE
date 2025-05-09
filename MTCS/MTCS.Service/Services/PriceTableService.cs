@@ -556,7 +556,7 @@ namespace MTCS.Service.Services
 
             if (matchedPrice == null)
             {
-                return new ApiResponse<CalculatedPriceResponse>(false, null, "No price found ", "Không tìm thấy giá", null);
+                return new ApiResponse<CalculatedPriceResponse>(false, null, "No price found ", "Chưa hỗ trợ giá cho khoảng cách này, liên hệ nhân sự để biết thêm chi tiết.", null);
             }
             decimal decimalDistance = (decimal)distance;
             decimal minPrice = matchedPrice.MinPricePerKm ?? 0;
