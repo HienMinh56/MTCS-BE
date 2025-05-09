@@ -10,6 +10,7 @@ namespace MTCS.Data.Request
     public class UpdateContractRequest
     {
         public string ContractId { get; set; } = null!;
+        public string Summary { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public int? Status { get; set; }

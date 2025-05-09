@@ -263,7 +263,7 @@ namespace MTCS.Service.Services
                 if (contract == null)
                     return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
 
-
+                contract.Summary = model.Summary;
                 contract.StartDate = model.StartDate;
                 contract.EndDate = model.EndDate;
                 contract.Status = model.Status;
