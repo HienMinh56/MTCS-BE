@@ -220,6 +220,7 @@ namespace MTCS.Data.Repository
                     TripId = t.TripId,
                     TrackingCode = t.Order != null ? t.Order.TrackingCode : null,
                     DriverName = t.Driver != null ? t.Driver.FullName : null,
+                    DriverId = t.Driver != null ? t.Driver.DriverId : null,
                     StartTime = t.StartTime,
                     EndTime = t.EndTime,
                     Status = t.Status,
