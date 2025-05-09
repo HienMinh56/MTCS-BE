@@ -625,6 +625,7 @@ namespace MTCS.Service.Services
             trip.Status = "canceled";
             trip.StartTime = DateTime.Now;
             trip.EndTime = DateTime.Now;
+            await _unitOfWork.OrderRepository.UpdateAsync(order);
             await _unitOfWork.TripRepository.UpdateAsync(trip);
 
             await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
