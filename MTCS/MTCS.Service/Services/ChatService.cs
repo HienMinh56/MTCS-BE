@@ -75,8 +75,8 @@ namespace MTCS.Service.Services
 
             var participants = new[]
             {
-                 new { id = senderId, name = senderName },
-                new { id = receiverId, name = receiverName }
+                new { id = senderId, name = senderName, phoneNumber = senderInternal?.PhoneNumber ?? senderDriver?.PhoneNumber ?? "" },
+                new { id = receiverId, name = receiverName, phoneNumber = receiverInternal?.PhoneNumber ?? receiverDriver?.PhoneNumber ?? "" }
             };
 
             await chatDoc.SetAsync(new { participants }, SetOptions.MergeAll);
