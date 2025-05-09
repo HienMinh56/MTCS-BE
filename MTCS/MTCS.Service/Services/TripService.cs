@@ -99,7 +99,7 @@ namespace MTCS.Service.Services
                 {
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
-                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
+                    var order =  await _unitOfWork.OrderRepository.GetOrderWithTripsAsync(trip.OrderId);
                     var driverStatus = DriverStatus.OnDuty;
                     if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                     {
