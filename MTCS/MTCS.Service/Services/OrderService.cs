@@ -446,7 +446,7 @@ namespace MTCS.Service.Services
                             worksheet.Cells[row, 6].Value = order.Note;
                             worksheet.Cells[row, 7].Value = order.ContainerNumber;
                             worksheet.Cells[row, 8].Value = order.ContainerSize + "f";
-                            worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.DeliveryType == 2 ? "RE" : ""; 
+                            worksheet.Cells[row, 9].Value = order.ContainerType == 1 ? "DC" : order.ContainerType == 2 ? "RE" : ""; 
                             worksheet.Cells[row, 10].Value = order.PickUpLocation;
                             worksheet.Cells[row, 11].Value = order.DeliveryLocation;
                             worksheet.Cells[row, 12].Value = order.ConReturnLocation;
