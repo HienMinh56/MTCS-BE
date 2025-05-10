@@ -1,8 +1,8 @@
-﻿using MTCS.Data;
+﻿using System.Security.Claims;
+using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Service.Base;
-using System.Security.Claims;
 
 namespace MTCS.Service.Services
 {
@@ -28,6 +28,21 @@ namespace MTCS.Service.Services
         {
             try
             {
+                // Check if any trip is currently being processed (not completed, not not_started, not canceled)
+                var processingTrips = await _unitOfWork.TripRepository.GetAllTripsAsync();
+
+                // If any trip has status not in ["completed", "not_started", "canceled"], block creation
+                var hasProcessingTrip = processingTrips.Any(t =>
+                    t.Status != "completed" &&
+                    t.Status != "not_started" &&
+                    t.Status != "canceled"
+                );
+
+                if (hasProcessingTrip)
+                {
+                    return new BusinessResult(400, "Can not create or update delivery status when there is a trip in use");
+                }
+
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 await _unitOfWork.BeginTransactionAsync();
 

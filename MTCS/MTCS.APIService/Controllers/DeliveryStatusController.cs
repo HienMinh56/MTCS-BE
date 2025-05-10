@@ -27,6 +27,14 @@ namespace MTCS.APIService.Controllers
         {
             var currentUser = HttpContext.User;
             var result = await _deliveryStatusService.CreateDeliveryStatus(createDeliveries, currentUser);
+            if(result.Status == 400)
+            {
+                return BadRequest(result);
+            }
+            else if (result.Status == 500)
+            {
+                return StatusCode(500, result);
+            }
             return Ok(result);
         }
     }

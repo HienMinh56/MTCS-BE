@@ -2,7 +2,6 @@
 using MTCS.Data.Base;
 using MTCS.Data.DTOs.IncidentReportDTO;
 using MTCS.Data.Models;
-using MTCS.Data.Response;
 
 namespace MTCS.Data.Repository
 {
@@ -21,6 +20,7 @@ namespace MTCS.Data.Repository
                 .Include(i => i.Trip)
                     .ThenInclude(t => t.Order)
                         .ThenInclude(o => o.Trips) // <-- thêm Include Trips
+                        .OrderByDescending(i => i.CreatedDate)
                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(driverId))

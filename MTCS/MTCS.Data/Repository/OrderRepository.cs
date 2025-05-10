@@ -153,6 +153,7 @@ namespace MTCS.Data.Repository
         {
             return await _context.Orders
                 .Include(o => o.Trips)
+                .Include(o => o.Customer)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
         }
     }

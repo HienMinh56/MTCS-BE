@@ -1,18 +1,11 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Google.Api;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Claims;
 using MTCS.Common;
 using MTCS.Data;
-using MTCS.Data.DTOs;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
-using MTCS.Data.Repository;
 using MTCS.Data.Request;
-using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
-using static Google.Cloud.Firestore.V1.StructuredQuery.Types;
 
 namespace MTCS.Service.Services
 {
@@ -20,11 +13,13 @@ namespace MTCS.Service.Services
     {
         private readonly UnitOfWork _unitOfWork;
         private readonly INotificationService _notificationService;
+        private readonly IEmailService _emailService;
 
-        public TripService(UnitOfWork unitOfWork, INotificationService notificationService)
+        public TripService(UnitOfWork unitOfWork, INotificationService notificationService, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _notificationService = notificationService;
+            _emailService = emailService;
         }
 
         #region GetTripsByFilter
@@ -104,7 +99,7 @@ namespace MTCS.Service.Services
                 {
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
-                    var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderId);
+                    var order =  await _unitOfWork.OrderRepository.GetOrderWithTripsAsync(trip.OrderId);
                     var driverStatus = DriverStatus.OnDuty;
                     if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                     {
@@ -114,6 +109,9 @@ namespace MTCS.Service.Services
                     await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, driverStatus);
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
                     await _notificationService.SendNotificationAsync(order.CreatedBy, "Chuyến đi đã được cập nhật", $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}", driver.FullName);
+
+                    string subject = "Đơn hàng của bạn đã được giao thành công";
+                    await _emailService.SendOrderCompletionToCustomer(order.Customer.Email, subject, order.Customer.CompanyName, order.TrackingCode, order.CompletionTime);
                 }
 
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
@@ -627,6 +625,7 @@ namespace MTCS.Service.Services
             trip.Status = "canceled";
             trip.StartTime = DateTime.Now;
             trip.EndTime = DateTime.Now;
+            await _unitOfWork.OrderRepository.UpdateAsync(order);
             await _unitOfWork.TripRepository.UpdateAsync(trip);
 
             await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
@@ -686,13 +685,14 @@ namespace MTCS.Service.Services
 
             var completionMinutes = (int)(order.CompletionTime?.ToTimeSpan().TotalMinutes ?? 0);
 
-            // Lấy tất cả trips trong ngày để biết tractor & trailer đã dùng
+            // Lấy danh sách trips cùng ngày
             var tripsInDate = await _unitOfWork.TripRepository.GetByDateAsync(deliveryDate);
+
             var usedTractorIds = tripsInDate.Select(t => t.TractorId).ToHashSet();
             var usedTrailerIds = tripsInDate.Select(t => t.TrailerId).ToHashSet();
 
             // Ưu tiên đầu kéo khô nếu đơn hàng khô
-            var preferredTractorList = order.ContainerType == 1
+            var preferredTractors = order.ContainerType == 1
                 ? tractors.Where(t => t.ContainerType == 1).Concat(tractors.Where(t => t.ContainerType != 1))
                 : tractors.Where(t => t.ContainerType == order.ContainerType);
 
@@ -712,57 +712,61 @@ namespace MTCS.Service.Services
                 int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
                 if (totalWeekly > weeklyHourLimit * 60) continue;
 
-                // Nếu tài xế đã có trip trong ngày -> cố định đầu kéo + rơ-moóc cũ
-                var existingTrips = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
-                string tractorId = null, trailerId = null;
+                // Check if driver already has trips today
+                var driverTripsToday = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
 
-                if (existingTrips.Any())
+                if (driverTripsToday.Any())
                 {
-                    tractorId = existingTrips.First().TractorId;
-                    trailerId = existingTrips.First().TrailerId;
+                    var existingTractorId = driverTripsToday.First().TractorId;
+                    var existingTrailerId = driverTripsToday.First().TrailerId;
 
-                    // Nếu chưa bị dùng bởi tài xế khác và vẫn hợp lệ
-                    if (!usedTractorIds.Contains(tractorId) && !usedTrailerIds.Contains(trailerId))
+                    var tractor = tractors.FirstOrDefault(t =>
+                        t.TractorId == existingTractorId &&
+                        t.MaxLoadWeight >= totalWeight &&
+                        t.RegistrationExpirationDate > deliveryDate);
+
+                    var trailer = trailers.FirstOrDefault(t =>
+                        t.TrailerId == existingTrailerId &&
+                        t.MaxLoadWeight >= totalWeight &&
+                        (order.ContainerSize != 40 || t.ContainerSize == 2) &&
+                        t.RegistrationExpirationDate > deliveryDate);
+
+                    if (tractor != null && trailer != null)
                     {
-                        var usedTractor = tractors.FirstOrDefault(x =>x.TractorId == tractorId && x.MaxLoadWeight >= totalWeight && x.RegistrationExpirationDate > deliveryDate);
-                        var usedTrailer = trailers.FirstOrDefault(x =>x.TrailerId == trailerId && x.MaxLoadWeight >= totalWeight && (order.ContainerSize != 40 || x.ContainerSize == 2) && x.RegistrationExpirationDate > deliveryDate);
-
-                        if (usedTractor != null && usedTrailer != null)
-                        {
-                            usedTractorIds.Add(tractorId);
-                            usedTrailerIds.Add(trailerId);
-                            return await CreateTrip(order, driver, usedTractor, usedTrailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
-                        }
+                        return await CreateTrip(order, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
                     }
+
+                    continue; // Thiết bị không còn phù hợp
                 }
-                else
+
+                // Nếu chưa có trip, tìm thiết bị chưa ai dùng hôm đó
+                foreach (var tractor in preferredTractors)
                 {
-                    // Nếu tài xế chưa có trip, duyệt tất cả tractor + trailer còn trống
-                    foreach (var tractor in preferredTractorList)
+                    if (!tractor.MaxLoadWeight.HasValue ||
+                        tractor.MaxLoadWeight.Value < totalWeight ||
+                        usedTractorIds.Contains(tractor.TractorId) ||
+                        tractor.RegistrationExpirationDate <= deliveryDate)
+                        continue;
+
+                    foreach (var trailer in trailers.Where(t =>
+                        t.MaxLoadWeight >= totalWeight &&
+                        (order.ContainerSize != 40 || t.ContainerSize == 2) &&
+                        !usedTrailerIds.Contains(t.TrailerId) &&
+                        t.RegistrationExpirationDate > deliveryDate))
                     {
-                        if (!tractor.MaxLoadWeight.HasValue ||
-                            tractor.MaxLoadWeight.Value < totalWeight ||
-                            usedTractorIds.Contains(tractor.TractorId) ||
-                            tractor.RegistrationExpirationDate <= deliveryDate)
-                            continue;
+                        // Gán trip
+                        usedTractorIds.Add(tractor.TractorId);
+                        usedTrailerIds.Add(trailer.TrailerId);
 
-                        foreach (var trailer in trailers.Where(t =>
-                            t.MaxLoadWeight >= totalWeight &&
-                            (order.ContainerSize != 40 || t.ContainerSize == 2) &&
-                            !usedTrailerIds.Contains(t.TrailerId) &&
-                            t.RegistrationExpirationDate > deliveryDate))
-                        {
-                            usedTractorIds.Add(tractor.TractorId);
-                            usedTrailerIds.Add(trailer.TrailerId);
-
-                            return await CreateTrip(order, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
-                        }
+                        return await CreateTrip(order, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
                     }
                 }
             }
 
             return new BusinessResult(-1, "Không tìm thấy tài xế, đầu kéo hoặc rơ-moóc phù hợp!");
         }
+
+
 
         public async Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd)
         {

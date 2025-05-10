@@ -17,13 +17,15 @@ namespace MTCS.Service.Services
         private readonly ITokenService _tokenService;
         private readonly IPasswordHasher _passwordHasher;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
-        public AuthService(UnitOfWork unitOfWork, ITokenService tokenService, IPasswordHasher passwordHasher, IConfiguration configuration)
+        public AuthService(UnitOfWork unitOfWork, ITokenService tokenService, IPasswordHasher passwordHasher, IConfiguration configuration, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
             _passwordHasher = passwordHasher;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         public async Task<ApiResponse<string>> RegisterStaff(RegisterUserDTO userDto)
@@ -58,6 +60,17 @@ namespace MTCS.Service.Services
             };
 
             await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
+
+            string subject = "Thông báo tạo tài khoản nhân viên mới";
+
+            await _emailService.SendAccountRegistration(
+                userDto.Email,
+                subject,
+                userDto.FullName,
+                userDto.Email,
+                userDto.Password
+            );
+
             return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null, null);
         }
 
@@ -93,6 +106,16 @@ namespace MTCS.Service.Services
             };
 
             await _unitOfWork.InternalUserRepository.CreateAsync(internalUser);
+
+            string subject = "Thông báo tạo tài khoản quản trị viên mới";
+            await _emailService.SendAccountRegistration(
+                userDto.Email,
+                subject,
+                userDto.FullName,
+                userDto.Email,
+                userDto.Password
+            );
+
             return new ApiResponse<string>(true, userDto.FullName, "Registration successful", null, null);
         }
 

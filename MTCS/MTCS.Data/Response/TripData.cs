@@ -11,6 +11,8 @@ namespace MTCS.Data.Response
     {
         public string TripId { get; set; }
 
+        public string DriverId { get; set; }
+
         public string TrackingCode { get; set; }
 
         public string DriverName { get; set; }
