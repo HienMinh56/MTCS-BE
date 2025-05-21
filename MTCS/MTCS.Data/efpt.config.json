@@ -55,11 +55,15 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[FuelReport]",
+         "Name": "[dbo].[ExpenseReport]",
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[FuelReportFile]",
+         "Name": "[dbo].[ExpenseReportFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ExpenseReportType]",
          "ObjectType": 0
       },
       {
@@ -75,7 +79,11 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[OrderFile]",
+         "Name": "[dbo].[OrderDetailFile]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[OrderDetails]",
          "ObjectType": 0
       },
       {

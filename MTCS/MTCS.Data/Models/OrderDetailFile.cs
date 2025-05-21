@@ -5,11 +5,11 @@ using System.Collections.Generic;
 
 namespace MTCS.Data.Models;
 
-public partial class OrderFile
+public partial class OrderDetailFile
 {
     public string FileId { get; set; }
 
-    public string OrderId { get; set; }
+    public string OrderDetailId { get; set; }
 
     public string FileName { get; set; }
 
@@ -33,5 +33,5 @@ public partial class OrderFile
 
     public string ModifiedBy { get; set; }
 
-    public virtual Order Order { get; set; }
+    public virtual OrderDetail OrderDetail { get; set; }
 }

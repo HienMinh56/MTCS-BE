@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace MTCS.Data.Models;
 
-public partial class FuelReportFile
+public partial class ExpenseReportFile
 {
     public string FileId { get; set; }
 
@@ -33,5 +33,5 @@ public partial class FuelReportFile
 
     public string ModifiedBy { get; set; }
 
-    public virtual FuelReport Report { get; set; }
+    public virtual ExpenseReport Report { get; set; }
 }

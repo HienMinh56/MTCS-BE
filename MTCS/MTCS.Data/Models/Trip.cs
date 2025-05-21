@@ -35,7 +35,7 @@ public partial class Trip
 
     public virtual Driver Driver { get; set; }
 
-    public virtual ICollection<FuelReport> FuelReports { get; set; } = new List<FuelReport>();
+    public virtual ICollection<ExpenseReport> ExpenseReports { get; set; } = new List<ExpenseReport>();
 
     public virtual ICollection<IncidentReport> IncidentReports { get; set; } = new List<IncidentReport>();
 

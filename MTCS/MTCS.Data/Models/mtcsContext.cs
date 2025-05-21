@@ -38,9 +38,11 @@ public partial class MTCSContext : DbContext
 
     public virtual DbSet<DriverWeeklySummary> DriverWeeklySummaries { get; set; }
 
-    public virtual DbSet<FuelReport> FuelReports { get; set; }
+    public virtual DbSet<ExpenseReport> ExpenseReports { get; set; }
 
-    public virtual DbSet<FuelReportFile> FuelReportFiles { get; set; }
+    public virtual DbSet<ExpenseReportFile> ExpenseReportFiles { get; set; }
+
+    public virtual DbSet<ExpenseReportType> ExpenseReportTypes { get; set; }
 
     public virtual DbSet<IncidentReport> IncidentReports { get; set; }
 
@@ -50,7 +52,9 @@ public partial class MTCSContext : DbContext
 
     public virtual DbSet<Order> Orders { get; set; }
 
-    public virtual DbSet<OrderFile> OrderFiles { get; set; }
+    public virtual DbSet<OrderDetail> OrderDetails { get; set; }
+
+    public virtual DbSet<OrderDetailFile> OrderDetailFiles { get; set; }
 
     public virtual DbSet<PriceTable> PriceTables { get; set; }
 
@@ -69,9 +73,9 @@ public partial class MTCSContext : DbContext
     public virtual DbSet<TripStatusHistory> TripStatusHistories { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-{
-    optionsBuilder.UseSqlServer(GetConnectionString());
-}
+    {
+        optionsBuilder.UseSqlServer(GetConnectionString());
+    }
 
 
     private string GetConnectionString()
@@ -296,37 +300,39 @@ public partial class MTCSContext : DbContext
                 .HasConstraintName("FK_DriverWeeklySummary_Driver");
         });
 
-        modelBuilder.Entity<FuelReport>(entity =>
+        modelBuilder.Entity<ExpenseReport>(entity =>
         {
-            entity.HasKey(e => e.ReportId).HasName("PK__FuelRepo__D5BD4805641BE5DD");
+            entity.HasKey(e => e.ReportId).HasName("PK__ExpenseR__D5BD480529D1662A");
 
-            entity.ToTable("FuelReport");
+            entity.ToTable("ExpenseReport");
 
             entity.Property(e => e.ReportId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.FuelCost).HasColumnType("decimal(10, 2)");
-            entity.Property(e => e.LicensePlate)
-                .HasMaxLength(20)
-                .IsUnicode(false);
-            entity.Property(e => e.RefuelAmount).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Cost).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Description).HasMaxLength(255);
             entity.Property(e => e.ReportTime).HasColumnType("datetime");
+            entity.Property(e => e.ReportTypeId)
+                .HasMaxLength(255)
+                .IsUnicode(false);
             entity.Property(e => e.TripId)
-                .IsRequired()
                 .HasMaxLength(255)
                 .IsUnicode(false);
 
-            entity.HasOne(d => d.Trip).WithMany(p => p.FuelReports)
+            entity.HasOne(d => d.ReportType).WithMany(p => p.ExpenseReports)
+                .HasForeignKey(d => d.ReportTypeId)
+                .HasConstraintName("FK_ExpenseReport_ExpenseReportTypes");
+
+            entity.HasOne(d => d.Trip).WithMany(p => p.ExpenseReports)
                 .HasForeignKey(d => d.TripId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__FuelRepor__TripI__07C12930");
+                .HasConstraintName("FK_ExpenseReport_Trips");
         });
 
-        modelBuilder.Entity<FuelReportFile>(entity =>
+        modelBuilder.Entity<ExpenseReportFile>(entity =>
         {
-            entity.HasKey(e => e.FileId).HasName("PK__FuelRepo__6F0F98BF272220FD");
+            entity.HasKey(e => e.FileId).HasName("PK__ExpenseR__6F0F98BF7C12266D");
 
-            entity.ToTable("FuelReportFile");
+            entity.ToTable("ExpenseReportFile");
 
             entity.Property(e => e.FileId)
                 .HasMaxLength(255)
@@ -337,15 +343,26 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
             entity.Property(e => e.ReportId)
-                .IsRequired()
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Report).WithMany(p => p.FuelReportFiles)
+            entity.HasOne(d => d.Report).WithMany(p => p.ExpenseReportFiles)
                 .HasForeignKey(d => d.ReportId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__FuelRepor__Repor__0A9D95DB");
+                .HasConstraintName("FK__ExpenseRe__Repor__6DCC4D03");
+        });
+
+        modelBuilder.Entity<ExpenseReportType>(entity =>
+        {
+            entity.HasKey(e => e.ReportTypeId).HasName("PK__ExpenseR__78CF8CE3EC8E19C1");
+
+            entity.ToTable("ExpenseReportType");
+
+            entity.Property(e => e.ReportTypeId)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.CreatedDate).HasColumnType("datetime");
+            entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
         });
 
         modelBuilder.Entity<IncidentReport>(entity =>
@@ -433,24 +450,18 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.ContactPhone)
                 .HasMaxLength(11)
                 .IsUnicode(false);
-            entity.Property(e => e.ContainerNumber)
-                .HasMaxLength(11)
-                .IsUnicode(false);
             entity.Property(e => e.CreatedBy).IsUnicode(false);
             entity.Property(e => e.CreatedDate).HasColumnType("datetime");
             entity.Property(e => e.CustomerId)
                 .IsRequired()
                 .HasMaxLength(255)
                 .IsUnicode(false);
-            entity.Property(e => e.Distance).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.ModifiedDate).HasColumnType("datetime");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .IsUnicode(false)
                 .HasDefaultValue("Pending");
-            entity.Property(e => e.Temperature).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.TrackingCode).IsUnicode(false);
-            entity.Property(e => e.Weight).HasColumnType("decimal(10, 2)");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Orders)
                 .HasForeignKey(d => d.CustomerId)
@@ -458,11 +469,36 @@ public partial class MTCSContext : DbContext
                 .HasConstraintName("FK_Orders_Customer");
         });
 
-        modelBuilder.Entity<OrderFile>(entity =>
+        modelBuilder.Entity<OrderDetail>(entity =>
         {
-            entity.HasKey(e => e.FileId).HasName("PK__OrderFil__6F0F98BFB5C36FFA");
+            entity.HasKey(e => e.OrderDetailId).HasName("PK__OrderDet__D3B9D36CA039667C");
 
-            entity.ToTable("OrderFile");
+            entity.Property(e => e.OrderDetailId)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.ContainerNumber)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Distance).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.OrderId)
+                .HasMaxLength(255)
+                .IsUnicode(false);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+            entity.Property(e => e.Temperature).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.Weight).HasColumnType("decimal(10, 2)");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.OrderDetails)
+                .HasForeignKey(d => d.OrderId)
+                .HasConstraintName("FK_OrderDetails_Orders");
+        });
+
+        modelBuilder.Entity<OrderDetailFile>(entity =>
+        {
+            entity.HasKey(e => e.FileId).HasName("PK__OrderDet__6F0F98BF324BB47F");
+
+            entity.ToTable("OrderDetailFile");
 
             entity.Property(e => e.FileId)
                 .HasMaxLength(255)
@@ -472,16 +508,14 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.FileType).IsUnicode(false);
             entity.Property(e => e.FileUrl).IsUnicode(false);
             entity.Property(e => e.Note).HasMaxLength(255);
-            entity.Property(e => e.OrderId)
-                .IsRequired()
+            entity.Property(e => e.OrderDetailId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.UploadDate).HasColumnType("datetime");
 
-            entity.HasOne(d => d.Order).WithMany(p => p.OrderFiles)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__OrderFile__Order__7F2BE32F");
+            entity.HasOne(d => d.OrderDetail).WithMany(p => p.OrderDetailFiles)
+                .HasForeignKey(d => d.OrderDetailId)
+                .HasConstraintName("FK__OrderDeta__Order__662B2B3B");
         });
 
         modelBuilder.Entity<PriceTable>(entity =>

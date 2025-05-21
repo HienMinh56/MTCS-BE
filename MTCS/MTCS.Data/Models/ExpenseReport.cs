@@ -5,15 +5,15 @@ using System.Collections.Generic;
 
 namespace MTCS.Data.Models;
 
-public partial class FuelReport
+public partial class ExpenseReport
 {
     public string ReportId { get; set; }
 
     public string TripId { get; set; }
 
-    public decimal? RefuelAmount { get; set; }
+    public string ReportTypeId { get; set; }
 
-    public decimal? FuelCost { get; set; }
+    public decimal? Cost { get; set; }
 
     public string Location { get; set; }
 
@@ -21,9 +21,13 @@ public partial class FuelReport
 
     public string ReportBy { get; set; }
 
-    public string LicensePlate { get; set; }
+    public int? IsPay { get; set; }
 
-    public virtual ICollection<FuelReportFile> FuelReportFiles { get; set; } = new List<FuelReportFile>();
+    public string Description { get; set; }
+
+    public virtual ICollection<ExpenseReportFile> ExpenseReportFiles { get; set; } = new List<ExpenseReportFile>();
+
+    public virtual ExpenseReportType ReportType { get; set; }
 
     public virtual Trip Trip { get; set; }
 }
