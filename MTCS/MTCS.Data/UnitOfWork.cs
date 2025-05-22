@@ -21,19 +21,20 @@ namespace MTCS.Data
         private TrailerRepository trailerRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
-        private FuelReportRepository fuelReportRepository;
-        private FuelReportFileRepository fuelReportFileRepository;
+        private ExpenseReportRepository expenseReportRepository;
+        private ExpenseReportFileRepository expenseReportFileRepository;
+        private ExpenseReportTypeRepository expenseReportTypeRepository;
         private TractorFileRepository tractorFileRepository;
         private TrailerFileRepository trailerFileRepository;
         private DeliveryReportRepository deliveryReportRepository;
         private DeliveryReportFileRepository deliveryReportFileRepository;
-        private OrderRepository orderRepository;
-        private OrderFileRepository orderFileRepository;
+        //private OrderRepository orderRepository;
+        //private OrderFileRepository orderFileRepository;
         private CustomerRepository customerRepository;
         private DeliveryStatusRepository deliveryStatusRepository;
         private TripStatusHistoryRepository tripStatusHistoryRepository;
         private PriceTableRepository priceTableRepository;
-        private FinancialRepository financialRepository;
+        //private FinancialRepository financialRepository;
         private VehicleHelper vehicleHelper;
         private ContactHelper contactHelper; 
         private SystemConfigurationRepository systemConfigurationRepository;
@@ -147,19 +148,27 @@ namespace MTCS.Data
             }
         }
 
-        public FuelReportRepository FuelReportRepository
+        public ExpenseReportRepository ExpenseReportRepository
         {
             get
             {
-                return fuelReportRepository ??= new FuelReportRepository();
+                return expenseReportRepository ??= new ExpenseReportRepository();
             }
         }
 
-        public FuelReportFileRepository FuelReportFileRepository
+        public ExpenseReportFileRepository ExpenseReportFileRepository
         {
             get
             {
-                return fuelReportFileRepository ??= new FuelReportFileRepository();
+                return expenseReportFileRepository ??= new ExpenseReportFileRepository();
+            }
+        }
+
+        public ExpenseReportTypeRepository ExpenseReportTypeRepository
+        {
+            get
+            {
+                return expenseReportTypeRepository ??= new ExpenseReportTypeRepository();
             }
         }
 
@@ -178,21 +187,21 @@ namespace MTCS.Data
                 return deliveryReportFileRepository ??= new DeliveryReportFileRepository();
             }
         }
-        public OrderRepository OrderRepository
-        {
-            get
-            {
-                return orderRepository ??= new OrderRepository();
-            }
-        }
+        //public OrderRepository OrderRepository
+        //{
+        //    get
+        //    {
+        //        return orderRepository ??= new OrderRepository();
+        //    }
+        //}
 
-        public OrderFileRepository OrderFileRepository
-        {
-            get
-            {
-                return orderFileRepository ??= new OrderFileRepository();
-            }
-        }
+        //public OrderFileRepository OrderFileRepository
+        //{
+        //    get
+        //    {
+        //        return orderFileRepository ??= new OrderFileRepository();
+        //    }
+        //}
 
         public CustomerRepository CustomerRepository
         {
@@ -226,13 +235,13 @@ namespace MTCS.Data
             }
         }
 
-        public FinancialRepository FinancialRepository
-        {
-            get
-            {
-                return financialRepository ??= new FinancialRepository();
-            }
-        }
+        //public FinancialRepository FinancialRepository
+        //{
+        //    get
+        //    {
+        //        return financialRepository ??= new FinancialRepository();
+        //    }
+        //}
 
         public VehicleHelper VehicleHelper
         {

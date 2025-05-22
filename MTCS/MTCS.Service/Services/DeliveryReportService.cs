@@ -104,7 +104,7 @@ namespace MTCS.Service.Services
                 //var userReceiver = order.CreatedBy;
                 //await _notification.SendNotificationAsync(userReceiver, "Delivery Report", $"New Delivery Report from {userName}", userName);
 
-                return new BusinessResult(200, "Create Fuel Report Successfully", savedFiles);
+                return new BusinessResult(200, "Create Delivery Report Successfully", savedFiles);
             }
             catch
             {
@@ -169,7 +169,7 @@ namespace MTCS.Service.Services
                 deliveryReportModel.Notes = updateDelivery.Note;
                 _unitOfWork.DeliveryReportRepository.Update(deliveryReportModel);
 
-                var savedFiles = new List<FuelReportFile>();
+                var savedFiles = new List<DeliveryReport>();
 
                 if (updateDelivery.FileIdsToRemove != null && updateDelivery.FileIdsToRemove.Count > 0)
                 {
@@ -216,7 +216,7 @@ namespace MTCS.Service.Services
                 //await _notification.SendNotificationAsync(userReceiver, "Delivery Report", $"New Update Delivery Report from {userName}", userName);
 
 
-                return new BusinessResult(200, "Update Fuel Report Successfully", savedFiles);
+                return new BusinessResult(200, "Update Delivery Report Successfully", savedFiles);
             }
             catch
             {
