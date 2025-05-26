@@ -99,6 +99,7 @@ namespace MTCS.Service.Services
                 Type = request.Type,
                 VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
+                IsPay = request.IsPay ?? 0, // Default to 0 if not provided
                 CreatedDate = DateTime.Now
             });
 
@@ -140,7 +141,7 @@ namespace MTCS.Service.Services
                 var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
                 var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderDetailId);
                 var owner = order.CreatedBy;
                 if (request.Type == 1)
                 {
@@ -524,6 +525,7 @@ namespace MTCS.Service.Services
                         incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
 
                         driver.Status = (int?)DriverStatus.OnDuty;
                         tractor.Status = VehicleStatus.OnDuty.ToString();
@@ -562,6 +564,7 @@ namespace MTCS.Service.Services
                         incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
                         if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                         {
                             driver.Status = (int?)DriverStatus.Active; ; // Free
@@ -588,6 +591,7 @@ namespace MTCS.Service.Services
                         incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
 
                         driver.Status = (int?)DriverStatus.OnDuty;
                         tractor.Status = VehicleStatus.OnDuty.ToString();
@@ -623,7 +627,7 @@ namespace MTCS.Service.Services
                     var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                     var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
                     var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
-                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
                     var owner = order.CreatedBy;
                     if (result > 0)
                     {
@@ -751,7 +755,7 @@ namespace MTCS.Service.Services
 
                 var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                 var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
                 var owner = order.CreatedBy;
                 if (result > 0)
                 {
