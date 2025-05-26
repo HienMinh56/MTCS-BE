@@ -16,6 +16,15 @@ namespace MTCS.Data.Response
         public double Weight { get; set; }
         public DateOnly PickUpDate { get; set; }
         public DateOnly DeliveryDate { get; set; }
+        public string PickUpLocation { get; set; }
+
+        public string DeliveryLocation { get; set; }
+
+        public string ConReturnLocation { get; set; }
+        public TimeOnly? CompletionTime { get; set; }
+
+        public decimal? Distance { get; set; }
+
         public string Status { get; set; }
 
         public List<OrderDetailFileData> Files { get; set; }
