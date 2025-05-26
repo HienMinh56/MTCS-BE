@@ -38,7 +38,8 @@ builder.Services.AddScoped<ITractorService, TractorService>();
 builder.Services.AddScoped<ITrailerService, TrailerService>();
 //builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
 builder.Services.AddScoped<ITripService, TripService>();
-//builder.Services.AddScoped<IFuelReportService, FuelReportService>();
+builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
+builder.Services.AddScoped<IExpenseReportTypeService, ExpenseReportTypeService>();
 builder.Services.AddScoped<IDeliveryReportService, DeliveryReportService>();
 builder.Services.AddScoped<IDeliveryStatusService, DeliveryStatusService>();
 builder.Services.AddScoped<IPriceTableService, PriceTableService>();
@@ -60,6 +61,7 @@ builder.Services.AddSingleton<WebSocketHandler>();
 builder.Services.AddHostedService<VehicleRegistrationService>();
 builder.Services.AddHostedService<VehicleMaintenanceService>();
 builder.Services.AddHostedService<ContractExpirationService>();
+
 builder.Services.AddSignalR();
 
 //redis
