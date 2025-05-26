@@ -135,13 +135,24 @@ namespace MTCS.Service.Services
                     }
                 }
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+                var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
+                var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
+
                 var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
                 var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
                 var owner = order.CreatedBy;
                 if (request.Type == 1)
                 {
                     trip.Status = "delaying";
+                    driver.Status = (int?)DriverStatus.Onfixing;
+                    tractor.Status = VehicleStatus.Onfixing.ToString();
+                    trailer.Status = VehicleStatus.Onfixing.ToString();
+
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
 
                     var tripStatusHistory = new TripStatusHistory
                     {
@@ -160,14 +171,16 @@ namespace MTCS.Service.Services
                     trip.EndTime = DateTime.Now;
                     if (request.VehicleType == 1)
                     {
-                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                        tractor.Status = VehicleStatus.Inactive.ToString();
+                        driver.Status = (int?)DriverStatus.Onfixing;
+                        tractor.Status = VehicleStatus.Onfixing.ToString();
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                     }
                     if (request.VehicleType == 2)
                     {
-                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
-                        trailer.Status = VehicleStatus.Inactive.ToString();
+                        driver.Status = (int?)DriverStatus.Onfixing;
+                        trailer.Status = VehicleStatus.Onfixing.ToString();
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
@@ -186,7 +199,14 @@ namespace MTCS.Service.Services
                 else if (request.Type == 3)
                 {
                     trip.Status = "delaying";
+                    driver.Status = (int?)DriverStatus.Detained;
+                    tractor.Status = VehicleStatus.Detained.ToString();
+                    trailer.Status = VehicleStatus.Detained.ToString();
+
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
 
                     var tripStatusHistory = new TripStatusHistory
                     {
@@ -485,8 +505,11 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == incidentReportRequest.reportId);
+
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
                 var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
+                var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
                 if (incident == null)
                 {
@@ -498,8 +521,13 @@ namespace MTCS.Service.Services
                     {
                         incident.Status = "Resolved";
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+
+                        driver.Status = (int?)DriverStatus.OnDuty;
+                        tractor.Status = VehicleStatus.OnDuty.ToString();
+                        trailer.Status = VehicleStatus.OnDuty.ToString();
 
                         // Restore the previous status of the trip
                         var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
@@ -523,27 +551,29 @@ namespace MTCS.Service.Services
                         }
 
                         await _unitOfWork.TripRepository.UpdateAsync(trip);
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
                     else if (incident.Type == 2) // Cancellation incident
                     {
                         incident.Status = "Resolved";
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
                         if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                         {
-                            driver.Status = 1; // Free
+                            driver.Status = (int?)DriverStatus.Active; ; // Free
                         }
                         trip.EndTime = DateTime.Now;
                         if (incident.VehicleType == 1)
                         {
-                            var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
                             tractor.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                         }
                         if (incident.VehicleType == 2)
                         {
-                            var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
                             trailer.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                         }
@@ -555,8 +585,14 @@ namespace MTCS.Service.Services
                     {
                         incident.Status = "Resolved";
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+
+                        driver.Status = (int?)DriverStatus.OnDuty;
+                        tractor.Status = VehicleStatus.OnDuty.ToString();
+                        trailer.Status = VehicleStatus.OnDuty.ToString();
+
                         // Restore the previous status of the trip
                         var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
                         if (previousStatus != null)
@@ -579,6 +615,9 @@ namespace MTCS.Service.Services
                         }
 
                         await _unitOfWork.TripRepository.UpdateAsync(trip);
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
 
                     var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);

@@ -10,5 +10,6 @@ namespace MTCS.Data.Request
     {
         public string reportId { get; set; }
         public string ResolutionDetails { get; set; }
+        public decimal? Price { get; set; }
     }
 }
