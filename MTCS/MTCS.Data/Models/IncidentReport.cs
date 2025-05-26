@@ -37,6 +37,8 @@ public partial class IncidentReport
 
     public decimal? Price { get; set; }
 
+    public int? IsPay { get; set; }
+
     public virtual ICollection<IncidentReportsFile> IncidentReportsFiles { get; set; } = new List<IncidentReportsFile>();
 
     public virtual Trip Trip { get; set; }

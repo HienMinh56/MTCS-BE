@@ -676,7 +676,7 @@ public partial class MTCSContext : DbContext
             entity.Property(e => e.EndTime).HasColumnType("datetime");
             entity.Property(e => e.MatchBy).HasMaxLength(255);
             entity.Property(e => e.MatchTime).HasColumnType("datetime");
-            entity.Property(e => e.OrderId)
+            entity.Property(e => e.OrderDetailId)
                 .HasMaxLength(255)
                 .IsUnicode(false);
             entity.Property(e => e.StartTime).HasColumnType("datetime");
@@ -694,9 +694,9 @@ public partial class MTCSContext : DbContext
                 .HasForeignKey(d => d.DriverId)
                 .HasConstraintName("FK__Trips__DriverId__02FC7413");
 
-            entity.HasOne(d => d.Order).WithMany(p => p.Trips)
-                .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("FK__Trips__OrderId__02084FDA");
+            entity.HasOne(d => d.OrderDetail).WithMany(p => p.Trips)
+                .HasForeignKey(d => d.OrderDetailId)
+                .HasConstraintName("FK_Trips_OrderDetails");
 
             entity.HasOne(d => d.Tractor).WithMany(p => p.Trips)
                 .HasForeignKey(d => d.TractorId)

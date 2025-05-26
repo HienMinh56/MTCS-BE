@@ -40,4 +40,6 @@ public partial class OrderDetail
     public virtual Order Order { get; set; }
 
     public virtual ICollection<OrderDetailFile> OrderDetailFiles { get; set; } = new List<OrderDetailFile>();
+
+    public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
 }
