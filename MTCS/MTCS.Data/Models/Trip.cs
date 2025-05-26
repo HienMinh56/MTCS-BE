@@ -9,7 +9,7 @@ public partial class Trip
 {
     public string TripId { get; set; }
 
-    public string OrderId { get; set; }
+    public string OrderDetailId { get; set; }
 
     public string DriverId { get; set; }
 
@@ -39,7 +39,7 @@ public partial class Trip
 
     public virtual ICollection<IncidentReport> IncidentReports { get; set; } = new List<IncidentReport>();
 
-    public virtual Order Order { get; set; }
+    public virtual OrderDetail OrderDetail { get; set; }
 
     public virtual Tractor Tractor { get; set; }
 

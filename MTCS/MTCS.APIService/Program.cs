@@ -36,7 +36,7 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<ITractorService, TractorService>();
 builder.Services.AddScoped<ITrailerService, TrailerService>();
-builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
+//builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
 builder.Services.AddScoped<IExpenseReportTypeService, ExpenseReportTypeService>();
@@ -44,7 +44,8 @@ builder.Services.AddScoped<IDeliveryReportService, DeliveryReportService>();
 builder.Services.AddScoped<IDeliveryStatusService, DeliveryStatusService>();
 builder.Services.AddScoped<IPriceTableService, PriceTableService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IOrderDetailService, OrderDetailService>();
+//builder.Services.AddScoped<IAdminService, AdminService>();
 
 
 builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -223,7 +224,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseCors("AllowSpecificOrigin");
+//app.UseCors("AllowSpecificOrigin");
 app.MapHub<LocationHub>("/locationHub");
 //app.MapHub<ChatHub>("/chatHub");
 app.UseWebSockets();

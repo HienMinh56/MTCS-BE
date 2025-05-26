@@ -17,7 +17,7 @@ namespace MTCS.Service.Services
     {
         Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
-        Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
+        //Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddBillIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddExchangeShipIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
@@ -99,6 +99,7 @@ namespace MTCS.Service.Services
                 Type = request.Type,
                 VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
+                IsPay = request.IsPay ?? 0, // Default to 0 if not provided
                 CreatedDate = DateTime.Now
             });
 
@@ -135,13 +136,24 @@ namespace MTCS.Service.Services
                     }
                 }
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
+                var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
+                var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
+
                 var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderDetailId);
                 var owner = order.CreatedBy;
                 if (request.Type == 1)
                 {
                     trip.Status = "delaying";
+                    driver.Status = (int?)DriverStatus.Onfixing;
+                    tractor.Status = VehicleStatus.Onfixing.ToString();
+                    trailer.Status = VehicleStatus.Onfixing.ToString();
+
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
 
                     var tripStatusHistory = new TripStatusHistory
                     {
@@ -160,14 +172,16 @@ namespace MTCS.Service.Services
                     trip.EndTime = DateTime.Now;
                     if (request.VehicleType == 1)
                     {
-                        var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
-                        tractor.Status = VehicleStatus.Inactive.ToString();
+                        driver.Status = (int?)DriverStatus.Onfixing;
+                        tractor.Status = VehicleStatus.Onfixing.ToString();
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                     }
                     if (request.VehicleType == 2)
                     {
-                        var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
-                        trailer.Status = VehicleStatus.Inactive.ToString();
+                        driver.Status = (int?)DriverStatus.Onfixing;
+                        trailer.Status = VehicleStatus.Onfixing.ToString();
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
                         await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
@@ -186,7 +200,14 @@ namespace MTCS.Service.Services
                 else if (request.Type == 3)
                 {
                     trip.Status = "delaying";
+                    driver.Status = (int?)DriverStatus.Detained;
+                    tractor.Status = VehicleStatus.Detained.ToString();
+                    trailer.Status = VehicleStatus.Detained.ToString();
+
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
 
                     var tripStatusHistory = new TripStatusHistory
                     {
@@ -321,95 +342,95 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        #region Update Incident Report
-        public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
-        {
-            var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+        //#region Update Incident Report
+        //public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
+        //{
+        //    var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //    var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-            var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(request.ReportId);
-            if (incident is null)
-            {
-                return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
-            }
-            else
-            {
-                incident.ReportId = request.ReportId is null ? incident.ReportId : request.ReportId;
-                incident.TripId = request.TripId is null ? incident.TripId : request.TripId;
-                incident.ReportedBy = userName;
-                incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
-                incident.Description = request.Description is null ? incident.Description : request.Description;
-                incident.Location = request.Location is null ? incident.Location : request.Location;
-                incident.Type = request.Type is null ? incident.Type : request.Type;
-                incident.VehicleType = request.VehicleType is null ? incident.VehicleType : request.VehicleType;
-                incident.Status = request.Status is null ? incident.Status : request.Status;
-                incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
-                incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
-                incident.ResolutionDetails = request.ResolutionDetails != default ? request.ResolutionDetails : incident.ResolutionDetails;
-            }
+        //    var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(request.ReportId);
+        //    if (incident is null)
+        //    {
+        //        return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+        //    }
+        //    else
+        //    {
+        //        incident.ReportId = request.ReportId is null ? incident.ReportId : request.ReportId;
+        //        incident.TripId = request.TripId is null ? incident.TripId : request.TripId;
+        //        incident.ReportedBy = userName;
+        //        incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
+        //        incident.Description = request.Description is null ? incident.Description : request.Description;
+        //        incident.Location = request.Location is null ? incident.Location : request.Location;
+        //        incident.Type = request.Type is null ? incident.Type : request.Type;
+        //        incident.VehicleType = request.VehicleType is null ? incident.VehicleType : request.VehicleType;
+        //        incident.Status = request.Status is null ? incident.Status : request.Status;
+        //        incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
+        //        incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
+        //        incident.ResolutionDetails = request.ResolutionDetails != default ? request.ResolutionDetails : incident.ResolutionDetails;
+        //    }
 
-            // Xử lý xóa ảnh bị loại bỏ
-            if (request.RemovedImage is not [])
-            {
-                IncidentReportsFile? image;
-                foreach (var url in request.RemovedImage)
-                {
-                    if ((image = await _unitOfWork.IncidentReportsFileRepository.GetImageByUrl(url)) is not null && image.ReportId == incident.ReportId)
-                    {
-                        await _firebaseStorageService.DeleteImageAsync(_firebaseStorageService.ExtractImageNameFromUrl(url));
-                        await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(image);
-                    }
-                }
-            }
+        //    // Xử lý xóa ảnh bị loại bỏ
+        //    if (request.RemovedImage is not [])
+        //    {
+        //        IncidentReportsFile? image;
+        //        foreach (var url in request.RemovedImage)
+        //        {
+        //            if ((image = await _unitOfWork.IncidentReportsFileRepository.GetImageByUrl(url)) is not null && image.ReportId == incident.ReportId)
+        //            {
+        //                await _firebaseStorageService.DeleteImageAsync(_firebaseStorageService.ExtractImageNameFromUrl(url));
+        //                await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(image);
+        //            }
+        //        }
+        //    }
 
-            // Xử lý thêm ảnh mới
-            if (request.AddedImage is not null)
-            {
-                string FileId;
-                List<IncidentReportsFile> images;
-                int id;
-                for (int i = 0; i < request.AddedImage.Count; i++)
-                {
-                    var image = request.AddedImage[i];
-                    var imageType = request.ImageType[i];
-                    var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
-                    images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
-                    id = images.Count + 1;
-                    if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}") is not null)
-                    {
-                        id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
-                    }
-                    FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
-                    await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
-                    {
-                        FileId = FileId,
-                        ReportId = incident.ReportId,
-                        FileName = Path.GetFileName(image.FileName),
-                        FileType = GetFileTypeFromExtension(FileExtension),
-                        FileUrl = await _firebaseStorageService.UploadImageAsync(image),
-                        UploadDate = DateTime.Now,
-                        UploadBy = userName,
-                        Type = imageType // Set the ImageType
-                    });
-                }
-            }
+        //    // Xử lý thêm ảnh mới
+        //    if (request.AddedImage is not null)
+        //    {
+        //        string FileId;
+        //        List<IncidentReportsFile> images;
+        //        int id;
+        //        for (int i = 0; i < request.AddedImage.Count; i++)
+        //        {
+        //            var image = request.AddedImage[i];
+        //            var imageType = request.ImageType[i];
+        //            var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+        //            images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
+        //            id = images.Count + 1;
+        //            if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}") is not null)
+        //            {
+        //                id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
+        //            }
+        //            FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
+        //            await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
+        //            {
+        //                FileId = FileId,
+        //                ReportId = incident.ReportId,
+        //                FileName = Path.GetFileName(image.FileName),
+        //                FileType = GetFileTypeFromExtension(FileExtension),
+        //                FileUrl = await _firebaseStorageService.UploadImageAsync(image),
+        //                UploadDate = DateTime.Now,
+        //                UploadBy = userName,
+        //                Type = imageType // Set the ImageType
+        //            });
+        //        }
+        //    }
 
-            var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
-            var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-            var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
-            var owner = order.CreatedBy;
-            if (result > 0)
-            {
-                // Gửi thông báo sau khi cập nhật thành công
-                await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
-                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
-            }
-            else
-            {
-                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
-            }
-        }
-        #endregion
+        //    var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+        //    var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
+        //    var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
+        //    var owner = order.CreatedBy;
+        //    if (result > 0)
+        //    {
+        //        // Gửi thông báo sau khi cập nhật thành công
+        //        await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
+        //        return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
+        //    }
+        //    else
+        //    {
+        //        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
+        //    }
+        //}
+        //#endregion
 
         #region Add Image Detail Report
         public async Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims)
@@ -485,8 +506,11 @@ namespace MTCS.Service.Services
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
                 var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == incidentReportRequest.reportId);
+
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
                 var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
+                var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
+                var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
                 if (incident == null)
                 {
@@ -498,8 +522,14 @@ namespace MTCS.Service.Services
                     {
                         incident.Status = "Resolved";
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
+
+                        driver.Status = (int?)DriverStatus.OnDuty;
+                        tractor.Status = VehicleStatus.OnDuty.ToString();
+                        trailer.Status = VehicleStatus.OnDuty.ToString();
 
                         // Restore the previous status of the trip
                         var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
@@ -523,27 +553,30 @@ namespace MTCS.Service.Services
                         }
 
                         await _unitOfWork.TripRepository.UpdateAsync(trip);
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
                     else if (incident.Type == 2) // Cancellation incident
                     {
                         incident.Status = "Resolved";
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
                         if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                         {
-                            driver.Status = 1; // Free
+                            driver.Status = (int?)DriverStatus.Active; ; // Free
                         }
                         trip.EndTime = DateTime.Now;
                         if (incident.VehicleType == 1)
                         {
-                            var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
                             tractor.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TractorRepository.UpdateAsync(tractor);
                         }
                         if (incident.VehicleType == 2)
                         {
-                            var trailer = _unitOfWork.TrailerRepository.Get(r => r.TrailerId == trip.TrailerId);
                             trailer.Status = VehicleStatus.Active.ToString();
                             await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                         }
@@ -555,8 +588,15 @@ namespace MTCS.Service.Services
                     {
                         incident.Status = "Resolved";
                         incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                        incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
+                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
+
+                        driver.Status = (int?)DriverStatus.OnDuty;
+                        tractor.Status = VehicleStatus.OnDuty.ToString();
+                        trailer.Status = VehicleStatus.OnDuty.ToString();
+
                         // Restore the previous status of the trip
                         var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
                         if (previousStatus != null)
@@ -579,12 +619,15 @@ namespace MTCS.Service.Services
                         }
 
                         await _unitOfWork.TripRepository.UpdateAsync(trip);
+                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
                     }
 
                     var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                     var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
                     var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
-                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
                     var owner = order.CreatedBy;
                     if (result > 0)
                     {
@@ -712,7 +755,7 @@ namespace MTCS.Service.Services
 
                 var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                 var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
                 var owner = order.CreatedBy;
                 if (result > 0)
                 {

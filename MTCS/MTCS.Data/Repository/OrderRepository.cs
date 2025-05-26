@@ -25,14 +25,11 @@ namespace MTCS.Data.Repository
             string? orderId = null,
             string? tripId = null,
             string? customerId = null,
-            int? containerType = null,
-            string? containerNumber = null,
             string? trackingCode = null,
-            string? status = null,
-            DateOnly? pickUpDate = null,
-            DateOnly? deliveryDate = null)
+            string? status = null)
         {
-            var query = _context.Orders.Include(o => o.OrderFiles)
+            var query = _context.Orders.Include(o => o.OrderDetails)
+                                        .ThenInclude(od => od.OrderDetailFiles)
                                        .Include(o => o.Customer)
                                        .OrderByDescending(i => i.CreatedDate)
                                        .AsNoTracking()
@@ -42,16 +39,12 @@ namespace MTCS.Data.Repository
                 query = query.Where(o => o.OrderId == orderId);
 
             if (!string.IsNullOrEmpty(tripId))
-                query = query.Include(o => o.Trips).Where(o => o.Trips.Any(t => t.TripId == tripId));
+            {
+                query = query.Where(o => o.OrderDetails.Any(od => od.Trips.Any(t => t.TripId == tripId)));
+            }
 
             if (!string.IsNullOrEmpty(customerId))
                 query = query.Where(o => o.CustomerId == customerId);
-
-            if (containerType.HasValue)
-                query = query.Where(o => o.ContainerType == containerType.Value);
-
-            if (!string.IsNullOrEmpty(containerNumber))
-                query = query.Where(o => o.ContainerNumber == containerNumber);
 
             if (!string.IsNullOrEmpty(trackingCode))
                 query = query.Where(o => o.TrackingCode == trackingCode);
@@ -59,11 +52,8 @@ namespace MTCS.Data.Repository
             if (!string.IsNullOrEmpty(status))
                 query = query.Where(o => o.Status == status);
 
-            if (pickUpDate.HasValue)
-                query = query.Where(o => o.PickUpDate == DateOnly.FromDateTime(pickUpDate.Value.ToDateTime(TimeOnly.MinValue)));
+            query = query.OrderByDescending(od => od.CreatedDate);
 
-            if (deliveryDate.HasValue)
-                query = query.Where(o => o.DeliveryDate == DateOnly.FromDateTime(deliveryDate.Value.ToDateTime(TimeOnly.MinValue)));
 
             var orders = await query.ToListAsync();
 
@@ -79,31 +69,17 @@ namespace MTCS.Data.Repository
                 TrackingCode = o.TrackingCode,
                 CustomerId = o.CustomerId,
                 CompanyName = o.Customer?.CompanyName,
-                Temperature = o.Temperature,
-                Weight = o.Weight,
-                PickUpDate = o.PickUpDate,
-                DeliveryDate = o.DeliveryDate,
                 Status = o.Status,
                 Note = o.Note,
                 CreatedDate = o.CreatedDate,
                 CreatedBy = users.FirstOrDefault(u => u.UserId == o.CreatedBy)?.FullName,
                 ModifiedDate = o.ModifiedDate,
                 ModifiedBy = o.ModifiedBy,
-                ContainerType = o.ContainerType,
-                PickUpLocation = o.PickUpLocation,
-                DeliveryLocation = o.DeliveryLocation,
-                ConReturnLocation = o.ConReturnLocation,
-                DeliveryType = o.DeliveryType,
-                Price = o.Price,
-                ContainerNumber = o.ContainerNumber,
                 ContactPerson = o.ContactPerson,
                 ContactPhone = o.ContactPhone,
                 OrderPlacer = o.OrderPlacer,
-                Distance = o.Distance,
-                ContainerSize = o.ContainerSize,
                 IsPay = o.IsPay,
-                CompletionTime = o.CompletionTime,
-                OrderFiles = o.OrderFiles,
+
             }).ToList();
         }
 
@@ -113,27 +89,31 @@ namespace MTCS.Data.Repository
             return await _context.Orders.Include(o => o.Customer).ToListAsync();
         }
 
-        public async Task<List<Order>> GetOrdersByDateRangeAsync(DateOnly fromDate, DateOnly toDate)
+        public async Task<List<Order>> GetOrdersByDateRangeAsync(DateTime fromDate, DateTime toDate)
         {
             return await _context.Orders
                 .Include(o => o.Customer)
-                .Where(o => o.DeliveryDate >= fromDate && o.DeliveryDate <= toDate)
+                .Where(o => o.CreatedDate >= fromDate && o.CreatedDate <= toDate)
                 .ToListAsync();
         }
 
-        public async Task<Order> GetByTrackingCodeAsync(string trackingCode)
+        public async Task<Order> GetOrderWithDetailsTripsByTrackingCodeAsync(string trackingCode)
         {
             return await _context.Orders
                 .Include(o => o.Customer)
-                .Include(o => o.Trips)
-                    .ThenInclude(t => t.Driver)
-                .Include(o => o.Trips)
-                    .ThenInclude(t => t.Tractor)
-                .Include(o => o.Trips)
-                    .ThenInclude(t => t.Trailer)
-                .Include(o => o.Trips)
-                    .ThenInclude(t => t.TripStatusHistories)
-                        .ThenInclude(h => h.Status)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Trips)
+                        .ThenInclude(t => t.Driver)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Trips)
+                        .ThenInclude(t => t.Tractor)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Trips)
+                        .ThenInclude(t => t.Trailer)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Trips)
+                        .ThenInclude(t => t.TripStatusHistories)
+                            .ThenInclude(h => h.Status)
                 .FirstOrDefaultAsync(o => o.TrackingCode == trackingCode);
         }
 
@@ -142,18 +122,11 @@ namespace MTCS.Data.Repository
             return _context.Orders.AsQueryable();
         }
 
-        public async Task<int> CountOrdersByDeliveryDateAsync(DateOnly deliveryDate)
+        public async Task<Order> GetOrderWithDetailsAndTripsAsync(string orderId)
         {
             return await _context.Orders
-                .Where(o => o.DeliveryDate == deliveryDate)
-                .CountAsync();
-        }
-
-        public async Task<Order> GetOrderWithTripsAsync(string orderId)
-        {
-            return await _context.Orders
-                .Include(o => o.Trips)
-                .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Trips)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
         }
     }

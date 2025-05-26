@@ -19,7 +19,7 @@ namespace MTCS.Data.Repository
     string? status,
     string? tractorId,
     string? trailerId,
-    string? orderId,
+    string? orderDetailId,
     string? trackingCode,
     string? tractorlicensePlate,
     string? trailerlicensePlate
@@ -32,21 +32,22 @@ namespace MTCS.Data.Repository
             if (!string.IsNullOrEmpty(status)) query = query.Where(t => t.Status == status);
             if (!string.IsNullOrEmpty(tractorId)) query = query.Where(t => t.TractorId == tractorId);
             if (!string.IsNullOrEmpty(trailerId)) query = query.Where(t => t.TrailerId == trailerId);
-            if (!string.IsNullOrEmpty(orderId)) query = query.Where(t => t.OrderId == orderId);
-            if (!string.IsNullOrEmpty(trackingCode)) query = query.Where(t => t.Order.TrackingCode == trackingCode);
+            if (!string.IsNullOrEmpty(orderDetailId)) query = query.Where(t => t.OrderDetailId == orderDetailId);
+            if (!string.IsNullOrEmpty(trackingCode)) query = query.Where(t => t.OrderDetail.Order.TrackingCode == trackingCode);
             if (!string.IsNullOrEmpty(tractorlicensePlate)) query = query.Where(t => t.Tractor.LicensePlate == tractorlicensePlate);
             if (!string.IsNullOrEmpty(trailerlicensePlate)) query = query.Where(t => t.Trailer.LicensePlate == trailerlicensePlate);
 
             var trips = await query
-                .Include(t => t.Order)
+                .Include(t => t.OrderDetail)
+                    .ThenInclude(od => od.Order)
                 .Include(t => t.Driver)
                 .Include(t => t.Tractor)
                 .Include(t => t.Trailer)
                 .Include(t => t.TripStatusHistories)
                 .Include(t => t.IncidentReports)
                     .ThenInclude(i => i.IncidentReportsFiles)
-                .Include(t => t.FuelReports)
-                    .ThenInclude(f => f.FuelReportFiles)
+                .Include(t => t.ExpenseReports)
+                    .ThenInclude(f => f.ExpenseReportFiles)
                 .Include(t => t.DeliveryReports)
                     .ThenInclude(d => d.DeliveryReportsFiles)
                 .AsNoTracking()
@@ -56,8 +57,8 @@ namespace MTCS.Data.Repository
             return trips.Select(t => new TripDto
             {
                 TripId = t.TripId,
-                OrderId = t.OrderId,
-                TrackingCode = t.Order?.TrackingCode,
+                OrderDetailId = t.OrderDetailId,
+                TrackingCode = t.OrderDetail.Order?.TrackingCode,
                 DriverId = t.DriverId,
                 DriverName = t.Driver?.FullName,
                 TractorId = t.TractorId,
@@ -99,30 +100,30 @@ namespace MTCS.Data.Repository
                     }).ToList()
                 }).ToList(),
 
-                FuelReports = t.FuelReports?.Select(fr => new FuelReportDto
-                {
-                    ReportId = fr.ReportId,
-                    TripId = fr.TripId,
-                    RefuelAmount = fr.RefuelAmount,
-                    FuelCost = fr.FuelCost,
-                    Location = fr.Location,
-                    ReportTime = fr.ReportTime,
-                    ReportBy = fr.ReportBy,
-                    FuelReportFiles = fr.FuelReportFiles?.Select(ff => new FuelReportFileDto
-                    {
-                        FileId = ff.FileId,
-                        ReportId = ff.ReportId,
-                        FileName = ff.FileName,
-                        FileType = ff.FileType,
-                        UploadDate = ff.UploadDate,
-                        UploadBy = ff.UploadBy,
-                        Description = ff.Description,
-                        Note = ff.Note,
-                        FileUrl = ff.FileUrl,
-                        ModifiedDate = ff.ModifiedDate,
-                        ModifiedBy = ff.ModifiedBy
-                    }).ToList()
-                }).ToList(),
+                //ExpenseReports = t.ExpenseReports?.Select(fr => new ExpenseReportsDto
+                //{
+                //    ReportId = fr.ReportId,
+                //    TripId = fr.TripId,
+                //    RefuelAmount = fr.RefuelAmount,
+                //    FuelCost = fr.FuelCost,
+                //    Location = fr.Location,
+                //    ReportTime = fr.ReportTime,
+                //    ReportBy = fr.ReportBy,
+                //    FuelReportFiles = fr.ExpenseReportsFiles?.Select(ff => new ExpenseReportsDtoFileDto
+                //    {
+                //        FileId = ff.FileId,
+                //        ReportId = ff.ReportId,
+                //        FileName = ff.FileName,
+                //        FileType = ff.FileType,
+                //        UploadDate = ff.UploadDate,
+                //        UploadBy = ff.UploadBy,
+                //        Description = ff.Description,
+                //        Note = ff.Note,
+                //        FileUrl = ff.FileUrl,
+                //        ModifiedDate = ff.ModifiedDate,
+                //        ModifiedBy = ff.ModifiedBy
+                //    }).ToList()
+                //}).ToList(),
 
                 IncidentReports = t.IncidentReports?.Select(ir => new IncidentReportDto
                 {
@@ -198,27 +199,29 @@ namespace MTCS.Data.Repository
         public async Task<List<Trip>> GetByDriverIdAndDateAsync(string driverId, DateOnly deliveryDate)
         {
             return await _context.Trips
-                .Where(t => t.DriverId == driverId && t.Order.DeliveryDate == deliveryDate)
+                .Where(t => t.DriverId == driverId && t.OrderDetail.DeliveryDate == deliveryDate)
                 .ToListAsync();
         }
 
         public async Task<List<Trip>> GetByDateAsync(DateOnly deliveryDate)
         {
             return await _context.Trips
-                .Where(t => t.Order.DeliveryDate == deliveryDate)
+                .Where(t => t.OrderDetail.DeliveryDate == deliveryDate)
                 .ToListAsync();
         }
 
         public async Task<List<TripData>> GetAllTripsAsync()
         {
             var trips = await _context.Trips
-                .Include(t => t.Order)
+                .Include(t => t.OrderDetail)
+                .ThenInclude(od => od.Order)
                 .Include(t => t.Driver)
                 .OrderByDescending(t => t.MatchTime)
                 .Select(t => new TripData
                 {
                     TripId = t.TripId,
-                    TrackingCode = t.Order != null ? t.Order.TrackingCode : null,
+                    OrderDetailId = t.OrderDetailId,
+                    TrackingCode = t.OrderDetail.Order.TrackingCode,
                     DriverName = t.Driver != null ? t.Driver.FullName : null,
                     DriverId = t.Driver != null ? t.Driver.DriverId : null,
                     StartTime = t.StartTime,
@@ -233,7 +236,8 @@ namespace MTCS.Data.Repository
         public async Task<List<TripMoResponse>> GetTripsByGroupAsync(string driverId, string groupType)
         {
             IQueryable<Trip> query = _context.Trips
-                .Include(t => t.Order)
+                .Include(t => t.OrderDetail)
+                .ThenInclude(od => od.Order)
                 .OrderByDescending(t => t.MatchTime)
                 .Where(t => t.DriverId == driverId);
 
@@ -261,13 +265,13 @@ namespace MTCS.Data.Repository
             var trips = await query.Select(t => new TripMoResponse
             {
                 TripId = t.TripId,
-                TrackingCode = t.Order != null ? t.Order.TrackingCode : null,
-                ContainerNumber = t.Order != null ? t.Order.ContainerNumber : null,
-                PickUpDate = t.Order.PickUpDate,
-                DeliveryDate = t.Order.DeliveryDate,
-                PickUpLocation = t.Order.PickUpLocation,
-                DeliveryLocation = t.Order.DeliveryLocation,
-                ConReturnLocation = t.Order.ConReturnLocation,
+                TrackingCode = t.OrderDetail.Order != null ? t.OrderDetail.Order.TrackingCode : null,
+                ContainerNumber = t.OrderDetail != null ? t.OrderDetail.ContainerNumber : null,
+                PickUpDate = t.OrderDetail.PickUpDate,
+                DeliveryDate = t.OrderDetail.DeliveryDate,
+                PickUpLocation = t.OrderDetail.PickUpLocation,
+                DeliveryLocation = t.OrderDetail.DeliveryLocation,
+                ConReturnLocation = t.OrderDetail.ConReturnLocation,
                 StartTime = t.StartTime,
                 EndTime = t.EndTime,
                 Status = t.Status

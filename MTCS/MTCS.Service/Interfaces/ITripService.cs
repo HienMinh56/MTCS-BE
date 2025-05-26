@@ -14,9 +14,9 @@ namespace MTCS.Service.Interfaces
         Task<BusinessResult> UpdateStatusTrip(string tripId, string newStatusId, string userId);
         Task<BusinessResult> UpdateTripAsync(string tripId, UpdateTripRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> CreateTripAsync(CreateTripRequestModel tripRequestModel, ClaimsPrincipal claims);
-        Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderId);
+        Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderDetailId);
         Task<IBusinessResult> CancelTrip(CancelTripRequest request ,ClaimsPrincipal claims);
-        Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd);
+        //Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd);
         Task<BusinessResult> GetAllTripsAsync();
 
     }

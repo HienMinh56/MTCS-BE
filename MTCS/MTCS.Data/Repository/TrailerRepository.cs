@@ -153,7 +153,7 @@ namespace MTCS.Data.Repository
             var orderCount = await _context.Trips
                 .AsNoTracking()
                 .Where(trip => trip.TrailerId == trailerId)
-                .Select(trip => trip.OrderId)
+                .Select(trip => trip.OrderDetailId)
                 .Distinct()
                 .CountAsync();
 

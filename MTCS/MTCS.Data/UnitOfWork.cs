@@ -28,8 +28,8 @@ namespace MTCS.Data
         private TrailerFileRepository trailerFileRepository;
         private DeliveryReportRepository deliveryReportRepository;
         private DeliveryReportFileRepository deliveryReportFileRepository;
-        //private OrderRepository orderRepository;
-        //private OrderFileRepository orderFileRepository;
+        private OrderRepository orderRepository;
+        private OrderDetailFileRepository orderDetailFileRepository;
         private CustomerRepository customerRepository;
         private DeliveryStatusRepository deliveryStatusRepository;
         private TripStatusHistoryRepository tripStatusHistoryRepository;
@@ -40,6 +40,7 @@ namespace MTCS.Data
         private SystemConfigurationRepository systemConfigurationRepository;
         private DriverDailyWorkingTimeRepository driverDailyWorkingTimeRepository;
         private DriverWeeklySummaryRepository driverWeeklySummaryRepository;
+        private OrderDetailRepository orderDetailRepository;
         public UnitOfWork()
         {
             context ??= new MTCSContext();
@@ -195,13 +196,13 @@ namespace MTCS.Data
         //    }
         //}
 
-        //public OrderFileRepository OrderFileRepository
-        //{
-        //    get
-        //    {
-        //        return orderFileRepository ??= new OrderFileRepository();
-        //    }
-        //}
+        public OrderDetailFileRepository OrderDetailFileRepository
+        {
+            get
+            {
+                return orderDetailFileRepository ??= new OrderDetailFileRepository();
+            }
+        }
 
         public CustomerRepository CustomerRepository
         {
@@ -235,13 +236,13 @@ namespace MTCS.Data
             }
         }
 
-        //public FinancialRepository FinancialRepository
-        //{
-        //    get
-        //    {
-        //        return financialRepository ??= new FinancialRepository();
-        //    }
-        //}
+        public FinancialRepository FinancialRepository
+        {
+            get
+            {
+                return financialRepository ??= new FinancialRepository();
+            }
+        }
 
         public VehicleHelper VehicleHelper
         {
@@ -280,6 +281,14 @@ namespace MTCS.Data
             get
             {
                 return driverWeeklySummaryRepository ??= new DriverWeeklySummaryRepository();
+            }
+        }
+
+        public OrderDetailRepository OrderDetailRepository
+        {
+            get
+            {
+                return orderDetailRepository ??= new OrderDetailRepository();
             }
         }
         //    ////TO-DO CODE HERE/////////////////
