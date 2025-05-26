@@ -8,7 +8,7 @@ namespace MTCS.Data.Request
 {
     public class CreateTripRequestModel
     {
-        public string OrderId { get; set; }
+        public string OrderDetailId { get; set; }
 
         public string DriverId { get; set; }
 

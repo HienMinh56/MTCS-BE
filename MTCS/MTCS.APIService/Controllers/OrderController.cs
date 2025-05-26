@@ -35,23 +35,6 @@ namespace MTCS.APIService.Controllers
         }
         #endregion
 
-        //[Authorize]
-        //[HttpGet("{orderId}")]
-        //public async Task<IActionResult> GetOrderDetailByOrderId(string orderId)
-        //{
-        //    var result = await _orderService.GetOrderDetailByOrderId(orderId);
-        //    return Ok(result);
-        //}
-
-        [Authorize]
-        [HttpPost]
-        public async Task<IActionResult> CreateOrderWithFile([FromForm] OrderRequest orderRequest)
-        {
-            var currentUser = HttpContext.User;
-            var result = await _orderService.CreateOrder(orderRequest, currentUser);
-            return Ok(result);
-        }
-
         [Authorize]
         [HttpGet("export-excel")]
         public async Task<IActionResult> ExportOrdersToExcel([FromQuery] string fromDateStr, [FromQuery] string toDateStr)
@@ -105,16 +88,16 @@ namespace MTCS.APIService.Controllers
         /// </summary>
         /// <param name="trackingCode"></param>
         /// <returns></returns>
-        //[HttpGet("{trackingCode}")]
-        //public async Task<ActionResult<OrderDto>> GetOrderByTrackingCodeAsync(string trackingCode)
-        //{
-        //    var order = await _orderService.GetOrderByTrackingCodeAsync(trackingCode);
-        //    if (order == null)
-        //    {
-        //        return NotFound(new { message = "Order not found" });
-        //    }
-        //    return Ok(order);
-        //}
+        [HttpGet("{trackingCode}")]
+        public async Task<ActionResult<OrderDto>> GetOrderByTrackingCodeAsync(string trackingCode)
+        {
+            var order = await _orderService.GetOrderByTrackingCodeAsync(trackingCode);
+            if (order == null)
+            {
+                return NotFound(new { message = "Order not found" });
+            }
+            return Ok(order);
+        }
         #endregion
 
 
@@ -141,23 +124,23 @@ namespace MTCS.APIService.Controllers
             }
         }
 
-        //[HttpPost("cancel/{orderId}")]
-        //public async Task<IActionResult> CancelOrder(string orderId)
-        //{
-        //    var result = await _orderService.CancelOrderAsync(orderId, User);
+        [HttpPost("cancel/{orderId}")]
+        public async Task<IActionResult> CancelOrder(string orderId)
+        {
+            var result = await _orderService.CancelOrderAsync(orderId, User);
 
-        //    if (result.Status == 1)
-        //    {
-        //        return Ok(new
-        //        {
-        //            message = result.Message
-        //        });
-        //    }
+            if (result.Status == 1)
+            {
+                return Ok(new
+                {
+                    message = result.Message
+                });
+            }
 
-        //    return BadRequest(new
-        //    {
-        //        message = result.Message
-        //    });
-        //}
+            return BadRequest(new
+            {
+                message = result.Message
+            });
+        }
     }
 }

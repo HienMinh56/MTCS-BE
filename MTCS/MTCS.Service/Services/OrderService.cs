@@ -40,11 +40,11 @@ namespace MTCS.Service.Services
         Task<byte[]> ExportOrdersToExcelAsync(DateTime fromDate, DateTime toDate);
 
 
-        //Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode);
+        Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode);
 
         Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims);
 
-        //Task<BusinessResult> CancelOrderAsync(string orderId, ClaimsPrincipal claims);
+        Task<BusinessResult> CancelOrderAsync(string orderId, ClaimsPrincipal claims);
     }
 
     public class OrderService : IOrderService
@@ -215,7 +215,9 @@ namespace MTCS.Service.Services
                             continue;
 
                         var customer = order.Customer;
-                        var trips = order.Trips.Where(t => t.Status == "completed");
+                        var trips = order.OrderDetails?
+                          .SelectMany(od => od.Trips ?? Enumerable.Empty<Trip>())
+                          .Where(t => t.Status == "completed") ?? Enumerable.Empty<Trip>();
                         if (!trips.Any())
                             continue;
 
@@ -281,7 +283,7 @@ namespace MTCS.Service.Services
         #region Get order by tracking code for customer
         public async Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode)
         {
-            var order = await _unitOfWork.OrderRepository.GetByTrackingCodeAsync(trackingCode);
+            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsTripsByTrackingCodeAsync(trackingCode);
             if (order == null) return null;
 
             return new OrderDto
@@ -290,41 +292,52 @@ namespace MTCS.Service.Services
                 TrackingCode = order.TrackingCode,
                 CustomerName = order.Customer?.CompanyName,
                 Status = order.Status,
-                Trips = order.Trips.Where(t => t.Status != "canceled").Select(t => new TripDto
+                OrderDetails = order.OrderDetails.Select(od => new OrderDetailDto
                 {
-                    TripId = t.TripId,
-                    OrderId = t.OrderId,
-                    DriverId = t.DriverId,
-                    TractorId = t.TractorId,
-                    TrailerId = t.TrailerId,
-                    StartTime = t.StartTime,
-                    EndTime = t.EndTime,
-                    Status = t.Status,
-                    MatchTime = t.MatchTime,
-                    Driver = t.Driver == null ? null : new DriverDto
-                    {
-                        DriverId = t.Driver.DriverId,
-                        FullName = t.Driver.FullName,
-                        PhoneNumber = t.Driver.PhoneNumber
-                    },
-                    Tractor = t.Tractor == null ? null : new TractorDto
-                    {
-                        TractorId = t.Tractor.TractorId,
-                        LicensePlate = t.Tractor.LicensePlate
-                    },
-                    Trailer = t.Trailer == null ? null : new TrailerDto
-                    {
-                        TrailerId = t.Trailer.TrailerId,
-                        LicensePlate = t.Trailer.LicensePlate
-                    },
-                    TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
-                    {
-                        HistoryId = h.HistoryId,
-                        TripId = h.TripId,
-                        StatusId = h.StatusId,
-                        StatusName = h.Status?.StatusName,
-                        StartTime = h.StartTime
-                    }).ToList()
+                    OrderDetailId = od.OrderDetailId,
+                    OrderId = od.OrderId,
+                    PickUpDate = od.PickUpDate,
+                    DeliveryDate = od.DeliveryDate,
+                    PickUpLocation = od.PickUpLocation,
+                    DeliveryLocation = od.DeliveryLocation,
+                    Trips = od.Trips
+                        .Where(t => t.Status != "canceled")
+                        .Select(t => new TripDto
+                        {
+                            TripId = t.TripId,
+                            OrderDetailId = t.OrderDetailId,
+                            DriverId = t.DriverId,
+                            TractorId = t.TractorId,
+                            TrailerId = t.TrailerId,
+                            StartTime = t.StartTime,
+                            EndTime = t.EndTime,
+                            Status = t.Status,
+                            MatchTime = t.MatchTime,
+                            Driver = t.Driver == null ? null : new DriverDto
+                            {
+                                DriverId = t.Driver.DriverId,
+                                FullName = t.Driver.FullName,
+                                PhoneNumber = t.Driver.PhoneNumber
+                            },
+                            Tractor = t.Tractor == null ? null : new TractorDto
+                            {
+                                TractorId = t.Tractor.TractorId,
+                                LicensePlate = t.Tractor.LicensePlate
+                            },
+                            Trailer = t.Trailer == null ? null : new TrailerDto
+                            {
+                                TrailerId = t.Trailer.TrailerId,
+                                LicensePlate = t.Trailer.LicensePlate
+                            },
+                            TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
+                            {
+                                HistoryId = h.HistoryId,
+                                TripId = h.TripId,
+                                StatusId = h.StatusId,
+                                StatusName = h.Status?.StatusName,
+                                StartTime = h.StartTime
+                            }).ToList()
+                        }).ToList()
                 }).ToList()
             };
         }
@@ -362,100 +375,108 @@ namespace MTCS.Service.Services
         }
 
 
-        //public async Task<BusinessResult> CancelOrderAsync(string orderId, ClaimsPrincipal claims)
-        //{
-        //    var order = await _unitOfWork.OrderRepository.GetOrderWithTripsAsync(orderId);
-        //    var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+        public async Task<BusinessResult> CancelOrderAsync(string orderId, ClaimsPrincipal claims)
+        {
+            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsAndTripsAsync(orderId);
+            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
 
-        //    if (order == null)
-        //    {
-        //        return new BusinessResult { Status = 0, Message = "Không tìm thấy đơn hàng." };
-        //    }
+            if (order == null)
+            {
+                return new BusinessResult { Status = 0, Message = "Không tìm thấy đơn hàng." };
+            }
 
-        //    if (order.Status != "Pending" && order.Status != "Scheduled")
-        //    {
-        //        return new BusinessResult { Status = 0, Message = "Chỉ có thể hủy đơn hàng khi trạng thái là Pending hoặc Scheduled." };
-        //    }
+            if (order.Status != "Pending" && order.Status != "Scheduled")
+            {
+                return new BusinessResult { Status = 0, Message = "Chỉ có thể hủy đơn hàng khi trạng thái là Pending hoặc Scheduled." };
+            }
 
-        //    order.Status = "canceled";
-        //    order.ModifiedDate = DateTime.UtcNow;
-        //    order.ModifiedBy = userName;
+            order.Status = "canceled";
+            order.ModifiedDate = DateTime.UtcNow;
+            order.ModifiedBy = userName;
 
-        //    foreach (var trip in order.Trips)
-        //    {
-        //        trip.Status = "canceled";
-        //        trip.Note = "Đơn hàng bị hủy";
+            foreach (var detail in order.OrderDetails)
+            {
+                detail.Status = "canceled";
 
-        //        if (!string.IsNullOrEmpty(trip.DriverId) && order.CompletionTime.HasValue)
-        //        {
-        //            var driverId = trip.DriverId;
-        //            var completionMinutes = (int)order.CompletionTime.Value.ToTimeSpan().TotalMinutes;
+                foreach (var trip in detail.Trips)
+                {
+                    trip.Status = "canceled";
+                    trip.Note = "Đơn hàng bị hủy";
 
-        //            var deliveryDate = order.DeliveryDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+                    if (!string.IsNullOrEmpty(trip.DriverId) && detail.CompletionTime.HasValue && detail.DeliveryDate.HasValue)
+                    {
+                        var driverId = trip.DriverId;
+                        var completionMinutes = (int)detail.CompletionTime.Value.ToTimeSpan().TotalMinutes;
+                        var deliveryDate = detail.DeliveryDate.Value;
 
-        //            // Trừ thời gian ngày
-        //            var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
-        //                .GetByDriverIdAndDateAsync(driverId, deliveryDate);
+                        // Trừ thời gian ngày
+                        var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                            .GetByDriverIdAndDateAsync(driverId, deliveryDate);
 
-        //            if (dailyRecord != null)
-        //            {
-        //                dailyRecord.TotalTime = Math.Max(0, (dailyRecord.TotalTime ?? 0) - completionMinutes);
-        //                dailyRecord.ModifiedDate = DateTime.UtcNow;
-        //                dailyRecord.ModifiedBy = userName;
-        //                await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
-        //            }
+                        if (dailyRecord != null)
+                        {
+                            dailyRecord.TotalTime = Math.Max(0, (dailyRecord.TotalTime ?? 0) - completionMinutes);
+                            dailyRecord.ModifiedDate = DateTime.UtcNow;
+                            dailyRecord.ModifiedBy = userName;
+                            await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
+                        }
 
-        //            // Tính tuần (bắt đầu từ thứ 2)
-        //            var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
-        //            var startOfWeek = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek + 1));
-        //            var endOfWeek = startOfWeek.AddDays(6);
+                        // Tính tuần (bắt đầu từ thứ 2)
+                        var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                        var startOfWeek = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek + 1));
+                        var endOfWeek = startOfWeek.AddDays(6);
 
-        //            // Trừ thời gian tuần
-        //            var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
-        //                .GetByDriverIdAndWeekAsync(driverId, startOfWeek, endOfWeek);
+                        // Trừ thời gian tuần
+                        var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                            .GetByDriverIdAndWeekAsync(driverId, startOfWeek, endOfWeek);
 
-        //            if (weeklyRecord != null)
-        //            {
-        //                weeklyRecord.TotalHours = Math.Max(0, (weeklyRecord.TotalHours ?? 0) - completionMinutes);
-        //                await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
-        //            }
-        //        }
-        //    }
+                        if (weeklyRecord != null)
+                        {
+                            weeklyRecord.TotalHours = Math.Max(0, (weeklyRecord.TotalHours ?? 0) - completionMinutes);
+                            await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
+                        }
+                    }
+                }
+            }
 
-        //    await _unitOfWork.OrderRepository.UpdateAsync(order);
+            // Cập nhật lại Order
+            await _unitOfWork.OrderRepository.UpdateAsync(order);
 
-        //    // Gửi thông báo cho tài xế
-        //    foreach (var trip in order.Trips)
-        //    {
-        //        if (!string.IsNullOrEmpty(trip.DriverId))
-        //        {
-        //            await _notificationService.SendNotificationAsync(
-        //                trip.DriverId,
-        //                "Đơn hàng đã bị hủy",
-        //                $"Chuyến {trip.TripId} đã bị hủy vì đơn hàng {order.OrderId} bị huỷ.",
-        //                "Hệ thống"
-        //            );
-        //        }
-        //    }
+            // Gửi thông báo cho tài xế
+            foreach (var detail in order.OrderDetails)
+            {
+                foreach (var trip in detail.Trips)
+                {
+                    if (!string.IsNullOrEmpty(trip.DriverId))
+                    {
+                        await _notificationService.SendNotificationAsync(
+                            trip.DriverId,
+                            "Đơn hàng đã bị hủy",
+                            $"Chuyến {trip.TripId} đã bị hủy vì đơn hàng {order.OrderId} bị huỷ.",
+                            "Hệ thống"
+                        );
+                    }
+                }
+            }
 
-        //    // Gửi email cho khách hàng
-        //    var customer = await _unitOfWork.CustomerRepository.GetByIdAsync(order.CustomerId);
-        //    if (customer != null && !string.IsNullOrEmpty(customer.Email))
-        //    {
-        //        await _emailService.SendEmailCancelAsync(
-        //            customer.Email,
-        //            "Đơn hàng của bạn đã bị huỷ",
-        //            customer.CompanyName,
-        //            order.TrackingCode
-        //        );
-        //    }
+            // Gửi email cho khách hàng
+            var customer = await _unitOfWork.CustomerRepository.GetByIdAsync(order.CustomerId);
+            if (customer != null && !string.IsNullOrEmpty(customer.Email))
+            {
+                await _emailService.SendEmailCancelAsync(
+                    customer.Email,
+                    "Đơn hàng của bạn đã bị huỷ",
+                    customer.CompanyName,
+                    order.TrackingCode
+                );
+            }
 
-        //    return new BusinessResult
-        //    {
-        //        Status = 1,
-        //        Message = "Đơn hàng đã được hủy thành công và thời gian làm việc của tài xế đã được cập nhật."
-        //    };
-        //}
+            return new BusinessResult
+            {
+                Status = 1,
+                Message = "Đơn hàng đã được hủy thành công và thời gian làm việc của tài xế đã được cập nhật."
+            };
+        }
     }
 }
 

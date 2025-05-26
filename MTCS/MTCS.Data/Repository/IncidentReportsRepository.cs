@@ -18,7 +18,7 @@ namespace MTCS.Data.Repository
                 .Include(i => i.Trip)
                     .ThenInclude(t => t.Driver)
                 .Include(i => i.Trip)
-                    .ThenInclude(t => t.Order)
+                    .ThenInclude(t => t.OrderDetail)
                         .ThenInclude(o => o.Trips) // <-- thêm Include Trips
                         .OrderByDescending(i => i.CreatedDate)
                 .AsQueryable();
@@ -41,7 +41,7 @@ namespace MTCS.Data.Repository
                 {
                     ReportId = i.ReportId,
                     TripId = i.TripId,
-                    TrackingCode = i.Trip.Order.TrackingCode,
+                    TrackingCode = i.Trip.OrderDetail.Order.TrackingCode,
                     ReportedBy = i.ReportedBy,
                     IncidentType = i.IncidentType,
                     Description = i.Description,
@@ -65,7 +65,7 @@ namespace MTCS.Data.Repository
                     Trip = i.Trip == null ? null : new TripDTO
                     {
                         TripId = i.Trip.TripId,
-                        OrderId = i.Trip.OrderId,
+                        OrderId = i.Trip.OrderDetail.OrderId,
                         DriverId = i.Trip.DriverId,
                         TractorId = i.Trip.TractorId,
                         TrailerId = i.Trip.TrailerId,
@@ -95,7 +95,7 @@ namespace MTCS.Data.Repository
                         Status = i.Trip.Driver.Status,
                         CreatedDate = i.Trip.Driver.CreatedDate
                     },
-                    Order = i.Trip.Order == null ? null : new OrderDTO
+                    Order = i.Trip.OrderDetail == null ? null : new OrderDTO
                     {
                         //OrderId = i.Trip.Order.OrderId,
                         //TrackingCode = i.Trip.Order.TrackingCode,
@@ -124,10 +124,10 @@ namespace MTCS.Data.Repository
                         //ContainerSize = i.Trip.Order.ContainerSize,
                         //IsPay = i.Trip.Order.IsPay,
                         //CompletionTime = i.Trip.Order.CompletionTime,
-                        Trips = i.Trip.Order.Trips.Select(t => new TripDTO
+                        Trips = i.Trip.OrderDetail.Trips.Select(t => new TripDTO
                         {
                             TripId = t.TripId,
-                            OrderId = t.OrderId,
+                            OrderId = t.OrderDetail.OrderId,
                             DriverId = t.DriverId,
                             TractorId = t.TractorId,
                             TrailerId = t.TrailerId,
