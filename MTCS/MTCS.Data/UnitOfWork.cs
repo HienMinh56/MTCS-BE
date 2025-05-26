@@ -21,14 +21,14 @@ namespace MTCS.Data
         private TrailerRepository trailerRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
-        private FuelReportRepository fuelReportRepository;
-        private FuelReportFileRepository fuelReportFileRepository;
+        //private FuelReportRepository fuelReportRepository;
+        //private FuelReportFileRepository fuelReportFileRepository;
         private TractorFileRepository tractorFileRepository;
         private TrailerFileRepository trailerFileRepository;
         private DeliveryReportRepository deliveryReportRepository;
         private DeliveryReportFileRepository deliveryReportFileRepository;
         private OrderRepository orderRepository;
-        private OrderFileRepository orderFileRepository;
+        private OrderDetailFileRepository orderDetailFileRepository;
         private CustomerRepository customerRepository;
         private DeliveryStatusRepository deliveryStatusRepository;
         private TripStatusHistoryRepository tripStatusHistoryRepository;
@@ -39,6 +39,7 @@ namespace MTCS.Data
         private SystemConfigurationRepository systemConfigurationRepository;
         private DriverDailyWorkingTimeRepository driverDailyWorkingTimeRepository;
         private DriverWeeklySummaryRepository driverWeeklySummaryRepository;
+        private OrderDetailRepository orderDetailRepository;
         public UnitOfWork()
         {
             context ??= new MTCSContext();
@@ -147,21 +148,21 @@ namespace MTCS.Data
             }
         }
 
-        public FuelReportRepository FuelReportRepository
-        {
-            get
-            {
-                return fuelReportRepository ??= new FuelReportRepository();
-            }
-        }
+        //public FuelReportRepository FuelReportRepository
+        //{
+        //    get
+        //    {
+        //        return fuelReportRepository ??= new FuelReportRepository();
+        //    }
+        //}
 
-        public FuelReportFileRepository FuelReportFileRepository
-        {
-            get
-            {
-                return fuelReportFileRepository ??= new FuelReportFileRepository();
-            }
-        }
+        //public FuelReportFileRepository FuelReportFileRepository
+        //{
+        //    get
+        //    {
+        //        return fuelReportFileRepository ??= new FuelReportFileRepository();
+        //    }
+        //}
 
         public DeliveryReportRepository DeliveryReportRepository
         {
@@ -186,11 +187,11 @@ namespace MTCS.Data
             }
         }
 
-        public OrderFileRepository OrderFileRepository
+        public OrderDetailFileRepository OrderDetailFileRepository
         {
             get
             {
-                return orderFileRepository ??= new OrderFileRepository();
+                return orderDetailFileRepository ??= new OrderDetailFileRepository();
             }
         }
 
@@ -271,6 +272,14 @@ namespace MTCS.Data
             get
             {
                 return driverWeeklySummaryRepository ??= new DriverWeeklySummaryRepository();
+            }
+        }
+
+        public OrderDetailRepository OrderDetailRepository
+        {
+            get
+            {
+                return orderDetailRepository ??= new OrderDetailRepository();
             }
         }
         //    ////TO-DO CODE HERE/////////////////
