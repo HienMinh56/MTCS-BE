@@ -224,7 +224,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-//app.UseCors("AllowSpecificOrigin");
+app.UseCors("AllowSpecificOrigin");
 app.MapHub<LocationHub>("/locationHub");
 //app.MapHub<ChatHub>("/chatHub");
 app.UseWebSockets();
