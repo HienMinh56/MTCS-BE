@@ -17,7 +17,7 @@ namespace MTCS.Service.Services
     {
         Task<IBusinessResult> GetAllIncidentReports(string? driverId, string? tripId, string? reportId);
         Task<IBusinessResult> CreateIncidentReport(CreateIncidentReportRequest request, ClaimsPrincipal claims);
-        Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
+        //Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddBillIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> AddExchangeShipIncidentReport(AddIncidentReportImageRequest request, ClaimsPrincipal claims);
         Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims);
@@ -341,95 +341,95 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        #region Update Incident Report
-        public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
-        {
-            var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+        //#region Update Incident Report
+        //public async Task<IBusinessResult> UpdateIncidentReport(UpdateIncidentReportRequest request, ClaimsPrincipal claims)
+        //{
+        //    var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        //    var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-            var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(request.ReportId);
-            if (incident is null)
-            {
-                return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
-            }
-            else
-            {
-                incident.ReportId = request.ReportId is null ? incident.ReportId : request.ReportId;
-                incident.TripId = request.TripId is null ? incident.TripId : request.TripId;
-                incident.ReportedBy = userName;
-                incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
-                incident.Description = request.Description is null ? incident.Description : request.Description;
-                incident.Location = request.Location is null ? incident.Location : request.Location;
-                incident.Type = request.Type is null ? incident.Type : request.Type;
-                incident.VehicleType = request.VehicleType is null ? incident.VehicleType : request.VehicleType;
-                incident.Status = request.Status is null ? incident.Status : request.Status;
-                incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
-                incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
-                incident.ResolutionDetails = request.ResolutionDetails != default ? request.ResolutionDetails : incident.ResolutionDetails;
-            }
+        //    var incident = await _unitOfWork.IncidentReportsRepository.GetIncidentReportDetails(request.ReportId);
+        //    if (incident is null)
+        //    {
+        //        return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+        //    }
+        //    else
+        //    {
+        //        incident.ReportId = request.ReportId is null ? incident.ReportId : request.ReportId;
+        //        incident.TripId = request.TripId is null ? incident.TripId : request.TripId;
+        //        incident.ReportedBy = userName;
+        //        incident.IncidentType = request.IncidentType is null ? incident.IncidentType : request.IncidentType;
+        //        incident.Description = request.Description is null ? incident.Description : request.Description;
+        //        incident.Location = request.Location is null ? incident.Location : request.Location;
+        //        incident.Type = request.Type is null ? incident.Type : request.Type;
+        //        incident.VehicleType = request.VehicleType is null ? incident.VehicleType : request.VehicleType;
+        //        incident.Status = request.Status is null ? incident.Status : request.Status;
+        //        incident.HandledBy = request.HandledBy is null ? incident.HandledBy : request.HandledBy;
+        //        incident.HandledTime = request.HandledTime != default ? request.HandledTime : incident.HandledTime;
+        //        incident.ResolutionDetails = request.ResolutionDetails != default ? request.ResolutionDetails : incident.ResolutionDetails;
+        //    }
 
-            // Xử lý xóa ảnh bị loại bỏ
-            if (request.RemovedImage is not [])
-            {
-                IncidentReportsFile? image;
-                foreach (var url in request.RemovedImage)
-                {
-                    if ((image = await _unitOfWork.IncidentReportsFileRepository.GetImageByUrl(url)) is not null && image.ReportId == incident.ReportId)
-                    {
-                        await _firebaseStorageService.DeleteImageAsync(_firebaseStorageService.ExtractImageNameFromUrl(url));
-                        await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(image);
-                    }
-                }
-            }
+        //    // Xử lý xóa ảnh bị loại bỏ
+        //    if (request.RemovedImage is not [])
+        //    {
+        //        IncidentReportsFile? image;
+        //        foreach (var url in request.RemovedImage)
+        //        {
+        //            if ((image = await _unitOfWork.IncidentReportsFileRepository.GetImageByUrl(url)) is not null && image.ReportId == incident.ReportId)
+        //            {
+        //                await _firebaseStorageService.DeleteImageAsync(_firebaseStorageService.ExtractImageNameFromUrl(url));
+        //                await _unitOfWork.IncidentReportsFileRepository.RemoveAsync(image);
+        //            }
+        //        }
+        //    }
 
-            // Xử lý thêm ảnh mới
-            if (request.AddedImage is not null)
-            {
-                string FileId;
-                List<IncidentReportsFile> images;
-                int id;
-                for (int i = 0; i < request.AddedImage.Count; i++)
-                {
-                    var image = request.AddedImage[i];
-                    var imageType = request.ImageType[i];
-                    var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
-                    images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
-                    id = images.Count + 1;
-                    if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}") is not null)
-                    {
-                        id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
-                    }
-                    FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
-                    await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
-                    {
-                        FileId = FileId,
-                        ReportId = incident.ReportId,
-                        FileName = Path.GetFileName(image.FileName),
-                        FileType = GetFileTypeFromExtension(FileExtension),
-                        FileUrl = await _firebaseStorageService.UploadImageAsync(image),
-                        UploadDate = DateTime.Now,
-                        UploadBy = userName,
-                        Type = imageType // Set the ImageType
-                    });
-                }
-            }
+        //    // Xử lý thêm ảnh mới
+        //    if (request.AddedImage is not null)
+        //    {
+        //        string FileId;
+        //        List<IncidentReportsFile> images;
+        //        int id;
+        //        for (int i = 0; i < request.AddedImage.Count; i++)
+        //        {
+        //            var image = request.AddedImage[i];
+        //            var imageType = request.ImageType[i];
+        //            var FileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+        //            images = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
+        //            id = images.Count + 1;
+        //            if (_unitOfWork.IncidentReportsFileRepository.Get(i => i.FileId == $"{Const.INCIDENTREPORTIMAGE}{id.ToString("D6")}") is not null)
+        //            {
+        //                id = await _unitOfWork.IncidentReportsFileRepository.FindEmptyPositionWithBinarySearch(images, 1, id, Const.INCIDENTREPORTIMAGE, Const.INCIDENTREPORTIMAGE_INDEX);
+        //            }
+        //            FileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
+        //            await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
+        //            {
+        //                FileId = FileId,
+        //                ReportId = incident.ReportId,
+        //                FileName = Path.GetFileName(image.FileName),
+        //                FileType = GetFileTypeFromExtension(FileExtension),
+        //                FileUrl = await _firebaseStorageService.UploadImageAsync(image),
+        //                UploadDate = DateTime.Now,
+        //                UploadBy = userName,
+        //                Type = imageType // Set the ImageType
+        //            });
+        //        }
+        //    }
 
-            var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
-            var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-            var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
-            var owner = order.CreatedBy;
-            if (result > 0)
-            {
-                // Gửi thông báo sau khi cập nhật thành công
-                await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
-                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
-            }
-            else
-            {
-                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
-            }
-        }
-        #endregion
+        //    var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+        //    var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
+        //    var order = await _unitOfWork.FuelReportRepository.GetOrderByTripId(incident.TripId);
+        //    var owner = order.CreatedBy;
+        //    if (result > 0)
+        //    {
+        //        // Gửi thông báo sau khi cập nhật thành công
+        //        await _notification.SendNotificationAsync(owner, "Incident Report Updated", $"New Incident report Updated by {data.ReportedBy}.", data.ReportedBy);
+        //        return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
+        //    }
+        //    else
+        //    {
+        //        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
+        //    }
+        //}
+        //#endregion
 
         #region Add Image Detail Report
         public async Task<IBusinessResult> UpdateIncidentReportFileInfo(List<IncidentReportsFileUpdateRequest> requests, ClaimsPrincipal claims)

@@ -169,7 +169,7 @@ namespace MTCS.Service.Services
                 deliveryReportModel.Notes = updateDelivery.Note;
                 _unitOfWork.DeliveryReportRepository.Update(deliveryReportModel);
 
-                var savedFiles = new List<FuelReportFile>();
+                var savedFiles = new List<ExpenseReportFile>();
 
                 if (updateDelivery.FileIdsToRemove != null && updateDelivery.FileIdsToRemove.Count > 0)
                 {
