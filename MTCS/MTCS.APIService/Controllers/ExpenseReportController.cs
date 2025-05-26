@@ -51,7 +51,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPut("UpdateExpenseReport")]
-        public async Task<IActionResult> UpdateExpenseReport([FromBody] UpdateExpenseReportRequest expenseReport)
+        public async Task<IActionResult> UpdateExpenseReport([FromForm] UpdateExpenseReportRequest expenseReport)
         {
             var user = HttpContext.User;
             var result = await _expenseReportService.UpdateExpenseReport(expenseReport, user);
