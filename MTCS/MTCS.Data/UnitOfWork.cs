@@ -21,8 +21,9 @@ namespace MTCS.Data
         private TrailerRepository trailerRepository;
         private ContractRepository contractRepository;
         private ContractFileRepository contractFileRepository;
-        //private FuelReportRepository fuelReportRepository;
-        //private FuelReportFileRepository fuelReportFileRepository;
+        private ExpenseReportRepository expenseReportRepository;
+        private ExpenseReportFileRepository expenseReportFileRepository;
+        private ExpenseReportTypeRepository expenseReportTypeRepository;
         private TractorFileRepository tractorFileRepository;
         private TrailerFileRepository trailerFileRepository;
         private DeliveryReportRepository deliveryReportRepository;
@@ -148,21 +149,29 @@ namespace MTCS.Data
             }
         }
 
-        //public FuelReportRepository FuelReportRepository
-        //{
-        //    get
-        //    {
-        //        return fuelReportRepository ??= new FuelReportRepository();
-        //    }
-        //}
+        public ExpenseReportRepository ExpenseReportRepository
+        {
+            get
+            {
+                return expenseReportRepository ??= new ExpenseReportRepository();
+            }
+        }
 
-        //public FuelReportFileRepository FuelReportFileRepository
-        //{
-        //    get
-        //    {
-        //        return fuelReportFileRepository ??= new FuelReportFileRepository();
-        //    }
-        //}
+        public ExpenseReportFileRepository ExpenseReportFileRepository
+        {
+            get
+            {
+                return expenseReportFileRepository ??= new ExpenseReportFileRepository();
+            }
+        }
+
+        public ExpenseReportTypeRepository ExpenseReportTypeRepository
+        {
+            get
+            {
+                return expenseReportTypeRepository ??= new ExpenseReportTypeRepository();
+            }
+        }
 
         public DeliveryReportRepository DeliveryReportRepository
         {

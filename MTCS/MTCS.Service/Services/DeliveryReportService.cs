@@ -87,7 +87,7 @@ namespace MTCS.Service.Services
                         FileId = Guid.NewGuid().ToString(),
                         ReportId = deliveryReportModel.ReportId,
                         Description = "Delivery Report File",
-                        Note = "Delivery Report File",
+                        Note = "Upload via Create",
                         FileName = fileName,
                         FileType = fileType,
                         UploadDate = DateTime.Now,
@@ -104,7 +104,7 @@ namespace MTCS.Service.Services
                 //var userReceiver = order.CreatedBy;
                 //await _notification.SendNotificationAsync(userReceiver, "Delivery Report", $"New Delivery Report from {userName}", userName);
 
-                return new BusinessResult(200, "Create Fuel Report Successfully", savedFiles);
+                return new BusinessResult(200, "Create Delivery Report Successfully", savedFiles);
             }
             catch
             {
@@ -169,7 +169,7 @@ namespace MTCS.Service.Services
                 deliveryReportModel.Notes = updateDelivery.Note;
                 _unitOfWork.DeliveryReportRepository.Update(deliveryReportModel);
 
-                var savedFiles = new List<ExpenseReportFile>();
+                var savedFiles = new List<DeliveryReportsFile>();
 
                 if (updateDelivery.FileIdsToRemove != null && updateDelivery.FileIdsToRemove.Count > 0)
                 {
@@ -198,7 +198,7 @@ namespace MTCS.Service.Services
                             FileId = Guid.NewGuid().ToString(),
                             ReportId = deliveryReportModel.ReportId,
                             Description = "Delivery Report File",
-                            Note = "Delivery Report File",
+                            Note = "Upload via Update",
                             FileName = fileName,
                             FileType = fileType,
                             UploadDate = DateTime.Now,
@@ -216,7 +216,7 @@ namespace MTCS.Service.Services
                 //await _notification.SendNotificationAsync(userReceiver, "Delivery Report", $"New Update Delivery Report from {userName}", userName);
 
 
-                return new BusinessResult(200, "Update Fuel Report Successfully", savedFiles);
+                return new BusinessResult(200, "Update Delivery Report Successfully", savedFiles);
             }
             catch
             {
