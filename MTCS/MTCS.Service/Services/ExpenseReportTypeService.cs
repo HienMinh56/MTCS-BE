@@ -32,6 +32,11 @@ namespace MTCS.Service.Services
             try
             {
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                var existingReportType = _unitOfWork.ExpenseReportTypeRepository.Get(e => e.ReportTypeId == expenseReportType.ReportTypeId);
+                if (existingReportType != null)
+                {
+                    return new BusinessResult(400, "Expense report type id already exists");
+                }
                 var newExpenseReportType = new Data.Models.ExpenseReportType
                 {
                     ReportTypeId = expenseReportType.ReportTypeId,

@@ -71,6 +71,8 @@ namespace MTCS.Service.Services
                         {
                             FileId = Guid.NewGuid().ToString(),
                             ReportId = newExpenseReport.ReportId,
+                            Description = "Expense Report File",
+                            Note = "Uploaded via create",
                             FileUrl = imageUrl,
                             FileName = file.FileName,
                             FileType = file.ContentType,
