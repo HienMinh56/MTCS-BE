@@ -35,7 +35,7 @@ namespace MTCS.Data.Repository
 
             if (!string.IsNullOrEmpty(orderId))
             {
-                query = query.Where(e => e.Trip.OrderId == orderId);
+                query = query.Where(e => e.Trip.OrderDetailId == orderId);
             }
 
             if (!string.IsNullOrEmpty(tripId))
