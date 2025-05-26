@@ -9,17 +9,17 @@ using System.Threading.Tasks;
 
 namespace MTCS.Data.Repository
 {
-    public class OrderFileRepository : GenericRepository<OrderFile>
+    public class OrderDetailFileRepository : GenericRepository<OrderDetailFile>
     {
-        public OrderFileRepository()
+        public OrderDetailFileRepository()
         {
         }
 
-        public OrderFileRepository(MTCSContext context) => _context = context;
+        public OrderDetailFileRepository(MTCSContext context) => _context = context;
 
-        public async Task<OrderFile?> GetImageByUrl(string url)
+        public async Task<OrderDetailFile?> GetImageByUrl(string url)
         {
-            return await _context.OrderFiles
+            return await _context.OrderDetailFiles
                 .Where(i => i.DeletedBy == null)
                 .SingleOrDefaultAsync(i => i.FileUrl == url);
         }

@@ -23,41 +23,35 @@ namespace MTCS.APIService.Controllers
         #region Get order by fillter
         [HttpGet("orders")]
         public async Task<IActionResult> GetOrders(
-            [FromQuery] string? orderId,
-            [FromQuery] string? tripId,
-            [FromQuery] string? userId,
-            [FromQuery] int? containerType,
-            [FromQuery] string? containerNumber,
-            [FromQuery] string? trackingCode,
-            [FromQuery] string? status,
-            [FromQuery] DateOnly? pickUpDate,
-            [FromQuery] DateOnly? deliveryDate
+            [FromQuery] string? orderId = null,
+            [FromQuery] string? tripId = null,
+            [FromQuery] string? customerId = null,
+            [FromQuery] string? trackingCode = null,
+            [FromQuery] string? status = null
         )
         {
-            var result = await _orderService.GetOrders(orderId, tripId, userId, containerType, containerNumber, trackingCode, status, pickUpDate, deliveryDate);
+            var result = await _orderService.GetOrders(orderId, tripId, customerId, trackingCode, status);
             return Ok(result);
         }
         #endregion
-        [Authorize]
-        [HttpGet("{orderId}/order-file")]
-        public async Task<IActionResult> GetOrderFiles(string orderId)
-        {
-            var result = await _orderService.GetOrderFiles(orderId);
-            return Ok(result);
-        }
+
+        //[Authorize]
+        //[HttpGet("{orderId}")]
+        //public async Task<IActionResult> GetOrderDetailByOrderId(string orderId)
+        //{
+        //    var result = await _orderService.GetOrderDetailByOrderId(orderId);
+        //    return Ok(result);
+        //}
+
         [Authorize]
         [HttpPost]
-        public async Task<IActionResult> CreateOrderWithFile([FromForm] OrderRequest orderRequest, [FromForm] List<string> descriptions, [FromForm] List<string> notes, [FromForm] List<IFormFile> files)
+        public async Task<IActionResult> CreateOrderWithFile([FromForm] OrderRequest orderRequest)
         {
             var currentUser = HttpContext.User;
-            if (files.Count != descriptions.Count || files.Count != notes.Count)
-            {
-                return BadRequest("Số lượng files, descriptions và notes phải bằng nhau.");
-            }
-
-            var result = await _orderService.CreateOrder(orderRequest, currentUser, files, descriptions, notes);
+            var result = await _orderService.CreateOrder(orderRequest, currentUser);
             return Ok(result);
         }
+
         [Authorize]
         [HttpGet("export-excel")]
         public async Task<IActionResult> ExportOrdersToExcel([FromQuery] string fromDateStr, [FromQuery] string toDateStr)
@@ -73,7 +67,12 @@ namespace MTCS.APIService.Controllers
                 {
                     return BadRequest("Định dạng ngày 'toDate' không hợp lệ. Vui lòng sử dụng định dạng DD/MM/YYYY.");
                 }
-                var fileContent = await _orderService.ExportOrdersToExcelAsync(fromDate, toDate);
+
+                var fileContent = await _orderService.ExportOrdersToExcelAsync(
+                    fromDate.ToDateTime(TimeOnly.MinValue),
+                    toDate.ToDateTime(TimeOnly.MinValue)
+                );
+
                 var fileName = $"Danh_sach_don_hang_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.xlsx";
 
                 return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
@@ -83,6 +82,7 @@ namespace MTCS.APIService.Controllers
                 return StatusCode(500, $"Lỗi khi xuất file Excel: {ex.Message}");
             }
         }
+
         [Authorize]
         [HttpPut("update/{orderId}")]
         public async Task<IActionResult> UpdateOrderAsync(string orderId, [FromForm] UpdateOrderRequest model)
@@ -105,17 +105,19 @@ namespace MTCS.APIService.Controllers
         /// </summary>
         /// <param name="trackingCode"></param>
         /// <returns></returns>
-        [HttpGet("{trackingCode}")]
-        public async Task<ActionResult<OrderDto>> GetOrderByTrackingCodeAsync(string trackingCode)
-        {
-            var order = await _orderService.GetOrderByTrackingCodeAsync(trackingCode);
-            if (order == null)
-            {
-                return NotFound(new { message = "Order not found" });
-            }
-            return Ok(order);
-        }
+        //[HttpGet("{trackingCode}")]
+        //public async Task<ActionResult<OrderDto>> GetOrderByTrackingCodeAsync(string trackingCode)
+        //{
+        //    var order = await _orderService.GetOrderByTrackingCodeAsync(trackingCode);
+        //    if (order == null)
+        //    {
+        //        return NotFound(new { message = "Order not found" });
+        //    }
+        //    return Ok(order);
+        //}
         #endregion
+
+
         [Authorize]
         [HttpPatch("{orderId}/toggle-is-pay")]
         public async Task<IActionResult> ToggleIsPay(string orderId)
@@ -139,23 +141,23 @@ namespace MTCS.APIService.Controllers
             }
         }
 
-        [HttpPost("cancel/{orderId}")]
-        public async Task<IActionResult> CancelOrder(string orderId)
-        {
-            var result = await _orderService.CancelOrderAsync(orderId, User);
+        //[HttpPost("cancel/{orderId}")]
+        //public async Task<IActionResult> CancelOrder(string orderId)
+        //{
+        //    var result = await _orderService.CancelOrderAsync(orderId, User);
 
-            if (result.Status == 1)
-            {
-                return Ok(new
-                {
-                    message = result.Message
-                });
-            }
+        //    if (result.Status == 1)
+        //    {
+        //        return Ok(new
+        //        {
+        //            message = result.Message
+        //        });
+        //    }
 
-            return BadRequest(new
-            {
-                message = result.Message
-            });
-        }
+        //    return BadRequest(new
+        //    {
+        //        message = result.Message
+        //    });
+        //}
     }
 }

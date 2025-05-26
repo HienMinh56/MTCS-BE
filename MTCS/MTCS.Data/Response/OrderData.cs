@@ -68,8 +68,6 @@ namespace MTCS.Data.Response
 
         public virtual Customer Customer { get; set; }
 
-        public virtual ICollection<OrderFile> OrderFiles { get; set; } = new List<OrderFile>();
-
         public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
     }
 }

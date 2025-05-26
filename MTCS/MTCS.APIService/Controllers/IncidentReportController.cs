@@ -50,13 +50,13 @@ namespace MTCS.APIService.Controllers
             return result;
         }
 
-        [HttpPut]
-        public async Task<IBusinessResult> UpdateIncidentReport([FromForm] UpdateIncidentReportRequest request)
-        {
-            var currentUser = HttpContext.User;
-            var result = await _incidentReportsService.UpdateIncidentReport(request, currentUser);
-            return result;
-        }
+        //[HttpPut]
+        //public async Task<IBusinessResult> UpdateIncidentReport([FromForm] UpdateIncidentReportRequest request)
+        //{
+        //    var currentUser = HttpContext.User;
+        //    var result = await _incidentReportsService.UpdateIncidentReport(request, currentUser);
+        //    return result;
+        //}
 
         [HttpPut("IncidentReportFile")]
         public async Task<IBusinessResult> UpdateIncidentReportsFileInfo ([FromForm] List<IncidentReportsFileUpdateRequest> request)
