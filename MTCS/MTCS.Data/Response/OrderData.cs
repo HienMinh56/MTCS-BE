@@ -18,14 +18,6 @@ namespace MTCS.Data.Response
 
         public string CompanyName { get; set; }
 
-        public decimal? Temperature { get; set; }
-
-        public decimal? Weight { get; set; }
-
-        public DateOnly? PickUpDate { get; set; }
-
-        public DateOnly? DeliveryDate { get; set; }
-
         public string Status { get; set; }
 
         public string Note { get; set; }
@@ -38,36 +30,14 @@ namespace MTCS.Data.Response
 
         public string ModifiedBy { get; set; }
 
-        public int? ContainerType { get; set; }
-
-        public string PickUpLocation { get; set; }
-
-        public string DeliveryLocation { get; set; }
-
-        public string ConReturnLocation { get; set; }
-
-        public int? DeliveryType { get; set; }
-
-        public int? Price { get; set; }
-
-        public string ContainerNumber { get; set; }
-
         public string ContactPerson { get; set; }
 
         public string ContactPhone { get; set; }
 
         public string OrderPlacer { get; set; }
 
-        public decimal? Distance { get; set; }
-
-        public int? ContainerSize { get; set; }
-
         public int? IsPay { get; set; }
 
-        public TimeOnly? CompletionTime { get; set; }
-
-        public virtual Customer Customer { get; set; }
-
-        public virtual ICollection<Trip> Trips { get; set; } = new List<Trip>();
+        public int? TotalAmount { get; set; }
     }
 }

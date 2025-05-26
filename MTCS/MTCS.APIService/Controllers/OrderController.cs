@@ -142,5 +142,19 @@ namespace MTCS.APIService.Controllers
                 message = result.Message
             });
         }
+
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreateOrder([FromForm] OrderRequest orderRequest)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest("Thông tin đơn hàng không hợp lệ.");
+            }
+
+            var result = await _orderService.CreateOrder(orderRequest, User);
+
+            return Ok(result);
+        }
     }
 }
