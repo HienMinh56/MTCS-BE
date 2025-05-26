@@ -13,19 +13,32 @@ namespace MTCS.Data.DTOs
         public string OrderId { get; set; }
         public string TrackingCode { get; set; }
         public string CustomerName { get; set; }
+        public string Status { get; set; }
+        public List<OrderDetailDto> OrderDetails { get; set; } = new();
+    }
+    public class OrderDetailDto
+    {
+        public string OrderDetailId { get; set; }
+        public string OrderId { get; set; }
         public DateOnly? PickUpDate { get; set; }
         public DateOnly? DeliveryDate { get; set; }
         public string Status { get; set; }
         public string PickUpLocation { get; set; }
         public string DeliveryLocation { get; set; }
+        public List<TripDto> Trips { get; set; } = new();
+    }
 
-        public List<TripDto> Trips { get; set; }
+    public class OrderDetailFileDto
+    {
+        public string FileId { get; set; }
+        public string FileName { get; set; }
+        public string FilePath { get; set; }
     }
 
     public class TripDto
     {
         public string TripId { get; set; }
-        public string OrderId { get; set; }
+        public string OrderDetailId { get; set; }
         public string DriverId { get; set; }
         public string TractorId { get; set; }
         public string TrailerId { get; set; }

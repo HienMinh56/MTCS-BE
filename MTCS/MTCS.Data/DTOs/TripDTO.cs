@@ -3,7 +3,7 @@
     public class TripDto
     {
         public string TripId { get; set; }
-        public string OrderId { get; set; }
+        public string OrderDetailId { get; set; }
         public string TrackingCode { get; set; }
         public string DriverId { get; set; }
         public string DriverName { get; set; }
@@ -18,7 +18,7 @@
         public string Note { get; set; }
         public List<DeliveryReportDto> DeliveryReports { get; set; }
         public DriverDto Driver { get; set; }
-        public List<FuelReportDto> FuelReports { get; set; }
+        public List<ExpenseReportsDto> FuelReports { get; set; }
         public List<IncidentReportDto> IncidentReports { get; set; }
         public List<TripStatusHistoryDto> TripStatusHistories { get; set; }
     }
@@ -56,19 +56,27 @@
         public int? Status { get; set; }
     }
 
-    public class FuelReportDto
+    public class ExpenseReportsDto
     {
         public string ReportId { get; set; }
         public string TripId { get; set; }
-        public decimal? RefuelAmount { get; set; }
-        public decimal? FuelCost { get; set; }
+        public string ReportTypeId { get; set; }
+
+        public decimal? Cost { get; set; }
+
         public string Location { get; set; }
+
         public DateTime? ReportTime { get; set; }
+
         public string ReportBy { get; set; }
-        public List<FuelReportFileDto> FuelReportFiles { get; set; }
+
+        public int? IsPay { get; set; }
+
+        public string Description { get; set; }
+        public List<ExpenseReportsDtoFileDto> ExpenseReportFiles { get; set; }
     }
 
-    public class FuelReportFileDto
+    public class ExpenseReportsDtoFileDto
     {
         public string FileId { get; set; }
         public string ReportId { get; set; }

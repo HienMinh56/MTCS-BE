@@ -17,11 +17,11 @@ namespace MTCS.Data.Repository
 
         public OrderDetailRepository(MTCSContext context) => _context = context;
 
-    public async Task<List<OrderDetail>> GetOrderDetailsByFiltersAsync(
-    string? orderId = null,
-    string? containerNumber = null,
-    DateOnly? pickUpDate = null,
-    DateOnly? deliveryDate = null)
+        public async Task<List<OrderDetail>> GetOrderDetailsByFiltersAsync(
+            string? orderId = null,
+            string? containerNumber = null,
+            DateOnly? pickUpDate = null,
+            DateOnly? deliveryDate = null)
         {
             var query = _context.OrderDetails
                                 .Include(od => od.OrderDetailFiles)
@@ -43,6 +43,15 @@ namespace MTCS.Data.Repository
 
 
             return await query.ToListAsync();
+        }
+
+        public async Task<OrderDetail> GetOrderDetailWithTripsAsync(string orderDetailId)
+        {
+            return await _context.OrderDetails
+                .Include(od => od.Trips)
+                .Include(od => od.Order)
+                    .ThenInclude(o => o.Customer)
+                .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId);
         }
     }
 }

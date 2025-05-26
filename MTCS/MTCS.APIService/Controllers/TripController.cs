@@ -55,7 +55,7 @@ namespace MTCS.APIService.Controllers
         [HttpPut("update/{tripId}")]
         public async Task<IActionResult> UpdateTrip(string tripId, [FromForm] UpdateTripRequest model)
         {
-           
+
             var result = await _tripService.UpdateTripAsync(tripId, model, User);
             if (result.Status == Const.SUCCESS_UPDATE_CODE)
                 return Ok(result);
@@ -64,7 +64,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPut("cancel")]
-        public async Task<IActionResult> Cancel([FromBody]CancelTripRequest request)
+        public async Task<IActionResult> Cancel([FromBody] CancelTripRequest request)
         {
 
             var result = await _tripService.CancelTrip(request, User);
@@ -92,13 +92,13 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPost("auto-schedule")]
-        public async Task<IActionResult> AutoScheduleTripsForOrder([FromForm] string orderId)
+        public async Task<IActionResult> AutoScheduleTripsForOrder([FromForm] string orderDetailId)
         {
-            if (string.IsNullOrEmpty(orderId))
+            if (string.IsNullOrEmpty(orderDetailId))
                 return BadRequest("OrderId không hợp lệ!");
             try
             {
-                var result = await _tripService.AutoScheduleTripsForOrderAsync(orderId);
+                var result = await _tripService.AutoScheduleTripsForOrderAsync(orderDetailId);
                 if (result.Status < 0)
                     return BadRequest(result.Message);
 

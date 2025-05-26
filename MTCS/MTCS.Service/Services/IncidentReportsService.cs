@@ -140,7 +140,7 @@ namespace MTCS.Service.Services
                 var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
                 var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderDetailId);
                 var owner = order.CreatedBy;
                 if (request.Type == 1)
                 {
@@ -623,7 +623,7 @@ namespace MTCS.Service.Services
                     var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                     var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
                     var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
-                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
                     var owner = order.CreatedBy;
                     if (result > 0)
                     {
@@ -751,7 +751,7 @@ namespace MTCS.Service.Services
 
                 var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                 var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
                 var owner = order.CreatedBy;
                 if (result > 0)
                 {

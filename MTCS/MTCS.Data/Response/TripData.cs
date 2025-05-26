@@ -10,8 +10,9 @@ namespace MTCS.Data.Response
     public class TripData
     {
         public string TripId { get; set; }
+        public string OrderDetailId { get; set; }
 
-        public string DriverId { get; set; }
+        public string DriverId { get; set;}
 
         public string TrackingCode { get; set; }
 
