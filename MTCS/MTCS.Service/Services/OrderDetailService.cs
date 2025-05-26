@@ -180,6 +180,11 @@ namespace MTCS.Service.Services
                 ContainerSize = (int)od.ContainerSize,
                 Weight = (double)od.Weight,
                 PickUpDate = (DateOnly)od.PickUpDate,
+                PickUpLocation = od.PickUpLocation,
+                DeliveryLocation = od.DeliveryLocation,
+                ConReturnLocation = od.ConReturnLocation,
+                Distance = od.Distance,
+                CompletionTime = od.CompletionTime,
                 DeliveryDate = (DateOnly)od.DeliveryDate,
                 Status = od.Status,
                 Files = od.OrderDetailFiles?.Select(f => new OrderDetailFileData
