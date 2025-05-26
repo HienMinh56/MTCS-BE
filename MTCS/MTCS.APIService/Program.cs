@@ -36,7 +36,7 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IContractService, ContractService>();
 builder.Services.AddScoped<ITractorService, TractorService>();
 builder.Services.AddScoped<ITrailerService, TrailerService>();
-//builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
+builder.Services.AddScoped<IIncidentReportsService, IncidentReportsService>();
 builder.Services.AddScoped<ITripService, TripService>();
 builder.Services.AddScoped<IExpenseReportService, ExpenseReportService>();
 builder.Services.AddScoped<IExpenseReportTypeService, ExpenseReportTypeService>();
