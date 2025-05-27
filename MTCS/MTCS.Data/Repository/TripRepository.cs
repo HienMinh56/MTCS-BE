@@ -61,6 +61,7 @@ namespace MTCS.Data.Repository
                 TrackingCode = t.OrderDetail.Order?.TrackingCode,
                 DriverId = t.DriverId,
                 DriverName = t.Driver?.FullName,
+                ContainerNumber = t.OrderDetail?.ContainerNumber,
                 TractorId = t.TractorId,
                 TrailerId = t.TrailerId,
                 StartTime = t.StartTime,
