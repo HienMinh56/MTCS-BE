@@ -296,5 +296,28 @@ namespace MTCS.Data.Repository
 
             return await query.AnyAsync();
         }
+        public async Task<List<TripTimeTable>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        {
+            return await _context.Trips
+                .Include(t => t.OrderDetail)
+                .Where(t => (t.StartTime >= startOfWeek && t.StartTime <= endOfWeek) ||
+                           (t.EndTime >= startOfWeek && t.EndTime <= endOfWeek))
+                .Select(t => new TripTimeTable
+                {
+                    TripId = t.TripId,
+                    TrackingCode = t.OrderDetail.Order.TrackingCode,
+                    OrderDetailId = t.OrderDetailId,
+                    StartTime = t.StartTime,
+                    PickUpLocation = t.OrderDetail.PickUpLocation,
+                    DeliveryLocation = t.OrderDetail.DeliveryLocation,
+                    ConReturnLocation = t.OrderDetail.ConReturnLocation,
+                    EndTime = t.EndTime,
+                    DriverId = t.DriverId,
+                    DriverName = t.Driver != null ? t.Driver.FullName : null,
+                    MatchTime = t.MatchTime,
+                    Status = t.Status,
+                })
+                .ToListAsync();
+        }
     }
 }

@@ -167,5 +167,21 @@
         public bool? IsPay { get; set; }
         public string CompletionTime { get; set; }
     }
+
+    public class TripTimeTable
+    {
+        public string TripId { get; set; }
+        public string TrackingCode { get; set; }
+        public string PickUpLocation { get; set; }
+        public string DeliveryLocation { get; set; }
+        public string ConReturnLocation { get; set; }
+        public string OrderDetailId { get; set; }
+        public string DriverId { get; set; }
+        public string DriverName { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public DateTime? MatchTime { get; set; }
+        public string Status { get; set; }
+    }
 }
 

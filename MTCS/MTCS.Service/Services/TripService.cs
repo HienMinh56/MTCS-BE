@@ -1,9 +1,11 @@
 ﻿using System.Security.Claims;
 using MTCS.Common;
 using MTCS.Data;
+using MTCS.Data.DTOs.TripsDTO;
 using MTCS.Data.Enums;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
+using MTCS.Data.Response;
 using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
 
@@ -181,14 +183,14 @@ namespace MTCS.Service.Services
                     return new BusinessResult(Const.FAIL_READ_CODE, "Trip không tồn tại");
 
                 //Get order to retrieve completion time and delivery date
-               var orderDetail = await _unitOfWork.OrderDetailRepository.GetByIdAsync(oldTrip.OrderDetailId);
+                var orderDetail = await _unitOfWork.OrderDetailRepository.GetByIdAsync(oldTrip.OrderDetailId);
                 if (orderDetail == null || !orderDetail.DeliveryDate.HasValue)
                     return new BusinessResult(Const.FAIL_READ_CODE, "Không tìm thấy đơn hàng hoặc đơn hàng không có ngày giao hàng!");
 
                 var deliveryDate = orderDetail.DeliveryDate.Value;
 
                 //Calculate completion time in minutes
-               var completionTimeSpan = orderDetail.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
+                var completionTimeSpan = orderDetail.CompletionTime?.ToTimeSpan() ?? TimeSpan.Zero;
                 int completionMinutes = (int)completionTimeSpan.TotalMinutes;
 
                 //Validate trailer if being changed
@@ -247,7 +249,7 @@ namespace MTCS.Service.Services
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, "Driver phải ở trạng thái Active để được chỉ định cho Trip");
 
                     //Get driver working hour limits
-                   var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
+                    var dailyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(5);
                     var weeklyLimitConfig = await _unitOfWork.SystemConfigurationRepository.GetByIdAsync(6);
 
                     if (dailyLimitConfig == null || weeklyLimitConfig == null)
@@ -261,24 +263,24 @@ namespace MTCS.Service.Services
 
                     //Check daily working time for new driver
 
-                   var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
-                       .GetByDriverIdAndDateAsync(newDriverId, deliveryDate);
+                    var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                        .GetByDriverIdAndDateAsync(newDriverId, deliveryDate);
 
-                   int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
+                    int totalDailyTime = (dailyRecord?.TotalTime ?? 0) + completionMinutes;
                     if (totalDailyTime > dailyHourLimit * 60)
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, $"Tài xế đã vượt quá thời gian làm việc trong ngày ({dailyHourLimit} giờ)!");
 
                     //Calculate week boundaries
-                   var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                    var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
                     var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
                     var weekEnd = weekStart.AddDays(6);
 
                     //Check weekly working time for new driver
 
-                   var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
-                       .GetByDriverIdAndWeekAsync(newDriverId, weekStart, weekEnd);
+                    var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                        .GetByDriverIdAndWeekAsync(newDriverId, weekStart, weekEnd);
 
-                   int totalWeeklyTime = (weeklyRecord?.TotalHours ?? 0) + completionMinutes;
+                    int totalWeeklyTime = (weeklyRecord?.TotalHours ?? 0) + completionMinutes;
                     if (totalWeeklyTime > weeklyHourLimit * 60)
                         return new BusinessResult(Const.FAIL_UPDATE_CODE, $"Tài xế đã vượt quá thời gian làm việc trong tuần ({weeklyHourLimit} giờ)!");
                 }
@@ -286,19 +288,19 @@ namespace MTCS.Service.Services
                 var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(oldTrip.TripId);
 
                 //Create new trip with updated values
-               var newTrip = new Trip
-               {
-                   TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
-                   OrderDetailId = oldTrip.OrderDetailId,
-                   DriverId = newDriverId,
-                   TractorId = model.TractorId ?? oldTrip.TractorId,
-                   TrailerId = model.TrailerId ?? oldTrip.TrailerId,
-                   Status = previousStatus.StatusId,
-                   StartTime = DateTime.Now,
-                   MatchType = 2,
-                   MatchBy = userName,
-                   MatchTime = DateTime.Now,
-               };
+                var newTrip = new Trip
+                {
+                    TripId = "TRIP" + Guid.NewGuid().ToString("N").Substring(0, 10),
+                    OrderDetailId = oldTrip.OrderDetailId,
+                    DriverId = newDriverId,
+                    TractorId = model.TractorId ?? oldTrip.TractorId,
+                    TrailerId = model.TrailerId ?? oldTrip.TrailerId,
+                    Status = previousStatus.StatusId,
+                    StartTime = DateTime.Now,
+                    MatchType = 2,
+                    MatchBy = userName,
+                    MatchTime = DateTime.Now,
+                };
 
                 //Create the new trip
                 await _unitOfWork.TripRepository.CreateAsync(newTrip);
@@ -321,65 +323,65 @@ namespace MTCS.Service.Services
                 if (isDriverChanged)
                 {
                     //Update driver status
-                   var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(newDriverId);
+                    var driver = await _unitOfWork.DriverRepository.GetDriverByIdAsync(newDriverId);
                     driver.Status = (int)DriverStatus.OnDuty;
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
 
                     //Calculate week boundaries for working time
 
-                   var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+                    var deliveryDateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
                     var weekStart = DateOnly.FromDateTime(deliveryDateTime.AddDays(-(int)deliveryDateTime.DayOfWeek));
                     var weekEnd = weekStart.AddDays(6);
 
                     //Update or create daily working time record for new driver
 
-                   var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
-                       .GetByDriverIdAndDateAsync(newDriverId, deliveryDate);
+                    var dailyRecord = await _unitOfWork.DriverDailyWorkingTimeRepository
+                        .GetByDriverIdAndDateAsync(newDriverId, deliveryDate);
 
                     if (dailyRecord != null)
+                    {
+                        dailyRecord.TotalTime += completionMinutes;
+                        dailyRecord.ModifiedDate = DateTime.Now;
+                        dailyRecord.ModifiedBy = userName;
+                        await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
+                    }
+                    else
+                    {
+                        var newDaily = new DriverDailyWorkingTime
                         {
-                            dailyRecord.TotalTime += completionMinutes;
-                            dailyRecord.ModifiedDate = DateTime.Now;
-                            dailyRecord.ModifiedBy = userName;
-                            await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(dailyRecord);
-                        }
-                        else
-                        {
-                            var newDaily = new DriverDailyWorkingTime
-                            {
-                                RecordId = Guid.NewGuid().ToString(),
-                                DriverId = newDriverId,
-                                WorkDate = deliveryDate,
-                                TotalTime = completionMinutes,
-                                CreatedBy = userName,
-                                ModifiedDate = DateTime.Now,
-                                ModifiedBy = userName
-                            };
-                            await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
-                        }
+                            RecordId = Guid.NewGuid().ToString(),
+                            DriverId = newDriverId,
+                            WorkDate = deliveryDate,
+                            TotalTime = completionMinutes,
+                            CreatedBy = userName,
+                            ModifiedDate = DateTime.Now,
+                            ModifiedBy = userName
+                        };
+                        await _unitOfWork.DriverDailyWorkingTimeRepository.CreateAsync(newDaily);
+                    }
 
                     //Update or create weekly working time record for new driver
 
-                   var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
-                       .GetByDriverIdAndWeekAsync(newDriverId, weekStart, weekEnd);
+                    var weeklyRecord = await _unitOfWork.DriverWeeklySummaryRepository
+                        .GetByDriverIdAndWeekAsync(newDriverId, weekStart, weekEnd);
 
                     if (weeklyRecord != null)
+                    {
+                        weeklyRecord.TotalHours = (weeklyRecord.TotalHours ?? 0) + completionMinutes;
+                        await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
+                    }
+                    else
+                    {
+                        var newWeekly = new DriverWeeklySummary
                         {
-                            weeklyRecord.TotalHours = (weeklyRecord.TotalHours ?? 0) + completionMinutes;
-                            await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weeklyRecord);
-                        }
-                        else
-                        {
-                            var newWeekly = new DriverWeeklySummary
-                            {
-                                SummaryId = Guid.NewGuid().ToString(),
-                                DriverId = newDriverId,
-                                WeekStart = weekStart,
-                                WeekEnd = weekEnd,
-                                TotalHours = completionMinutes,
-                            };
-                            await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
-                        }
+                            SummaryId = Guid.NewGuid().ToString(),
+                            DriverId = newDriverId,
+                            WeekStart = weekStart,
+                            WeekEnd = weekEnd,
+                            TotalHours = completionMinutes,
+                        };
+                        await _unitOfWork.DriverWeeklySummaryRepository.CreateAsync(newWeekly);
+                    }
 
                     //Remove hours from old driver's records if needed
                     if (oldDriverId != newDriverId)
@@ -696,10 +698,10 @@ namespace MTCS.Service.Services
             var usedTractorIds = tripsInDate.Select(t => t.TractorId).ToHashSet();
             var usedTrailerIds = tripsInDate.Select(t => t.TrailerId).ToHashSet();
 
-           //Ưu tiên đầu kéo khô nếu đơn hàng khô
-           var preferredTractors = orderDetail.ContainerType == 1
-               ? tractors.Where(t => t.ContainerType == 1).Concat(tractors.Where(t => t.ContainerType != 1))
-               : tractors.Where(t => t.ContainerType == orderDetail.ContainerType);
+            //Ưu tiên đầu kéo khô nếu đơn hàng khô
+            var preferredTractors = orderDetail.ContainerType == 1
+                ? tractors.Where(t => t.ContainerType == 1).Concat(tractors.Where(t => t.ContainerType != 1))
+                : tractors.Where(t => t.ContainerType == orderDetail.ContainerType);
 
             foreach (var driver in drivers)
             {
@@ -875,6 +877,42 @@ namespace MTCS.Service.Services
             {
                 return new BusinessResult(500, ex.Message);
 
+            }
+        }
+
+        public async Task<ApiResponse<List<TripTimeTable>>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        {
+            try
+            {
+                var timeTable = await _unitOfWork.TripRepository.GetTripTimeTable(startOfWeek, endOfWeek);
+                if (timeTable is null || !timeTable.Any())
+                {
+                    return new ApiResponse<List<TripTimeTable>>(
+                        success: true,
+                        data: null,
+                        message: "Get time table successfully",
+                        messageVN: "Không tìm thấy thời gian biểu",
+                        errors: null
+                    );
+                }
+
+                return new ApiResponse<List<TripTimeTable>>(
+                    success: true,
+                    data: timeTable,
+                    message: "Get time table successfully",
+                    messageVN: "Lấy thời gian biểu thành công",
+                    errors: null
+                );
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<TripTimeTable>>(
+                    success: false,
+                    data: null,
+                    message: $"Failed to get time table: {ex.Message}",
+                    messageVN: "Không thể lấy thời gian biểu",
+                    errors: ex.ToString()
+                );
             }
         }
     }

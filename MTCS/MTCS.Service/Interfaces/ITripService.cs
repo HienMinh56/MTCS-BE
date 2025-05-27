@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using MTCS.Data.DTOs;
+using MTCS.Data.DTOs.TripsDTO;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Data.Response;
@@ -18,6 +19,6 @@ namespace MTCS.Service.Interfaces
         Task<IBusinessResult> CancelTrip(CancelTripRequest request ,ClaimsPrincipal claims);
         //Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd);
         Task<BusinessResult> GetAllTripsAsync();
-
+        Task<ApiResponse<List<TripTimeTable>>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek);
     }
 }

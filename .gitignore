@@ -561,3 +561,4 @@ fabric.properties
 
 # End of https://www.toptal.com/developers/gitignore/api/rider
 /.github/workflows/main_mtcs-server.yml
+.github/copilot-instructions.md

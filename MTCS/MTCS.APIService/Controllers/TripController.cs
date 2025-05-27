@@ -3,11 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MTCS.Common;
 using MTCS.Data.Helpers;
 using MTCS.Data.Request;
-using MTCS.Service.Base;
 using MTCS.Service.Interfaces;
-using Sprache;
-using System.Security.Claims;
-using System.Threading.Tasks;
 
 namespace MTCS.APIService.Controllers
 {
@@ -83,7 +79,7 @@ namespace MTCS.APIService.Controllers
             try
             {
                 var trip = await _tripService.CreateTripAsync(model, User);
-                return Ok(trip); 
+                return Ok(trip);
             }
             catch (Exception ex)
             {
@@ -120,6 +116,13 @@ namespace MTCS.APIService.Controllers
         public async Task<IActionResult> GetTripsByGroupAsync(string driverId, string groupType)
         {
             var result = await _tripService.GetTripsByGroupAsync(driverId, groupType);
+            return Ok(result);
+        }
+
+        [HttpGet("time-table")]
+        public async Task<IActionResult> GetTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        {
+            var result = await _tripService.GetTripTimeTable(startOfWeek, endOfWeek);
             return Ok(result);
         }
     }
