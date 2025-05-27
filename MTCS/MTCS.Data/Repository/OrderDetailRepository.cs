@@ -21,10 +21,13 @@ namespace MTCS.Data.Repository
             string? orderId = null,
             string? containerNumber = null,
             DateOnly? pickUpDate = null,
-            DateOnly? deliveryDate = null)
+            DateOnly? deliveryDate = null,
+            string? driverId = null)
         {
             var query = _context.OrderDetails
                                 .Include(od => od.OrderDetailFiles)
+                                .Include(od => od.Trips)
+                                .Include(od => od.Order)
                                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(orderId))
@@ -38,6 +41,10 @@ namespace MTCS.Data.Repository
 
             if (deliveryDate.HasValue)
                 query = query.Where(od => od.DeliveryDate == deliveryDate);
+
+            if (!string.IsNullOrEmpty(driverId))
+                query = query.Where(od => od.Trips.Any(t => t.DriverId == driverId));
+
 
             query = query.OrderByDescending(od => od.DeliveryDate);
 
