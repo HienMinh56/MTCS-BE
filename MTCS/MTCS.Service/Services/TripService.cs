@@ -703,23 +703,103 @@ namespace MTCS.Service.Services
                 ? tractors.Where(t => t.ContainerType == 1).Concat(tractors.Where(t => t.ContainerType != 1))
                 : tractors.Where(t => t.ContainerType == orderDetail.ContainerType);
 
+            //foreach (var driver in drivers)
+            //{
+            //    //Check daily working time
+            //    var daily = await _unitOfWork.DriverDailyWorkingTimeRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+            //    int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
+            //    if (totalDaily > dailyHourLimit * 60) continue;
+
+            //    //Check weekly working time
+            //    var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+            //    var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
+            //    var weekEnd = weekStart.AddDays(6);
+
+            //    var weekly = await _unitOfWork.DriverWeeklySummaryRepository.GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
+            //    int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
+            //    if (totalWeekly > weeklyHourLimit * 60) continue;
+
+            //    //Check if driver already has trips today
+            //    var driverTripsToday = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+
+            //    if (driverTripsToday.Any())
+            //    {
+            //        var existingTractorId = driverTripsToday.First().TractorId;
+            //        var existingTrailerId = driverTripsToday.First().TrailerId;
+
+            //        var tractor = tractors.FirstOrDefault(t =>
+            //            t.TractorId == existingTractorId &&
+            //            t.MaxLoadWeight >= totalWeight &&
+            //            t.RegistrationExpirationDate > deliveryDate);
+
+            //        var trailer = trailers.FirstOrDefault(t =>
+            //            t.TrailerId == existingTrailerId &&
+            //            t.MaxLoadWeight >= totalWeight &&
+            //            (orderDetail.ContainerSize != 40 || t.ContainerSize == 2) &&
+            //            t.RegistrationExpirationDate > deliveryDate);
+
+            //        if (tractor != null && trailer != null)
+            //        {
+            //            return await CreateTrip(orderDetail, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
+            //        }
+
+            //        continue; // Thiết bị không còn phù hợp
+            //    }
+
+            //    //Nếu chưa có trip, tìm thiết bị chưa ai dùng hôm đó
+            //    foreach (var tractor in preferredTractors)
+            //    {
+            //        if (!tractor.MaxLoadWeight.HasValue ||
+            //            tractor.MaxLoadWeight.Value < totalWeight ||
+            //            usedTractorIds.Contains(tractor.TractorId) ||
+            //            tractor.RegistrationExpirationDate <= deliveryDate)
+            //            continue;
+
+            //        foreach (var trailer in trailers.Where(t =>
+            //            t.MaxLoadWeight >= totalWeight &&
+            //            (orderDetail.ContainerSize != 40 || t.ContainerSize == 2) &&
+            //            !usedTrailerIds.Contains(t.TrailerId) &&
+            //            t.RegistrationExpirationDate > deliveryDate))
+            //        {
+            //            //Gán trip
+            //            usedTractorIds.Add(tractor.TractorId);
+            //            usedTrailerIds.Add(trailer.TrailerId);
+
+            //            return await CreateTrip(orderDetail, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
+            //        }
+            //    }
+            //}
+
+            var driverWorkInfos = new List<(Driver driver, int totalDaily, int totalWeekly, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly)>();
+
+            var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+            var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
+            var weekEnd = weekStart.AddDays(6);
+
+            // Tính và gom dữ liệu thời gian trước
             foreach (var driver in drivers)
             {
-                //Check daily working time
                 var daily = await _unitOfWork.DriverDailyWorkingTimeRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
-                int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
-                if (totalDaily > dailyHourLimit * 60) continue;
-
-                //Check weekly working time
-                var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
-                var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
-                var weekEnd = weekStart.AddDays(6);
-
                 var weekly = await _unitOfWork.DriverWeeklySummaryRepository.GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
-                int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
-                if (totalWeekly > weeklyHourLimit * 60) continue;
 
-                //Check if driver already has trips today
+                int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
+                int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
+
+                if (totalDaily > dailyHourLimit * 60 || totalWeekly > weeklyHourLimit * 60)
+                    continue;
+
+                driverWorkInfos.Add((driver, totalDaily, totalWeekly, daily, weekly));
+            }
+
+            // Sắp xếp theo thời gian làm việc ít nhất
+            var sortedDrivers = driverWorkInfos
+                .OrderBy(info => info.totalDaily)
+                .ThenBy(info => info.totalWeekly)
+                .ToList();
+
+            // Bắt đầu xét driver sau khi đã sort
+            foreach (var (driver, totalDaily, totalWeekly, daily, weekly) in sortedDrivers)
+            {
                 var driverTripsToday = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
 
                 if (driverTripsToday.Any())
@@ -743,10 +823,10 @@ namespace MTCS.Service.Services
                         return await CreateTrip(orderDetail, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
                     }
 
-                    continue; // Thiết bị không còn phù hợp
+                    continue;
                 }
 
-                //Nếu chưa có trip, tìm thiết bị chưa ai dùng hôm đó
+                // Nếu chưa có trip hôm đó
                 foreach (var tractor in preferredTractors)
                 {
                     if (!tractor.MaxLoadWeight.HasValue ||
@@ -761,7 +841,6 @@ namespace MTCS.Service.Services
                         !usedTrailerIds.Contains(t.TrailerId) &&
                         t.RegistrationExpirationDate > deliveryDate))
                     {
-                        //Gán trip
                         usedTractorIds.Add(tractor.TractorId);
                         usedTrailerIds.Add(trailer.TrailerId);
 
