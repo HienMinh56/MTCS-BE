@@ -22,7 +22,8 @@ namespace MTCS.Data.Repository
             string? containerNumber = null,
             DateOnly? pickUpDate = null,
             DateOnly? deliveryDate = null,
-            string? driverId = null)
+            string? driverId = null,
+            string? tripId = null)
         {
             var query = _context.OrderDetails
                                 .Include(od => od.OrderDetailFiles)
@@ -44,7 +45,8 @@ namespace MTCS.Data.Repository
 
             if (!string.IsNullOrEmpty(driverId))
                 query = query.Where(od => od.Trips.Any(t => t.DriverId == driverId));
-
+            if (!string.IsNullOrEmpty(tripId))
+                query = query.Where(od => od.Trips.Any(t => t.TripId == tripId));
 
             query = query.OrderByDescending(od => od.DeliveryDate);
 
