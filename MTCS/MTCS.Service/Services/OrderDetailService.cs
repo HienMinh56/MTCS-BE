@@ -23,7 +23,8 @@ namespace MTCS.Service.Services
         string? orderId,
         string? containerNumber,
         DateOnly? pickUpDate,
-        DateOnly? deliveryDate
+        DateOnly? deliveryDate,
+        string? driverId
         );
         Task<BusinessResult> UpdateOrderDetailAsync(string orderDetailId, UpdateOrderDetailRequest model, ClaimsPrincipal claims);
     }
@@ -166,10 +167,11 @@ namespace MTCS.Service.Services
          string? orderId,
          string? containerNumber,
          DateOnly? pickUpDate,
-         DateOnly? deliveryDate)
+         DateOnly? deliveryDate,
+         string? driverId)
         {
             var orderDetails = await _unitOfWork.OrderDetailRepository
-                                                .GetOrderDetailsByFiltersAsync(orderId, containerNumber, pickUpDate, deliveryDate);
+                                                .GetOrderDetailsByFiltersAsync(orderId, containerNumber, pickUpDate, deliveryDate, driverId);
 
             return orderDetails.Select(od => new OrderDetailResponse
             {
@@ -188,6 +190,10 @@ namespace MTCS.Service.Services
                 CompletionTime = od.CompletionTime,
                 DeliveryDate = (DateOnly)od.DeliveryDate,
                 Status = od.Status,
+                Note = od.Order.Note,
+                ContactPerson = od.Order.ContactPerson,
+                ContactPhone = od.Order.ContactPhone,
+                OrderPlacer = od.Order.OrderPlacer,
                 Files = od.OrderDetailFiles?.Select(f => new OrderDetailFileData
                 {
                     FileId = f.FileId,
