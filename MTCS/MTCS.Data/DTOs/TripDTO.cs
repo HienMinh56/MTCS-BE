@@ -4,6 +4,8 @@
     {
         public string TripId { get; set; }
         public string OrderDetailId { get; set; }
+
+        public string OrderId { get; set; }
         public string TrackingCode { get; set; }
 
         public string ContainerNumber { get; set; }

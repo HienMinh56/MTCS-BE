@@ -58,6 +58,7 @@ namespace MTCS.Data.Repository
             {
                 TripId = t.TripId,
                 OrderDetailId = t.OrderDetailId,
+                OrderId = t.OrderDetail?.Order?.OrderId,
                 TrackingCode = t.OrderDetail.Order?.TrackingCode,
                 DriverId = t.DriverId,
                 DriverName = t.Driver?.FullName,
