@@ -1,4 +1,5 @@
 ﻿using Google.Cloud.Firestore;
+using Microsoft.AspNetCore.Http;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.DTOs;
@@ -99,7 +100,8 @@ namespace MTCS.Service.Services
                 Type = request.Type,
                 VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
-                IsPay = request.IsPay ?? 0, // Default to 0 if not provided
+                Price = 0,
+                IsPay =  0, // Default to 0 if not provided
                 CreatedDate = DateTime.Now
             });
 
@@ -141,7 +143,8 @@ namespace MTCS.Service.Services
                 var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
                 var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == request.TripId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == existingTrip.OrderDetailId);
+                var orderDetail = _unitOfWork.OrderDetailRepository.Get(i => i.OrderDetailId == existingTrip.OrderDetailId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == orderDetail.OrderId);
                 var owner = order.CreatedBy;
                 if (request.Type == 1)
                 {
@@ -289,6 +292,30 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.FAIL_CREATE_CODE, Const.FAIL_CREATE_MSG, result);
             }
         }
+
+        private async Task UploadBillingImages(List<IFormFile> images, string reportId, string uploadedBy)
+        {
+            var existingImages = await _unitOfWork.IncidentReportsFileRepository.GetImagesOfIncidentReport();
+
+            foreach (var image in images)
+            {
+                var extension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                var fileId = $"{Const.INCIDENTREPORTIMAGE}{Guid.NewGuid().ToString()}";
+
+                await _unitOfWork.IncidentReportsFileRepository.CreateAsync(new IncidentReportsFile
+                {
+                    FileId = fileId,
+                    ReportId = reportId,
+                    FileName = Path.GetFileName(image.FileName),
+                    FileType = GetFileTypeFromExtension(extension),
+                    FileUrl = await _firebaseStorageService.UploadImageAsync(image),
+                    UploadDate = DateTime.Now,
+                    UploadBy = uploadedBy,
+                    Type = 2 // Billing image
+                });
+            }
+        }
+
         #endregion
 
         #region Add Exchange Image for Incident Report
@@ -505,140 +532,107 @@ namespace MTCS.Service.Services
             {
                 var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
                 var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == incidentReportRequest.reportId);
+                if (incident == null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
 
                 var trip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
                 var driver = _unitOfWork.DriverRepository.Get(d => d.DriverId == trip.DriverId);
                 var tractor = _unitOfWork.TractorRepository.Get(t => t.TractorId == trip.TractorId);
                 var trailer = _unitOfWork.TrailerRepository.Get(t => t.TrailerId == trip.TrailerId);
 
-                if (incident == null)
+                // Cập nhật thông tin chung của sự cố
+                incident.Status = "Resolved";
+                incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
+                incident.Price = incidentReportRequest.Price;
+                incident.HandledBy = userName;
+                incident.HandledTime = DateTime.Now;
+                incident.IsPay = 1;
+
+                if (incident.Type == 1 || incident.Type == 3) // Delay or other incident
                 {
-                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
-                }
-                else
-                {
-                    if (incident.Type == 1) // Delay incident
+                    driver.Status = (int?)DriverStatus.OnDuty;
+                    tractor.Status = VehicleStatus.OnDuty.ToString();
+                    trailer.Status = VehicleStatus.OnDuty.ToString();
+
+                    var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
+                    if (previousStatus != null)
                     {
-                        incident.Status = "Resolved";
-                        incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
-                        incident.Price = incidentReportRequest.Price;
-                        incident.HandledBy = userName;
-                        incident.HandledTime = DateTime.Now;
-                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
-
-                        driver.Status = (int?)DriverStatus.OnDuty;
-                        tractor.Status = VehicleStatus.OnDuty.ToString();
-                        trailer.Status = VehicleStatus.OnDuty.ToString();
-
-                        // Restore the previous status of the trip
-                        var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
-                        if (previousStatus != null)
+                        trip.Status = previousStatus.StatusId;
+                        await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
                         {
-                            trip.Status = previousStatus.StatusId;
-
-                            // Record the status change in history
-                            await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
-                            {
-                                HistoryId = Guid.NewGuid().ToString(),
-                                TripId = trip.TripId,
-                                StatusId = previousStatus.StatusId,
-                                StartTime = DateTime.Now
-                            });
-                        }
-                        else
-                        {
-                            // If no previous status found, set to a default like "is_delivering"
-                            return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
-                        }
-
-                        await _unitOfWork.TripRepository.UpdateAsync(trip);
-                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
-                    }
-                    else if (incident.Type == 2) // Cancellation incident
-                    {
-                        incident.Status = "Resolved";
-                        incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
-                        incident.Price = incidentReportRequest.Price;
-                        incident.HandledBy = userName;
-                        incident.HandledTime = DateTime.Now;
-                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
-                        if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
-                        {
-                            driver.Status = (int?)DriverStatus.Active; ; // Free
-                        }
-                        trip.EndTime = DateTime.Now;
-                        if (incident.VehicleType == 1)
-                        {
-                            tractor.Status = VehicleStatus.Active.ToString();
-                            await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                        }
-                        if (incident.VehicleType == 2)
-                        {
-                            trailer.Status = VehicleStatus.Active.ToString();
-                            await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
-                        }
-
-                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                        await _unitOfWork.TripRepository.UpdateAsync(trip);
-                    }
-                    else if (incident.Type == 3) // Cancellation incident
-                    {
-                        incident.Status = "Resolved";
-                        incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
-                        incident.Price = incidentReportRequest.Price;
-                        incident.HandledBy = userName;
-                        incident.HandledTime = DateTime.Now;
-                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
-
-                        driver.Status = (int?)DriverStatus.OnDuty;
-                        tractor.Status = VehicleStatus.OnDuty.ToString();
-                        trailer.Status = VehicleStatus.OnDuty.ToString();
-
-                        // Restore the previous status of the trip
-                        var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
-                        if (previousStatus != null)
-                        {
-                            trip.Status = previousStatus.StatusId;
-
-                            // Record the status change in history
-                            await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
-                            {
-                                HistoryId = Guid.NewGuid().ToString(),
-                                TripId = trip.TripId,
-                                StatusId = previousStatus.StatusId,
-                                StartTime = DateTime.Now
-                            });
-                        }
-                        else
-                        {
-                            // If no previous status found, set to a default like "is_delivering"
-                            return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
-                        }
-
-                        await _unitOfWork.TripRepository.UpdateAsync(trip);
-                        await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
-                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
-                    }
-
-                    var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
-                    var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                    var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
-                    var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
-                    var owner = order.CreatedBy;
-                    if (result > 0)
-                    {
-                        // Gửi thông báo sau khi cập nhật thành công
-                        await _notification.SendNotificationAsync(owner, "Báo cáo sự cố đã được cập nhật", $"Sự cố {incident.ReportId} của {existingTrip.TripId} đã được giải quyết bởi {data.ReportedBy}.", data.ReportedBy);
-                        return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
+                            HistoryId = Guid.NewGuid().ToString(),
+                            TripId = trip.TripId,
+                            StatusId = previousStatus.StatusId,
+                            StartTime = DateTime.Now
+                        });
                     }
                     else
                     {
-                        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
+                        return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
                     }
+
+                    await _unitOfWork.TripRepository.UpdateAsync(trip);
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                }
+                else if (incident.Type == 2) // Cancellation
+                {
+                    trip.EndTime = DateTime.Now;
+
+                    if (!await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId))
+                    {
+                        driver.Status = (int?)DriverStatus.Active;
+                    }
+
+                    if (incident.VehicleType == 1)
+                    {
+                        tractor.Status = VehicleStatus.Active.ToString();
+                        await _unitOfWork.TractorRepository.UpdateAsync(tractor);
+                    }
+                    if (incident.VehicleType == 2)
+                    {
+                        trailer.Status = VehicleStatus.Active.ToString();
+                        await _unitOfWork.TrailerRepository.UpdateAsync(trailer);
+                    }
+
+                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
+                    await _unitOfWork.TripRepository.UpdateAsync(trip);
+                }
+
+                // ⬇️ Gọi hàm reuse để upload hình billing (nếu có)
+                if (incidentReportRequest.BillingImages?.Any() == true)
+                {
+                    await UploadBillingImages(incidentReportRequest.BillingImages, incident.ReportId, userName);
+                }
+
+                // Cập nhật sự cố
+                var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+                var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
+
+                // Gửi thông báo
+                var existingTrip = _unitOfWork.TripRepository.Get(t => t.TripId == incident.TripId);
+                var orderDetail = _unitOfWork.OrderDetailRepository.Get(i => i.OrderDetailId == trip.OrderDetailId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == orderDetail.OrderId);
+                var owner = order.CreatedBy;
+
+                if (result > 0)
+                {
+                    await _notification.SendNotificationAsync(
+                        owner,
+                        "Báo cáo sự cố đã được cập nhật",
+                        $"Sự cố {incident.ReportId} của chuyến {existingTrip.TripId} đã được giải quyết bởi {data.ReportedBy}.",
+                        data.ReportedBy
+                    );
+                    return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, data);
+                }
+                else
+                {
+                    return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, data);
                 }
             }
             catch (Exception ex)
@@ -646,6 +640,7 @@ namespace MTCS.Service.Services
                 return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
             }
         }
+
         #endregion
 
         #region Update Incident Report
