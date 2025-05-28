@@ -62,5 +62,18 @@ namespace MTCS.Data.Repository
                     .ThenInclude(o => o.Customer)
                 .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId);
         }
+
+        public async Task<bool> AnyOrderDetailDeliveringAsync(string orderId)
+        {
+            return await _context.OrderDetails.AnyAsync(od => od.OrderId == orderId && od.Status != "Scheduled" && od.Status != "Pending");
+
+        }
+
+        public async Task<bool> AreAllOrderDetailsCompletedAsync(string orderId)
+        {
+            return await _context.OrderDetails
+                .Where(od => od.OrderId == orderId)
+                .AllAsync(od => od.Status == "completed");
+        }
     }
 }
