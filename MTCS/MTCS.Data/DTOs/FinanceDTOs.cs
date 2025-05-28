@@ -48,6 +48,12 @@
         public string CustomerName { get; set; }
         public decimal Revenue { get; set; }
         public decimal FuelCost { get; set; }
+        public decimal CarWashCost { get; set; }
+        public decimal TollCost { get; set; }
+        public decimal OtherCost { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public string Status { get; set; }
+        public Dictionary<string, decimal> ExpenseBreakdown { get; set; }
         public decimal ProfitMargin { get; set; }
         public decimal ProfitMarginPercentage { get; set; }
     }
@@ -63,6 +69,9 @@
         public decimal TotalFuelCost { get; set; }
         public decimal AverageFuelCost { get; set; }
         public decimal FuelCostPerDistance { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal AverageExpensesPerTrip { get; set; }
+        public decimal ExpensesPerDistance { get; set; }
 
         // Performance metrics
         public decimal IncidentRate { get; set; }
@@ -107,5 +116,11 @@
         public int UnpaidOrders { get; set; }
     }
 
+    public class ExpenseBreakdownDTO
+    {
+        public string ExpenseType { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+    }
 
 }
