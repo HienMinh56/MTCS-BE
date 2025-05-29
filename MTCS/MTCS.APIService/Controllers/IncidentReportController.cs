@@ -67,7 +67,7 @@ namespace MTCS.APIService.Controllers
         }
 
         [HttpPatch]
-        public async Task<IBusinessResult> UpdateIncidentReportStatus(ResolvedIncidentReportRequest incidentReportRequest)
+        public async Task<IBusinessResult> UpdateIncidentReportStatus([FromForm]ResolvedIncidentReportRequest incidentReportRequest)
         {
             var currentUser = HttpContext.User;
             var result = await _incidentReportsService.ResolvedReport(incidentReportRequest, currentUser);

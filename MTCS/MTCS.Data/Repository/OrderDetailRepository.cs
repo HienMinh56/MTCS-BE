@@ -21,10 +21,14 @@ namespace MTCS.Data.Repository
             string? orderId = null,
             string? containerNumber = null,
             DateOnly? pickUpDate = null,
-            DateOnly? deliveryDate = null)
+            DateOnly? deliveryDate = null,
+            string? driverId = null,
+            string? tripId = null)
         {
             var query = _context.OrderDetails
                                 .Include(od => od.OrderDetailFiles)
+                                .Include(od => od.Trips)
+                                .Include(od => od.Order)
                                 .AsQueryable();
 
             if (!string.IsNullOrEmpty(orderId))
@@ -39,6 +43,11 @@ namespace MTCS.Data.Repository
             if (deliveryDate.HasValue)
                 query = query.Where(od => od.DeliveryDate == deliveryDate);
 
+            if (!string.IsNullOrEmpty(driverId))
+                query = query.Where(od => od.Trips.Any(t => t.DriverId == driverId));
+            if (!string.IsNullOrEmpty(tripId))
+                query = query.Where(od => od.Trips.Any(t => t.TripId == tripId));
+
             query = query.OrderByDescending(od => od.DeliveryDate);
 
 
@@ -52,6 +61,19 @@ namespace MTCS.Data.Repository
                 .Include(od => od.Order)
                     .ThenInclude(o => o.Customer)
                 .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId);
+        }
+
+        public async Task<bool> AnyOrderDetailDeliveringAsync(string orderId)
+        {
+            return await _context.OrderDetails.AnyAsync(od => od.OrderId == orderId && od.Status != "Scheduled" && od.Status != "Pending");
+
+        }
+
+        public async Task<bool> AreAllOrderDetailsCompletedAsync(string orderId)
+        {
+            return await _context.OrderDetails
+                .Where(od => od.OrderId == orderId)
+                .AllAsync(od => od.Status == "completed");
         }
     }
 }

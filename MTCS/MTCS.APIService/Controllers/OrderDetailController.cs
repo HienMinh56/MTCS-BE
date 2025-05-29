@@ -40,9 +40,11 @@ namespace MTCS.API.Controllers
         [FromQuery] string? orderId,
         [FromQuery] string? containerNumber,
         [FromQuery] DateOnly? pickUpDate,
-        [FromQuery] DateOnly? deliveryDate)
+        [FromQuery] DateOnly? deliveryDate,
+        [FromQuery] string? driverId,
+        [FromQuery] string? tripId)
         {
-            var result = await _orderDetailService.GetOrderDetailsAsync(orderId, containerNumber, pickUpDate, deliveryDate);
+            var result = await _orderDetailService.GetOrderDetailsAsync(orderId, containerNumber, pickUpDate, deliveryDate, driverId, tripId);
             return Ok(result);
         }
         #endregion

@@ -50,6 +50,8 @@ namespace MTCS.Data.Repository
                     Type = i.Type,
                     VehicleType = i.VehicleType,
                     Status = i.Status,
+                    Price = i.Price,
+                    IsPay = i.IsPay,
                     ResolutionDetails = i.ResolutionDetails,
                     HandledBy = i.HandledBy,
                     HandledTime = i.HandledTime,

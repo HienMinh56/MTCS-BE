@@ -76,8 +76,6 @@ namespace MTCS.Service.Services
                 var newStatus = await _unitOfWork.DeliveryStatusRepository.GetByIdAsync(newStatusId);
                 if (newStatus == null) return new BusinessResult(404, "Status not existed");
 
-                var higherSecondStatus = await _unitOfWork.DeliveryStatusRepository.GetSecondHighestStatusIndexAsync();
-
                 if (currentStatus?.StatusId == "completed")
                     return new BusinessResult(400, "Cannot update completed order");
 
@@ -88,36 +86,82 @@ namespace MTCS.Service.Services
                     return new BusinessResult(400, "Cannot update as over step status");
                 }
 
+                // Xử lý khi bắt đầu giao hàng
                 if (newStatus.StatusIndex == 1)
                 {
                     trip.StartTime = DateTime.Now;
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
-                    await UpdateOrderAndVehiclesAsync(trip, "Delivering", VehicleStatus.OnDuty, DriverStatus.OnDuty);
+
+                    var orderDetail = await _unitOfWork.OrderDetailRepository.GetByIdAsync(trip.OrderDetailId);
+                    var isAnyDelivering = await _unitOfWork.OrderDetailRepository.AnyOrderDetailDeliveringAsync(orderDetail.OrderId);
+                    var updateOrderStatus = isAnyDelivering ? null : "Delivering";
+
+                    await UpdateOrderAndVehiclesAsync(
+                        trip,
+                        updateOrderStatus,
+                        VehicleStatus.OnDuty,
+                        DriverStatus.OnDuty,
+                        orderDetailStatus: "Delivering"
+                    );
                 }
 
                 trip.Status = newStatusId;
 
+                // Xử lý khi hoàn tất chuyến
                 if (newStatus.StatusId == "completed")
                 {
                     trip.EndTime = DateTime.Now;
                     driver.TotalProcessedOrders++;
+
                     var orderDetail = await _unitOfWork.OrderDetailRepository.GetOrderDetailWithTripsAsync(trip.OrderDetailId);
+
                     var driverStatus = DriverStatus.OnDuty;
-                    if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
+                    if (!await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId))
                     {
                         driverStatus = DriverStatus.Active;
                     }
 
-                    await UpdateOrderAndVehiclesAsync(trip, "Completed", VehicleStatus.Active, driverStatus);
-                    await _unitOfWork.DriverRepository.UpdateAsync(driver);
-                    await _notificationService.SendNotificationAsync(orderDetail.Order.CreatedBy, "Chuyến đi đã được cập nhật", $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}", driver.FullName);
+                    await UpdateOrderAndVehiclesAsync(
+                        trip,
+                        null, // Order sẽ cập nhật sau nếu cần
+                        VehicleStatus.Active,
+                        driverStatus,
+                        orderDetailStatus: "Completed"
+                    );
+
+                    // Nếu tất cả chi tiết đã hoàn thành, cập nhật Order
+                    var allCompleted = await _unitOfWork.OrderDetailRepository
+                        .AreAllOrderDetailsCompletedAsync(orderDetail.OrderId);
+
+                    if (allCompleted)
+                    {
+                        var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderDetail.OrderId);
+                        order.Status = "Completed";
+                        await _unitOfWork.OrderRepository.UpdateAsync(order);
+                    }
+
+                    // Gửi thông báo và email
+                    await _notificationService.SendNotificationAsync(
+                        orderDetail.Order.CreatedBy,
+                        "Chuyến đi đã được cập nhật",
+                        $"Chuyến {tripId} đã được cập nhật thành '{newStatus.StatusName}' bởi {driver.FullName} vào lúc {trip.EndTime}",
+                        driver.FullName
+                    );
 
                     string subject = "Đơn hàng của bạn đã được giao thành công";
-                    await _emailService.SendOrderCompletionToCustomer(orderDetail.Order.Customer.Email, subject, orderDetail.Order.Customer.CompanyName, orderDetail.Order.TrackingCode, orderDetail.CompletionTime);
+                    await _emailService.SendOrderCompletionToCustomer(
+                        orderDetail.Order.Customer.Email,
+                        subject,
+                        orderDetail.Order.Customer.CompanyName,
+                        orderDetail.Order.TrackingCode,
+                        orderDetail.CompletionTime
+                    );
                 }
 
+                // Cập nhật trạng thái trip
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
 
+                // Ghi nhận lịch sử thay đổi trạng thái trip
                 await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
                 {
                     HistoryId = Guid.NewGuid().ToString(),
@@ -128,7 +172,6 @@ namespace MTCS.Service.Services
 
                 await _unitOfWork.CommitTransactionAsync();
 
-
                 return new BusinessResult(200, "Update Trip Success");
             }
             catch
@@ -138,13 +181,30 @@ namespace MTCS.Service.Services
             }
         }
 
-        private async Task UpdateOrderAndVehiclesAsync(Trip trip, string orderStatus, VehicleStatus vehicleStatus, DriverStatus driverStatus)
+
+        private async Task UpdateOrderAndVehiclesAsync(
+            Trip trip,
+            string? orderStatus,
+            VehicleStatus vehicleStatus,
+            DriverStatus driverStatus,
+            string? orderDetailStatus = null)
         {
-            var order = await _unitOfWork.OrderRepository.GetByIdAsync(trip.OrderDetailId);
-            if (order != null)
+            var orderDetail = await _unitOfWork.OrderDetailRepository.GetByIdAsync(trip.OrderDetailId);
+
+            if (!string.IsNullOrEmpty(orderDetailStatus))
             {
-                order.Status = orderStatus;
-                await _unitOfWork.OrderRepository.UpdateAsync(order);
+                orderDetail.Status = orderDetailStatus;
+                await _unitOfWork.OrderDetailRepository.UpdateAsync(orderDetail);
+            }
+
+            if (!string.IsNullOrEmpty(orderStatus))
+            {
+                var order = await _unitOfWork.OrderRepository.GetByIdAsync(orderDetail.OrderId);
+                if (order != null)
+                {
+                    order.Status = orderStatus;
+                    await _unitOfWork.OrderRepository.UpdateAsync(order);
+                }
             }
 
             var trailer = await _unitOfWork.TrailerRepository.GetByIdAsync(trip.TrailerId);
@@ -168,6 +228,7 @@ namespace MTCS.Service.Services
                 await _unitOfWork.DriverRepository.UpdateAsync(driver);
             }
         }
+
         #endregion 
 
         #region Update Trip need change vehicale
@@ -703,23 +764,103 @@ namespace MTCS.Service.Services
                 ? tractors.Where(t => t.ContainerType == 1).Concat(tractors.Where(t => t.ContainerType != 1))
                 : tractors.Where(t => t.ContainerType == orderDetail.ContainerType);
 
+            //foreach (var driver in drivers)
+            //{
+            //    //Check daily working time
+            //    var daily = await _unitOfWork.DriverDailyWorkingTimeRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+            //    int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
+            //    if (totalDaily > dailyHourLimit * 60) continue;
+
+            //    //Check weekly working time
+            //    var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+            //    var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
+            //    var weekEnd = weekStart.AddDays(6);
+
+            //    var weekly = await _unitOfWork.DriverWeeklySummaryRepository.GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
+            //    int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
+            //    if (totalWeekly > weeklyHourLimit * 60) continue;
+
+            //    //Check if driver already has trips today
+            //    var driverTripsToday = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
+
+            //    if (driverTripsToday.Any())
+            //    {
+            //        var existingTractorId = driverTripsToday.First().TractorId;
+            //        var existingTrailerId = driverTripsToday.First().TrailerId;
+
+            //        var tractor = tractors.FirstOrDefault(t =>
+            //            t.TractorId == existingTractorId &&
+            //            t.MaxLoadWeight >= totalWeight &&
+            //            t.RegistrationExpirationDate > deliveryDate);
+
+            //        var trailer = trailers.FirstOrDefault(t =>
+            //            t.TrailerId == existingTrailerId &&
+            //            t.MaxLoadWeight >= totalWeight &&
+            //            (orderDetail.ContainerSize != 40 || t.ContainerSize == 2) &&
+            //            t.RegistrationExpirationDate > deliveryDate);
+
+            //        if (tractor != null && trailer != null)
+            //        {
+            //            return await CreateTrip(orderDetail, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
+            //        }
+
+            //        continue; // Thiết bị không còn phù hợp
+            //    }
+
+            //    //Nếu chưa có trip, tìm thiết bị chưa ai dùng hôm đó
+            //    foreach (var tractor in preferredTractors)
+            //    {
+            //        if (!tractor.MaxLoadWeight.HasValue ||
+            //            tractor.MaxLoadWeight.Value < totalWeight ||
+            //            usedTractorIds.Contains(tractor.TractorId) ||
+            //            tractor.RegistrationExpirationDate <= deliveryDate)
+            //            continue;
+
+            //        foreach (var trailer in trailers.Where(t =>
+            //            t.MaxLoadWeight >= totalWeight &&
+            //            (orderDetail.ContainerSize != 40 || t.ContainerSize == 2) &&
+            //            !usedTrailerIds.Contains(t.TrailerId) &&
+            //            t.RegistrationExpirationDate > deliveryDate))
+            //        {
+            //            //Gán trip
+            //            usedTractorIds.Add(tractor.TractorId);
+            //            usedTrailerIds.Add(trailer.TrailerId);
+
+            //            return await CreateTrip(orderDetail, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
+            //        }
+            //    }
+            //}
+
+            var driverWorkInfos = new List<(Driver driver, int totalDaily, int totalWeekly, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly)>();
+
+            var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
+            var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
+            var weekEnd = weekStart.AddDays(6);
+
+            // Tính và gom dữ liệu thời gian trước
             foreach (var driver in drivers)
             {
-                //Check daily working time
                 var daily = await _unitOfWork.DriverDailyWorkingTimeRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
-                int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
-                if (totalDaily > dailyHourLimit * 60) continue;
-
-                //Check weekly working time
-                var dateTime = deliveryDate.ToDateTime(TimeOnly.MinValue);
-                var weekStart = DateOnly.FromDateTime(dateTime.AddDays(-(int)dateTime.DayOfWeek));
-                var weekEnd = weekStart.AddDays(6);
-
                 var weekly = await _unitOfWork.DriverWeeklySummaryRepository.GetByDriverIdAndWeekAsync(driver.DriverId, weekStart, weekEnd);
-                int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
-                if (totalWeekly > weeklyHourLimit * 60) continue;
 
-                //Check if driver already has trips today
+                int totalDaily = (daily?.TotalTime ?? 0) + completionMinutes;
+                int totalWeekly = (weekly?.TotalHours ?? 0) + completionMinutes;
+
+                if (totalDaily > dailyHourLimit * 60 || totalWeekly > weeklyHourLimit * 60)
+                    continue;
+
+                driverWorkInfos.Add((driver, totalDaily, totalWeekly, daily, weekly));
+            }
+
+            // Sắp xếp theo thời gian làm việc ít nhất
+            var sortedDrivers = driverWorkInfos
+                .OrderBy(info => info.totalDaily)
+                .ThenBy(info => info.totalWeekly)
+                .ToList();
+
+            // Bắt đầu xét driver sau khi đã sort
+            foreach (var (driver, totalDaily, totalWeekly, daily, weekly) in sortedDrivers)
+            {
                 var driverTripsToday = await _unitOfWork.TripRepository.GetByDriverIdAndDateAsync(driver.DriverId, deliveryDate);
 
                 if (driverTripsToday.Any())
@@ -743,10 +884,10 @@ namespace MTCS.Service.Services
                         return await CreateTrip(orderDetail, driver, tractor, trailer, deliveryDate, completionMinutes, daily, weekly, weekStart, weekEnd);
                     }
 
-                    continue; // Thiết bị không còn phù hợp
+                    continue;
                 }
 
-                //Nếu chưa có trip, tìm thiết bị chưa ai dùng hôm đó
+                // Nếu chưa có trip hôm đó
                 foreach (var tractor in preferredTractors)
                 {
                     if (!tractor.MaxLoadWeight.HasValue ||
@@ -761,7 +902,6 @@ namespace MTCS.Service.Services
                         !usedTrailerIds.Contains(t.TrailerId) &&
                         t.RegistrationExpirationDate > deliveryDate))
                     {
-                        //Gán trip
                         usedTractorIds.Add(tractor.TractorId);
                         usedTrailerIds.Add(trailer.TrailerId);
 

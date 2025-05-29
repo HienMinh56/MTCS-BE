@@ -33,8 +33,6 @@ namespace MTCS.Data.Request
         [RegularExpression("^(Handling|Resolved)$", ErrorMessage = "Status must be Handling or Resolved")]
         public string? Status { get; set; }
 
-        public int? IsPay { get; set; }
-
         [MaxLength(5, ErrorMessage = "A maximum of 5 images are allowed.")]
         public IFormFileCollection? Image { get; set; }
     }

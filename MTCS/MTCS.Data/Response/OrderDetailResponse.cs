@@ -29,6 +29,10 @@ namespace MTCS.Data.Response
         public decimal? Distance { get; set; }
 
         public string Status { get; set; }
+        public string? Note { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? OrderPlacer { get; set; }
 
         public List<OrderDetailFileData> Files { get; set; }
     }
