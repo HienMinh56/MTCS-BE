@@ -751,7 +751,8 @@ namespace MTCS.Service.Services
 
                 var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
                 var data = await _unitOfWork.IncidentReportsRepository.GetImagesByReportId(incident.ReportId);
-                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == trip.OrderDetailId);
+                var orderDetail = _unitOfWork.OrderDetailRepository.Get(i => i.OrderDetailId == trip.OrderDetailId);
+                var order = _unitOfWork.OrderRepository.Get(i => i.OrderId == orderDetail.OrderId);
                 var owner = order.CreatedBy;
                 if (result > 0)
                 {
