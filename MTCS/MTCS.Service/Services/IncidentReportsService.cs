@@ -558,7 +558,6 @@ namespace MTCS.Service.Services
                     driver.Status = (int?)DriverStatus.OnDuty;
                     tractor.Status = VehicleStatus.OnDuty.ToString();
                     trailer.Status = VehicleStatus.OnDuty.ToString();
-                    incident.IsPay = 1;
 
                     var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
                     if (previousStatus != null)
