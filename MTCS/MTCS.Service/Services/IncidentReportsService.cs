@@ -103,7 +103,7 @@ namespace MTCS.Service.Services
                 VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
                 Price = 0,
-                IsPay =  0, // Default to 0 if not provided
+                IsPay =  0,
                 CreatedDate = DateTime.Now
             });
 
@@ -552,13 +552,13 @@ namespace MTCS.Service.Services
                 incident.Price = incidentReportRequest.Price;
                 incident.HandledBy = userName;
                 incident.HandledTime = DateTime.Now;
-                incident.IsPay = 1;
 
                 if (incident.Type == 1 || incident.Type == 3) // Delay or other incident
                 {
                     driver.Status = (int?)DriverStatus.OnDuty;
                     tractor.Status = VehicleStatus.OnDuty.ToString();
                     trailer.Status = VehicleStatus.OnDuty.ToString();
+                    incident.IsPay = 1;
 
                     var previousStatus = await _unitOfWork.TripStatusHistoryRepository.GetPreviousStatusOfTrip(trip.TripId);
                     if (previousStatus != null)
@@ -605,7 +605,6 @@ namespace MTCS.Service.Services
                     await _unitOfWork.DriverRepository.UpdateAsync(driver);
                     await _unitOfWork.TripRepository.UpdateAsync(trip);
                 }
-                            trip.Status = previousStatus.StatusId;
 
                 // ⬇️ Gọi hàm reuse để upload hình billing (nếu có)
                 if (incidentReportRequest.BillingImages?.Any() == true)
