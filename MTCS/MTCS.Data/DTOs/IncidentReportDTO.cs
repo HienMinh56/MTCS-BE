@@ -16,6 +16,8 @@ namespace MTCS.Data.DTOs.IncidentReportDTO
         public string? IncidentType { get; set; }
         public string? Description { get; set; }
         public DateTime? IncidentTime { get; set; }
+        public decimal? Price { get; set; }
+        public int? IsPay { get; set; }
         public string? Location { get; set; }
         public int? Type { get; set; }
         public int? VehicleType { get; set; }

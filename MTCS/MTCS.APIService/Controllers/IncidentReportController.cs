@@ -100,5 +100,13 @@ namespace MTCS.APIService.Controllers
             }
             return Ok(response); 
         }
+
+        [HttpPatch("{reportId}")]
+        public async Task<IBusinessResult> ToggleIsPayIncident (string reportId)
+        {
+            var currentUser = HttpContext.User;
+            var response = await _incidentReportsService.ToggleIsPay(reportId, currentUser);
+            return response;
+        }
     }
 }

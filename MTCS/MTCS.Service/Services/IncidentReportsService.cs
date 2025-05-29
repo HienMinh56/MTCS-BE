@@ -25,6 +25,8 @@ namespace MTCS.Service.Services
         Task<IBusinessResult> ResolvedReport(ResolvedIncidentReportRequest incidentReportRequest, ClaimsPrincipal claims);
         Task<IBusinessResult> DeleteIncidentReportById(string reportId);
         Task<ApiResponse<List<IncidentReportAdminDTO>>> GetIncidentReportsByVehicleAsync(string vehicleId, int vehicleType);
+
+        Task<IBusinessResult> ToggleIsPay(string reportId, ClaimsPrincipal claims);
     }
 
     public class IncidentReportsService : IIncidentReportsService
@@ -99,7 +101,7 @@ namespace MTCS.Service.Services
                 Type = request.Type,
                 VehicleType = request.VehicleType, // 1 : Tractor, 2: Trailer
                 Status = request.Status,
-                IsPay = request.IsPay ?? 0, // Default to 0 if not provided
+                IsPay = 0, // Default to 0 if not provided
                 CreatedDate = DateTime.Now
             });
 
@@ -525,7 +527,7 @@ namespace MTCS.Service.Services
                         incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
-                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
+                        incident.IsPay = 1;
 
                         driver.Status = (int?)DriverStatus.OnDuty;
                         tractor.Status = VehicleStatus.OnDuty.ToString();
@@ -564,7 +566,7 @@ namespace MTCS.Service.Services
                         incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
-                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
+
                         if (await _unitOfWork.TripRepository.IsDriverHaveProcessTrip(trip.DriverId, trip.TripId) == false)
                         {
                             driver.Status = (int?)DriverStatus.Active; ; // Free
@@ -591,7 +593,6 @@ namespace MTCS.Service.Services
                         incident.Price = incidentReportRequest.Price;
                         incident.HandledBy = userName;
                         incident.HandledTime = DateTime.Now;
-                        incident.IsPay = 1; // 1: đa thanh toán, 0: chưa thanh toán
 
                         driver.Status = (int?)DriverStatus.OnDuty;
                         tractor.Status = VehicleStatus.OnDuty.ToString();
@@ -816,5 +817,41 @@ namespace MTCS.Service.Services
             }
         }
 
+
+        #region
+        public async Task<IBusinessResult> ToggleIsPay(String reportId, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userId = claims.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? claims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+                var incident = _unitOfWork.IncidentReportsRepository.Get(i => i.ReportId == reportId);
+
+                if (incident == null)
+                {
+                    return new BusinessResult(Const.WARNING_NO_DATA_CODE, Const.WARNING_NO_DATA_MSG, new IncidentReport());
+                }
+
+                incident.IsPay = 1;
+
+                var result = await _unitOfWork.IncidentReportsRepository.UpdateAsync(incident);
+
+                if (result > 0)
+                {
+                    return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG, incident);
+                }
+                else
+                {
+                    return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG, incident);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(Const.ERROR_EXCEPTION, ex.Message);
+
+            }
+        }
+        #endregion
     }
 }

@@ -54,6 +54,9 @@ namespace MTCS.Data.Repository
                     HandledBy = i.HandledBy,
                     HandledTime = i.HandledTime,
                     CreatedDate = i.CreatedDate,
+                    Price = i.Price,
+                    IsPay = i.IsPay,
+
                     IncidentReportsFiles = i.IncidentReportsFiles.Select(f => new IncidentReportsFileDTO
                     {
                         FileId = f.FileId,
