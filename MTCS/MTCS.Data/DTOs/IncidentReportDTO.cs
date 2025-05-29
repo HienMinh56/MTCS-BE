@@ -22,8 +22,6 @@ namespace MTCS.Data.DTOs.IncidentReportDTO
         public int? Type { get; set; }
         public int? VehicleType { get; set; }
         public string? Status { get; set; }
-        public decimal? Price { get; set; }
-        public int? IsPay { get; set; }
         public string? ResolutionDetails { get; set; }
         public string? HandledBy { get; set; }
         public DateTime? HandledTime { get; set; }
