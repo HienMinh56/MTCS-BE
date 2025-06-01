@@ -161,9 +161,9 @@ namespace MTCS.Service.Services
                         var diffMinutes = actualMinutes - estimatedMinutes; // chênh lệch thực tế so với ước lượng
 
                         var workDate = DateOnly.FromDateTime(trip.EndTime.Value);
-                        var culture = System.Globalization.CultureInfo.CurrentCulture;
-                        var firstDayOfWeek = culture.DateTimeFormat.FirstDayOfWeek;
-                        var weekStart = trip.EndTime.Value.Date.AddDays(-(int)(trip.EndTime.Value.DayOfWeek - firstDayOfWeek + 7) % 7);
+                        //var culture = System.Globalization.CultureInfo.CurrentCulture;
+                        //var firstDayOfWeek = culture.DateTimeFormat.FirstDayOfWeek;
+                        var weekStart = trip.EndTime.Value.Date.AddDays(-(int)trip.EndTime.Value.DayOfWeek);
                         var weekEnd = weekStart.AddDays(6);
 
                         var daily = _unitOfWork.DriverDailyWorkingTimeRepository
