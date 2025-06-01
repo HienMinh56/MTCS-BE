@@ -39,5 +39,6 @@ namespace MTCS.Data.Response
         public int? IsPay { get; set; }
 
         public int? TotalAmount { get; set; }
+        public int? Quantity { get; set; }
     }
 }

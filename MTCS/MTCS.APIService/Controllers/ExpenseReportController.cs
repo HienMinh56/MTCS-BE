@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using MTCS.Common;
 using MTCS.Data.Request;
+using MTCS.Service.Base;
 using MTCS.Service.Services;
 
 namespace MTCS.APIService.Controllers
@@ -72,5 +75,28 @@ namespace MTCS.APIService.Controllers
         //    }
         //    return NotFound(result);
         //}
+
+        [Authorize]
+        [HttpPatch("{expenId}/toggle-is-pay")]
+        public async Task<IActionResult> ToggleIsPay(string expenId)
+        {
+            try
+            {
+                var userClaims = User;
+
+                var result = await _expenseReportService.ToggleIsPayAsync(expenId, userClaims);
+
+                if (result == null)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new BusinessResult(Const.FAIL_UPDATE_CODE, ex.Message));
+            }
+        }
     }
 }
