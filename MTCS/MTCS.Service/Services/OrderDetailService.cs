@@ -65,8 +65,16 @@ namespace MTCS.Service.Services
                     throw new ArgumentException("ContainerType chỉ được nhập 1 (Lạnh) hoặc 2 (Khô).");
                 }
 
-                // Tạo OrderDetail
-                var orderDetailId = Guid.NewGuid().ToString();
+
+                var trackingCode = order.TrackingCode;
+                var trimmedTrackingCode = trackingCode.Substring(3);
+
+                var currentCount = await _unitOfWork.OrderDetailRepository
+                    .CountAsync(od => od.OrderId == order.OrderId);
+
+                var detailSequence = currentCount + 1;
+
+                var orderDetailId = $"DET{trimmedTrackingCode}{detailSequence}";
 
                 var orderDetail = new OrderDetail
                 {

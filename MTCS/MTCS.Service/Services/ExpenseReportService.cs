@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
@@ -21,6 +22,8 @@ namespace MTCS.Service.Services
         Task<BusinessResult> CreateExpenseReport(CreateExpenseReportRequest expenseReport, IFormFileCollection files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateExpenseReport(UpdateExpenseReportRequest expenseReport, ClaimsPrincipal claims);
         //Task<BusinessResult> DeleteExpenseReport(string id);
+        Task<BusinessResult> ToggleIsPayAsync(string expenId, ClaimsPrincipal claims);
+
     }
     public class ExpenseReportService : IExpenseReportService
     {
@@ -229,5 +232,32 @@ namespace MTCS.Service.Services
         //        return Task.FromResult(new BusinessResult(500, "Delete Failed", ex.Message));
         //    }
         //}
+
+        public async Task<BusinessResult> ToggleIsPayAsync(string expenId, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+
+                await _unitOfWork.BeginTransactionAsync();
+
+                var expen = await _unitOfWork.ExpenseReportRepository.GetByIdAsync(expenId);
+
+                if (expen == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG); 
+
+                expen.IsPay = expen.IsPay == 0 ? 1 : expen.IsPay;
+                await _unitOfWork.ExpenseReportRepository.UpdateAsync(expen);
+
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(); // Quay lại nếu có lỗi
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
+            }
+        }
     }
 }
