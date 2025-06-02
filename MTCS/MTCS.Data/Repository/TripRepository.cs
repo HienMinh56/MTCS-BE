@@ -298,12 +298,29 @@ namespace MTCS.Data.Repository
 
             return await query.AnyAsync();
         }
-        public async Task<List<TripTimeTable>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+
+        public async Task<TripTimeTableResponse> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
         {
-            return await _context.Trips
+            endOfWeek = endOfWeek.Date.AddDays(1).AddSeconds(-1);
+
+            var query = _context.Trips
+                .AsNoTracking()
                 .Include(t => t.OrderDetail)
-                .Where(t => (t.StartTime >= startOfWeek && t.StartTime <= endOfWeek) ||
-                           (t.EndTime >= startOfWeek && t.EndTime <= endOfWeek))
+                .Where(t =>
+                    (t.StartTime >= startOfWeek && t.StartTime <= endOfWeek) ||
+
+                    (t.EndTime >= startOfWeek && t.EndTime <= endOfWeek) ||
+
+                    // Trips that span the entire week (start before, end after)
+                    (t.StartTime <= startOfWeek && t.EndTime >= endOfWeek) ||
+
+                    // Trips scheduled for this week but not yet started
+                    (t.Status == "not_started" &&
+                     t.OrderDetail.DeliveryDate >= DateOnly.FromDateTime(startOfWeek) &&
+                     t.OrderDetail.DeliveryDate <= DateOnly.FromDateTime(endOfWeek))
+                );
+
+            var trips = await query
                 .Select(t => new TripTimeTable
                 {
                     TripId = t.TripId,
@@ -316,10 +333,28 @@ namespace MTCS.Data.Repository
                     EndTime = t.EndTime,
                     DriverId = t.DriverId,
                     DriverName = t.Driver != null ? t.Driver.FullName : null,
-                    MatchTime = t.MatchTime,
                     Status = t.Status,
                 })
+                .OrderByDescending(t => t.StartTime)
                 .ToListAsync();
+
+            int completedCount = trips.Count(t => t.Status == "completed");
+            int deliveringCount = trips.Count(t => t.Status != "completed" && t.Status != "not_started" &&
+                                                t.Status != "canceled" && t.Status != "delaying");
+            int delayingCount = trips.Count(t => t.Status == "delaying");
+            int canceledCount = trips.Count(t => t.Status == "canceled");
+            int notStartedCount = trips.Count(t => t.Status == "not_started");
+
+            return new TripTimeTableResponse
+            {
+                Trips = trips,
+                TotalCount = trips.Count,
+                CompletedCount = completedCount,
+                DeliveringCount = deliveringCount,
+                DelayingCount = delayingCount,
+                CanceledCount = canceledCount,
+                NotStartedCount = notStartedCount
+            };
         }
     }
 }
