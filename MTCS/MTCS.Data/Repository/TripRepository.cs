@@ -268,6 +268,7 @@ namespace MTCS.Data.Repository
             {
                 TripId = t.TripId,
                 TrackingCode = t.OrderDetail.Order != null ? t.OrderDetail.Order.TrackingCode : null,
+                OrderDetailId = t.OrderDetailId,
                 ContainerNumber = t.OrderDetail != null ? t.OrderDetail.ContainerNumber : null,
                 PickUpDate = t.OrderDetail.PickUpDate,
                 DeliveryDate = t.OrderDetail.DeliveryDate,
