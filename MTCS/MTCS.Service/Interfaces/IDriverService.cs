@@ -10,7 +10,9 @@ namespace MTCS.Service.Interfaces
         Task<ApiResponse<DriverResponseDTO>> CreateDriverWithFiles(CreateDriverDTO driverDto, List<FileUploadDTO> fileUploads, string userId);
         Task<ApiResponse<bool>> DeactivateDriver(string driverId, string userName);
         Task<ApiResponse<bool>> DeleteDriver(string driverId, string userName);
+        Task<ApiResponse<List<DriverTimeTableResponse>>> GetAllDriversTimeTable(DateTime startOfWeek, DateTime endOfWeek);
         Task<ApiResponse<DriverProfileDetailsDTO>> GetDriverProfile(string driverId);
+        Task<ApiResponse<DriverTimeTableResponse>> GetDriverTimeTable(string driverId, DateTime startOfWeek, DateTime endOfWeek);
         Task<ApiResponse<DriverUseHistoryPagedDTO>> GetDriverUsageHistory(string driverId, PaginationParams paginationParams);
         Task<ApiResponse<bool>> UpdateDriverFileDetails(string fileId, FileDetailsDTO updateDto, string userId);
         Task<ApiResponse<DriverResponseDTO>> UpdateDriverWithFiles(string driverId, UpdateDriverDTO updateDto, List<FileUploadDTO> newFiles, List<string> fileIdsToRemove, string userId);

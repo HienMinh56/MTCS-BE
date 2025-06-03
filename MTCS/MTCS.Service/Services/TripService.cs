@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.DTOs.TripsDTO;
@@ -1055,26 +1054,34 @@ namespace MTCS.Service.Services
 
             }
         }
-
-        public async Task<ApiResponse<List<TripTimeTable>>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        public async Task<ApiResponse<TripTimeTableResponse>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
         {
             try
             {
-                var timeTable = await _unitOfWork.TripRepository.GetTripTimeTable(startOfWeek, endOfWeek);
-                if (timeTable is null || !timeTable.Any())
+                var timeTableResponse = await _unitOfWork.TripRepository.GetTripTimeTable(startOfWeek, endOfWeek);
+                if (timeTableResponse?.Trips == null || !timeTableResponse.Trips.Any())
                 {
-                    return new ApiResponse<List<TripTimeTable>>(
+                    return new ApiResponse<TripTimeTableResponse>(
                         success: true,
-                        data: null,
+                        data: new TripTimeTableResponse
+                        {
+                            Trips = new List<TripTimeTable>(),
+                            TotalCount = 0,
+                            CompletedCount = 0,
+                            DeliveringCount = 0,
+                            DelayingCount = 0,
+                            CanceledCount = 0,
+                            NotStartedCount = 0
+                        },
                         message: "Get time table successfully",
                         messageVN: "Không tìm thấy thời gian biểu",
                         errors: null
                     );
                 }
 
-                return new ApiResponse<List<TripTimeTable>>(
+                return new ApiResponse<TripTimeTableResponse>(
                     success: true,
-                    data: timeTable,
+                    data: timeTableResponse,
                     message: "Get time table successfully",
                     messageVN: "Lấy thời gian biểu thành công",
                     errors: null
@@ -1082,7 +1089,7 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                return new ApiResponse<List<TripTimeTable>>(
+                return new ApiResponse<TripTimeTableResponse>(
                     success: false,
                     data: null,
                     message: $"Failed to get time table: {ex.Message}",
