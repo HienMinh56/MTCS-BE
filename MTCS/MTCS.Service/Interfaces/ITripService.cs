@@ -1,7 +1,5 @@
 ﻿using System.Security.Claims;
-using MTCS.Data.DTOs;
 using MTCS.Data.DTOs.TripsDTO;
-using MTCS.Data.Models;
 using MTCS.Data.Request;
 using MTCS.Data.Response;
 using MTCS.Service.Base;
@@ -16,9 +14,9 @@ namespace MTCS.Service.Interfaces
         Task<BusinessResult> UpdateTripAsync(string tripId, UpdateTripRequest model, ClaimsPrincipal claims);
         Task<BusinessResult> CreateTripAsync(CreateTripRequestModel tripRequestModel, ClaimsPrincipal claims);
         Task<BusinessResult> AutoScheduleTripsForOrderAsync(string orderDetailId);
-        Task<IBusinessResult> CancelTrip(CancelTripRequest request ,ClaimsPrincipal claims);
+        Task<IBusinessResult> CancelTrip(CancelTripRequest request, ClaimsPrincipal claims);
         //Task<BusinessResult> CreateTrip(MTCS.Data.Models.Order order, Driver driver, Tractor tractor, Trailer trailer, DateOnly deliveryDate, int completionMinutes, DriverDailyWorkingTime? daily, DriverWeeklySummary? weekly, DateOnly weekStart, DateOnly weekEnd);
         Task<BusinessResult> GetAllTripsAsync();
-        Task<ApiResponse<List<TripTimeTable>>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek);
+        Task<ApiResponse<TripTimeTableResponse>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek);
     }
 }

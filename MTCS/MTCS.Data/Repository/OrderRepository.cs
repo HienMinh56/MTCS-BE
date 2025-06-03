@@ -79,8 +79,8 @@ namespace MTCS.Data.Repository
                 ContactPhone = o.ContactPhone,
                 OrderPlacer = o.OrderPlacer,
                 IsPay = o.IsPay,
-                TotalAmount = o.TotalAmount
-
+                TotalAmount = o.TotalAmount,
+                Quantity = o.Quantity
             }).ToList();
         }
 
