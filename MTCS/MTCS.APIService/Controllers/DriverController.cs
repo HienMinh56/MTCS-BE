@@ -110,5 +110,19 @@ namespace MTCS.APIService.Controllers
             }
             return Ok(response);
         }
+
+        [HttpGet("{driverId}/time-table")]
+        public async Task<IActionResult> GetDriverTimeTable(string driverId, DateTime startOfWeek, DateTime endOfWeek)
+        {
+            var result = await _driverService.GetDriverTimeTable(driverId, startOfWeek, endOfWeek);
+            return Ok(result);
+        }
+
+        [HttpGet("time-table")]
+        public async Task<IActionResult> GetAllDriversTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        {
+            var result = await _driverService.GetAllDriversTimeTable(startOfWeek, endOfWeek);
+            return Ok(result);
+        }
     }
 }

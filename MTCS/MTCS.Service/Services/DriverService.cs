@@ -524,5 +524,78 @@ namespace MTCS.Service.Services
             }
         }
 
+        public async Task<ApiResponse<DriverTimeTableResponse>> GetDriverTimeTable(string driverId, DateTime startOfWeek, DateTime endOfWeek)
+        {
+            try
+            {
+                var timeTable = await _unitOfWork.DriverRepository.GetDriverTimeTable(driverId, startOfWeek, endOfWeek);
+
+                if (timeTable == null || !timeTable.DriverSchedule.Any())
+                {
+                    return new ApiResponse<DriverTimeTableResponse>(
+                        success: true,
+                        data: new DriverTimeTableResponse(),
+                        message: "No schedule found for this driver in the selected week",
+                        messageVN: "Không tìm thấy lịch trình của tài xế trong tuần đã chọn",
+                        errors: null
+                    );
+                }
+
+                return new ApiResponse<DriverTimeTableResponse>(
+                    success: true,
+                    data: timeTable,
+                    message: "Get driver time table successfully",
+                    messageVN: "Lấy lịch trình của tài xế thành công",
+                    errors: null
+                );
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<DriverTimeTableResponse>(
+                    success: false,
+                    data: null,
+                    message: $"Failed to get driver time table: {ex.Message}",
+                    messageVN: "Không thể lấy lịch trình của tài xế",
+                    errors: ex.ToString()
+                );
+            }
+        }
+
+        public async Task<ApiResponse<List<DriverTimeTableResponse>>> GetAllDriversTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        {
+            try
+            {
+                var timeTable = await _unitOfWork.DriverRepository.GetAllDriversTimeTable(startOfWeek, endOfWeek);
+
+                if (timeTable == null || !timeTable.Any())
+                {
+                    return new ApiResponse<List<DriverTimeTableResponse>>(
+                        success: true,
+                        data: new List<DriverTimeTableResponse>(),
+                        message: "No drivers have schedules for this week",
+                        messageVN: "Không có tài xế nào có lịch trình trong tuần này",
+                        errors: null
+                    );
+                }
+
+                return new ApiResponse<List<DriverTimeTableResponse>>(
+                    success: true,
+                    data: timeTable,
+                    message: "Get all drivers time table successfully",
+                    messageVN: "Lấy lịch làm việc của tất cả tài xế thành công",
+                    errors: null
+                );
+            }
+            catch (Exception ex)
+            {
+                return new ApiResponse<List<DriverTimeTableResponse>>(
+                    success: false,
+                    data: null,
+                    message: $"Failed to get drivers time table: {ex.Message}",
+                    messageVN: "Không thể lấy lịch làm việc của tài xế",
+                    errors: ex.ToString()
+                );
+            }
+        }
     }
 }
