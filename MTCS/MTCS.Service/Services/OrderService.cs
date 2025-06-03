@@ -40,7 +40,7 @@ namespace MTCS.Service.Services
         Task<byte[]> ExportOrdersToExcelAsync(DateTime fromDate, DateTime toDate);
 
 
-        Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode);
+        Task<OrderDto> GetOrderByTrackingCodeAsync(string orderDetailId);
 
         Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims);
 
@@ -281,9 +281,9 @@ namespace MTCS.Service.Services
         }
 
         #region Get order by tracking code for customer
-        public async Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode)
+        public async Task<OrderDto> GetOrderByTrackingCodeAsync(string orderDetailId)
         {
-            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsTripsByTrackingCodeAsync(trackingCode);
+            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsTripsByTrackingCodeAsync(orderDetailId);
             if (order == null) return null;
 
             return new OrderDto
@@ -292,53 +292,55 @@ namespace MTCS.Service.Services
                 TrackingCode = order.TrackingCode,
                 CustomerName = order.Customer?.CompanyName,
                 Status = order.Status,
-                OrderDetails = order.OrderDetails.Select(od => new OrderDetailDto
-                {
-                    OrderDetailId = od.OrderDetailId,
-                    OrderId = od.OrderId,
-                    PickUpDate = od.PickUpDate,
-                    DeliveryDate = od.DeliveryDate,
-                    PickUpLocation = od.PickUpLocation,
-                    DeliveryLocation = od.DeliveryLocation,
-                    Trips = od.Trips
-                        .Where(t => t.Status != "canceled")
-                        .Select(t => new TripDto
-                        {
-                            TripId = t.TripId,
-                            OrderDetailId = t.OrderDetailId,
-                            DriverId = t.DriverId,
-                            TractorId = t.TractorId,
-                            TrailerId = t.TrailerId,
-                            StartTime = t.StartTime,
-                            EndTime = t.EndTime,
-                            Status = t.Status,
-                            MatchTime = t.MatchTime,
-                            Driver = t.Driver == null ? null : new DriverDto
-                            {
-                                DriverId = t.Driver.DriverId,
-                                FullName = t.Driver.FullName,
-                                PhoneNumber = t.Driver.PhoneNumber
-                            },
-                            Tractor = t.Tractor == null ? null : new TractorDto
-                            {
-                                TractorId = t.Tractor.TractorId,
-                                LicensePlate = t.Tractor.LicensePlate
-                            },
-                            Trailer = t.Trailer == null ? null : new TrailerDto
-                            {
-                                TrailerId = t.Trailer.TrailerId,
-                                LicensePlate = t.Trailer.LicensePlate
-                            },
-                            TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
-                            {
-                                HistoryId = h.HistoryId,
-                                TripId = h.TripId,
-                                StatusId = h.StatusId,
-                                StatusName = h.Status?.StatusName,
-                                StartTime = h.StartTime
-                            }).ToList()
-                        }).ToList()
-                }).ToList()
+                OrderDetails = order.OrderDetails
+             .Where(od => od.OrderDetailId == orderDetailId)
+             .Select(od => new OrderDetailDto
+             {
+                 OrderDetailId = od.OrderDetailId,
+                 OrderId = od.OrderId,
+                 PickUpDate = od.PickUpDate,
+                 DeliveryDate = od.DeliveryDate,
+                 PickUpLocation = od.PickUpLocation,
+                 DeliveryLocation = od.DeliveryLocation,
+                 Trips = od.Trips
+                     .Where(t => t.Status != "canceled")
+                     .Select(t => new TripDto
+                     {
+                         TripId = t.TripId,
+                         OrderDetailId = t.OrderDetailId,
+                         DriverId = t.DriverId,
+                         TractorId = t.TractorId,
+                         TrailerId = t.TrailerId,
+                         StartTime = t.StartTime,
+                         EndTime = t.EndTime,
+                         Status = t.Status,
+                         MatchTime = t.MatchTime,
+                         Driver = t.Driver == null ? null : new DriverDto
+                         {
+                             DriverId = t.Driver.DriverId,
+                             FullName = t.Driver.FullName,
+                             PhoneNumber = t.Driver.PhoneNumber
+                         },
+                         Tractor = t.Tractor == null ? null : new TractorDto
+                         {
+                             TractorId = t.Tractor.TractorId,
+                             LicensePlate = t.Tractor.LicensePlate
+                         },
+                         Trailer = t.Trailer == null ? null : new TrailerDto
+                         {
+                             TrailerId = t.Trailer.TrailerId,
+                             LicensePlate = t.Trailer.LicensePlate
+                         },
+                         TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
+                         {
+                             HistoryId = h.HistoryId,
+                             TripId = h.TripId,
+                             StatusId = h.StatusId,
+                             StatusName = h.Status?.StatusName,
+                             StartTime = h.StartTime
+                         }).ToList()
+                     }).ToList()
+             }).ToList()
             };
         }
         #endregion

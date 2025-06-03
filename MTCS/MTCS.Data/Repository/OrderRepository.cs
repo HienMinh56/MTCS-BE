@@ -98,24 +98,24 @@ namespace MTCS.Data.Repository
                 .ToListAsync();
         }
 
-        public async Task<Order> GetOrderWithDetailsTripsByTrackingCodeAsync(string trackingCode)
+        public async Task<Order> GetOrderWithDetailsTripsByTrackingCodeAsync(string orderDetailId)
         {
             return await _context.Orders
-                .Include(o => o.Customer)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Trips)
-                        .ThenInclude(t => t.Driver)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Trips)
-                        .ThenInclude(t => t.Tractor)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Trips)
-                        .ThenInclude(t => t.Trailer)
-                .Include(o => o.OrderDetails)
-                    .ThenInclude(od => od.Trips)
-                        .ThenInclude(t => t.TripStatusHistories)
-                            .ThenInclude(h => h.Status)
-                .FirstOrDefaultAsync(o => o.TrackingCode == trackingCode);
+         .Include(o => o.Customer)
+         .Include(o => o.OrderDetails)
+             .ThenInclude(od => od.Trips)
+                 .ThenInclude(t => t.Driver)
+         .Include(o => o.OrderDetails)
+             .ThenInclude(od => od.Trips)
+                 .ThenInclude(t => t.Tractor)
+         .Include(o => o.OrderDetails)
+             .ThenInclude(od => od.Trips)
+                 .ThenInclude(t => t.Trailer)
+         .Include(o => o.OrderDetails)
+             .ThenInclude(od => od.Trips)
+                 .ThenInclude(t => t.TripStatusHistories)
+                     .ThenInclude(h => h.Status)
+         .FirstOrDefaultAsync(o => o.OrderDetails.Any(od => od.OrderDetailId == orderDetailId));
         }
 
         public IQueryable<Order> GetQueryable()
