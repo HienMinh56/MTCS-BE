@@ -300,6 +300,7 @@ namespace MTCS.Service.Services
                  OrderId = od.OrderId,
                  PickUpDate = od.PickUpDate,
                  DeliveryDate = od.DeliveryDate,
+                 Status = od.Status,
                  PickUpLocation = od.PickUpLocation,
                  DeliveryLocation = od.DeliveryLocation,
                  Trips = od.Trips
