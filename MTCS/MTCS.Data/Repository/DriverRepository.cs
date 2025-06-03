@@ -526,6 +526,7 @@ namespace MTCS.Data.Repository
                     TractorPlate = t.TractorPlate,
                     TrailerId = t.TrailerId,
                     TrailerPlate = t.TrailerPlate,
+                    DeliveryDate = t.DeliveryDate,
                     StartTime = t.StartTime,
                     EndTime = t.EndTime,
                     Status = t.Status,

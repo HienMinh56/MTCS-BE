@@ -121,6 +121,7 @@ namespace MTCS.Data.DTOs
         public string TractorPlate { get; set; }
         public string TrailerId { get; set; }
         public string TrailerPlate { get; set; }
+        public DateOnly? DeliveryDate { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public string Status { get; set; }

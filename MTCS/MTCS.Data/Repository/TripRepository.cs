@@ -330,6 +330,7 @@ namespace MTCS.Data.Repository
                     StartTime = t.StartTime,
                     PickUpLocation = t.OrderDetail.PickUpLocation,
                     DeliveryLocation = t.OrderDetail.DeliveryLocation,
+                    DeliveryDate = t.OrderDetail.DeliveryDate,
                     ConReturnLocation = t.OrderDetail.ConReturnLocation,
                     EndTime = t.EndTime,
                     DriverId = t.DriverId,

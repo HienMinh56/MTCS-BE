@@ -178,6 +178,7 @@
         public string TrackingCode { get; set; }
         public string PickUpLocation { get; set; }
         public string DeliveryLocation { get; set; }
+        public DateOnly? DeliveryDate { get; set; }
         public string ConReturnLocation { get; set; }
         public string OrderDetailId { get; set; }
         public string DriverId { get; set; }

@@ -121,7 +121,7 @@ namespace MTCS.APIService.Controllers
 
                 var result = await _expenseReportService.ToggleIsPayAsync(expenId, userClaims);
 
-                if (result == null)
+                if (result != null)
                 {
                     return Ok(result);
                 }
