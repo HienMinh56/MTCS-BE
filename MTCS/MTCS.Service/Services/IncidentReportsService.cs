@@ -551,7 +551,7 @@ namespace MTCS.Service.Services
                 // Cập nhật thông tin chung của sự cố
                 incident.Status = "Resolved";
                 incident.ResolutionDetails = incidentReportRequest.ResolutionDetails;
-                incident.Price = incidentReportRequest.Price;
+                incident.Price = incidentReportRequest.Price ?? 0;
                 incident.HandledBy = userName;
                 incident.HandledTime = DateTime.Now;
 
