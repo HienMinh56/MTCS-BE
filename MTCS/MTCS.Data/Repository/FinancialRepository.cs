@@ -12,10 +12,103 @@ namespace MTCS.Data.Repository
         public FinancialRepository() : base() { }
         public FinancialRepository(MTCSContext context) : base(context) { }
 
+        private async Task<(decimal TotalAmount, Dictionary<string, decimal> Breakdown, decimal PaidAmount, decimal UnpaidAmount, Dictionary<string, decimal> PaidBreakdown, Dictionary<string, decimal> UnpaidBreakdown)> CalculateExpensesAsync(List<string> tripIds)
+        {
+            var expenses = await _context.ExpenseReports
+                .AsNoTracking()
+                .Include(e => e.ReportType)
+                .Where(e => tripIds.Contains(e.TripId))
+                .ToListAsync();
+
+            decimal totalAmount = expenses.Sum(e => e.Cost ?? 0);
+
+            var paidExpenses = expenses.Where(e => e.IsPay == 1).ToList();
+            var unpaidExpenses = expenses.Where(e => e.IsPay != 1).ToList();
+
+            decimal paidAmount = paidExpenses.Sum(e => e.Cost ?? 0);
+            decimal unpaidAmount = unpaidExpenses.Sum(e => e.Cost ?? 0);
+
+            // Build expense breakdown by type
+            var breakdown = expenses
+                .GroupBy(e => e.ReportType?.ReportType ?? "Unknown")
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(e => e.Cost ?? 0), 2)
+                );
+
+            // Build paid expense breakdown
+            var paidBreakdown = paidExpenses
+                .GroupBy(e => e.ReportType?.ReportType ?? "Unknown")
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(e => e.Cost ?? 0), 2)
+                );
+
+            // Build unpaid expense breakdown
+            var unpaidBreakdown = unpaidExpenses
+                .GroupBy(e => e.ReportType?.ReportType ?? "Unknown")
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(e => e.Cost ?? 0), 2)
+                );
+
+            return (totalAmount, breakdown, paidAmount, unpaidAmount, paidBreakdown, unpaidBreakdown);
+        }
+
+        private async Task<(decimal TotalAmount, Dictionary<int, decimal> Breakdown, decimal PaidAmount, decimal UnpaidAmount, Dictionary<int, decimal> PaidBreakdown, Dictionary<int, decimal> UnpaidBreakdown)> CalculateIncidentCostsAsync(List<string> tripIds)
+        {
+            var incidents = await _context.IncidentReports
+                .AsNoTracking()
+                .Where(i => tripIds.Contains(i.TripId))
+                .ToListAsync();
+
+            decimal totalAmount = incidents.Sum(i => i.Price ?? 0);
+
+            var paidIncidents = incidents.Where(i => i.IsPay == 1).ToList();
+            var unpaidIncidents = incidents.Where(i => i.IsPay != 1).ToList();
+
+            decimal paidAmount = paidIncidents.Sum(i => i.Price ?? 0);
+            decimal unpaidAmount = unpaidIncidents.Sum(i => i.Price ?? 0);
+
+            // Build incident breakdown by type
+            var breakdown = incidents
+                .GroupBy(i => i.Type ?? 0)
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(i => i.Price ?? 0), 2)
+                );
+
+            // Build paid incident breakdown
+            var paidBreakdown = paidIncidents
+                .GroupBy(i => i.Type ?? 0)
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(i => i.Price ?? 0), 2)
+                );
+
+            // Build unpaid incident breakdown
+            var unpaidBreakdown = unpaidIncidents
+                .GroupBy(i => i.Type ?? 0)
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(i => i.Price ?? 0), 2)
+                );
+
+            // Ensure all incident types exist in the dictionaries
+            foreach (var dictionary in new[] { breakdown, paidBreakdown, unpaidBreakdown })
+            {
+                if (!dictionary.ContainsKey(1)) dictionary[1] = 0;
+                if (!dictionary.ContainsKey(2)) dictionary[2] = 0;
+                if (!dictionary.ContainsKey(3)) dictionary[3] = 0;
+            }
+
+            return (totalAmount, breakdown, paidAmount, unpaidAmount, paidBreakdown, unpaidBreakdown);
+        }
+
         public async Task<RevenueAnalyticsDTO> GetRevenueAnalyticsAsync(
-            RevenuePeriodType periodType,
-            DateTime startDate,
-            DateTime? endDate = null)
+    RevenuePeriodType periodType,
+    DateTime startDate,
+    DateTime? endDate = null)
         {
             DateTime periodEndDate;
             string periodLabel;
@@ -71,17 +164,38 @@ namespace MTCS.Data.Repository
                     throw new ArgumentException("Invalid period type");
             }
 
-            var orders = await _context.Orders
+            var orders = await _context.Orders.AsNoTracking()
                 .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
                 .Where(o => o.CreatedDate >= startDate &&
-                           o.CreatedDate < periodEndDate &&
-                           o.Status == "Completed")
+                            o.CreatedDate < periodEndDate &&
+                            o.Status == "Completed")
                 .ToListAsync();
 
+            var orderIds = orders.Select(o => o.OrderId).ToList();
+
+            var orderDetailIds = orders
+                .SelectMany(o => o.OrderDetails.Select(od => od.OrderDetailId))
+                .ToList();
+
+            var trips = await _context.Trips
+                .Where(t => orderDetailIds.Contains(t.OrderDetailId))
+                .ToListAsync();
+
+            var tripIds = trips.Select(t => t.TripId).ToList();
+
+            var (totalExpenses, expenseBreakdown, paidExpensesAmount, unpaidExpensesAmount, paidExpenseBreakdown, unpaidExpenseBreakdown) = await CalculateExpensesAsync(tripIds);
+
+            var (totalIncidentCosts, incidentBreakdown, paidIncidentsAmount, unpaidIncidentsAmount, paidIncidentBreakdown, unpaidIncidentBreakdown) = await CalculateIncidentCostsAsync(tripIds);
+
+            // Revenue calculations
             decimal totalRevenue = orders.Sum(o => o.TotalAmount ?? 0);
             int orderCount = orders.Count;
+            decimal netRevenue = totalRevenue - totalExpenses - totalIncidentCosts;
             decimal averageRevenue = orderCount > 0 ? Math.Round(totalRevenue / orderCount, 2) : 0;
+            decimal averageNetRevenue = orderCount > 0 ? Math.Round(netRevenue / orderCount, 2) : 0;
 
+            // Process paid vs unpaid orders
             var paidOrders = orders.Where(o => o.IsPay == 1).ToList();
             var unpaidOrders = orders.Where(o => o.IsPay != 1).ToList();
 
@@ -90,6 +204,19 @@ namespace MTCS.Data.Repository
             int paidOrderCount = paidOrders.Count;
             int unpaidOrderCount = unpaidOrders.Count;
 
+            // Get paid and unpaid trip IDs
+            var paidOrderDetailIds = paidOrders
+                .SelectMany(o => o.OrderDetails.Select(od => od.OrderDetailId))
+                .ToList();
+
+            var unpaidOrderDetailIds = unpaidOrders
+                .SelectMany(o => o.OrderDetails.Select(od => od.OrderDetailId))
+                .ToList();
+
+            decimal netPaidRevenue = paidRevenue - paidExpensesAmount - paidIncidentsAmount;
+            decimal netUnpaidRevenue = unpaidRevenue - unpaidExpensesAmount - unpaidIncidentsAmount;
+
+            // Process periodic data
             foreach (var item in periodicData)
             {
                 var periodOrders = orders.Where(o =>
@@ -99,15 +226,40 @@ namespace MTCS.Data.Repository
                 var periodPaidOrders = periodOrders.Where(o => o.IsPay == 1).ToList();
                 var periodUnpaidOrders = periodOrders.Where(o => o.IsPay != 1).ToList();
 
+                // Get period trip IDs
+                var periodOrderDetailIds = periodOrders
+                    .SelectMany(o => o.OrderDetails.Select(od => od.OrderDetailId))
+                    .ToList();
+
+                var periodTripIds = trips
+                    .Where(t => periodOrderDetailIds.Contains(t.OrderDetailId))
+                    .Select(t => t.TripId)
+                    .ToList();
+
+                // Calculate period expenses
+                var (periodExpenses, periodExpenseBreakdown, periodPaidExpenses, periodUnpaidExpenses, _, _) =
+    await CalculateExpensesAsync(periodTripIds);
+
+                var (periodIncidentCosts, periodIncidentBreakdown, periodPaidIncidents, periodUnpaidIncidents, _, _) =
+                    await CalculateIncidentCostsAsync(periodTripIds);
+
                 item.TotalRevenue = periodOrders.Sum(o => o.TotalAmount ?? 0);
+                item.TotalExpenses = periodExpenses;
+                item.TotalIncidentCosts = periodIncidentCosts;
+                item.NetRevenue = item.TotalRevenue - periodExpenses - periodIncidentCosts;
                 item.CompletedOrders = periodOrders.Count;
                 item.AverageRevenuePerOrder = item.CompletedOrders > 0
                     ? Math.Round(item.TotalRevenue / item.CompletedOrders, 2)
+                    : 0;
+                item.AverageNetRevenuePerOrder = item.CompletedOrders > 0
+                    ? Math.Round(item.NetRevenue / item.CompletedOrders, 2)
                     : 0;
                 item.PaidRevenue = periodPaidOrders.Sum(o => o.TotalAmount ?? 0);
                 item.UnpaidRevenue = periodUnpaidOrders.Sum(o => o.TotalAmount ?? 0);
                 item.PaidOrders = periodPaidOrders.Count;
                 item.UnpaidOrders = periodUnpaidOrders.Count;
+                item.ExpenseBreakdown = periodExpenseBreakdown;
+                item.IncidentCostBreakdown = periodIncidentBreakdown;
             }
 
             var paidOrdersList = paidOrders.Select(o => new OrderSummaryDTO
@@ -137,13 +289,29 @@ namespace MTCS.Data.Repository
             return new RevenueAnalyticsDTO
             {
                 TotalRevenue = totalRevenue,
+                TotalExpenses = totalExpenses,
+                TotalIncidentCosts = totalIncidentCosts,
+                NetRevenue = netRevenue,
                 CompletedOrders = orderCount,
                 AverageRevenuePerOrder = averageRevenue,
+                AverageNetRevenuePerOrder = averageNetRevenue,
                 Period = periodLabel,
                 PaidRevenue = paidRevenue,
+                PaidExpenses = paidExpensesAmount,
+                PaidIncidentCosts = paidIncidentsAmount,
+                PaidNetRevenue = netPaidRevenue,
                 UnpaidRevenue = unpaidRevenue,
+                UnpaidExpenses = unpaidExpensesAmount,
+                UnpaidIncidentCosts = unpaidIncidentsAmount,
+                UnpaidNetRevenue = netUnpaidRevenue,
                 PaidOrders = paidOrderCount,
                 UnpaidOrders = unpaidOrderCount,
+                ExpenseBreakdown = expenseBreakdown,
+                IncidentCostBreakdown = incidentBreakdown,
+                PaidExpenseBreakdown = paidExpenseBreakdown,
+                PaidIncidentCostBreakdown = paidIncidentBreakdown,
+                UnpaidExpenseBreakdown = unpaidExpenseBreakdown,
+                UnpaidIncidentCostBreakdown = unpaidIncidentBreakdown,
                 PaidOrdersList = paidOrdersList,
                 UnpaidOrdersList = unpaidOrdersList,
                 PeriodicData = periodicData
@@ -151,38 +319,104 @@ namespace MTCS.Data.Repository
         }
 
         public async Task<PagedList<CustomerRevenueDTO>> GetRevenueByCustomerAsync(
-            PaginationParams paginationParams,
-            DateTime? startDate = null,
-            DateTime? endDate = null)
+     PaginationParams paginationParams,
+     DateTime? startDate = null,
+     DateTime? endDate = null)
         {
-            var query = _context.Orders
+            var ordersQuery = _context.Orders.AsNoTracking()
                 .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
                 .Where(o => o.Status == "Completed" || o.IsPay == 1);
 
             if (startDate.HasValue)
-                query = query.Where(o => o.CreatedDate >= startDate);
+                ordersQuery = ordersQuery.Where(o => o.CreatedDate >= startDate);
 
             if (endDate.HasValue)
-                query = query.Where(o => o.CreatedDate < endDate);
+                ordersQuery = ordersQuery.Where(o => o.CreatedDate < endDate);
 
-            var customerGroupsQuery = query
-                .GroupBy(o => new { o.CustomerId, o.Customer.CompanyName })
-                .Select(g => new CustomerRevenueDTO
+            var orders = await ordersQuery.ToListAsync();
+
+            var orderDetailIds = orders
+                .SelectMany(o => o.OrderDetails.Select(od => od.OrderDetailId))
+                .ToList();
+
+            var trips = await _context.Trips.AsNoTracking()
+                .Where(t => orderDetailIds.Contains(t.OrderDetailId))
+                .ToListAsync();
+
+            var tripIds = trips.Select(t => t.TripId).ToList();
+
+            // Calculate expenses and incident costs for all trips
+            var (totalExpenses, expenseBreakdown, paidExpensesAmount, unpaidExpensesAmount, paidExpenseBreakdown, unpaidExpenseBreakdown) =
+     await CalculateExpensesAsync(tripIds);
+
+            var (totalIncidentCosts, incidentBreakdown, paidIncidentsAmount, unpaidIncidentsAmount, paidIncidentBreakdown, unpaidIncidentBreakdown) =
+                await CalculateIncidentCostsAsync(tripIds);
+
+            // Create lookup for trip expenses and incidents
+            var tripExpenses = await _context.ExpenseReports.AsNoTracking()
+                .Include(e => e.ReportType)
+                .Where(e => tripIds.Contains(e.TripId))
+                .GroupBy(e => e.TripId)
+                .ToDictionaryAsync(
+                    g => g.Key,
+                    g => g.Sum(e => e.Cost ?? 0)
+                );
+
+            var tripIncidents = await _context.IncidentReports.AsNoTracking()
+                .Where(i => tripIds.Contains(i.TripId))
+                .GroupBy(i => i.TripId)
+                .ToDictionaryAsync(
+                    g => g.Key,
+                    g => g.Sum(i => i.Price ?? 0)
+                );
+
+            // Group orders by customer and calculate metrics
+            var customerGroups = orders
+                .GroupBy(o => new { o.CustomerId, o.Customer?.CompanyName })
+                .Select(g =>
                 {
-                    CustomerId = g.Key.CustomerId,
-                    CompanyName = g.Key.CompanyName,
-                    TotalRevenue = g.Sum(o => o.TotalAmount ?? 0),
-                    CompletedOrders = g.Count(),
-                    AverageRevenuePerOrder = g.Sum(o => o.TotalAmount ?? 0) / (g.Count() > 0 ? g.Count() : 1),
-                    PaidRevenue = g.Where(o => o.IsPay == 1).Sum(o => o.TotalAmount ?? 0),
-                    UnpaidRevenue = g.Where(o => o.Status == "Completed" && o.IsPay != 1).Sum(o => o.TotalAmount ?? 0),
-                    PaidOrders = g.Count(o => o.IsPay == 1),
-                    UnpaidOrders = g.Count(o => o.Status == "Completed" && o.IsPay != 1)
-                })
-                .OrderByDescending(r => r.TotalRevenue);
+                    // Get order detail IDs for this customer
+                    var customerOrderDetailIds = g.SelectMany(o => o.OrderDetails.Select(od => od.OrderDetailId)).ToList();
 
-            return await PagedList<CustomerRevenueDTO>.CreateAsync(
-                customerGroupsQuery,
+                    // Get trips for this customer
+                    var customerTrips = trips.Where(t => customerOrderDetailIds.Contains(t.OrderDetailId)).ToList();
+                    var customerTripIds = customerTrips.Select(t => t.TripId).ToList();
+
+                    // Calculate customer expenses
+                    decimal customerExpenses = customerTripIds
+                        .Where(tripId => tripExpenses.ContainsKey(tripId))
+                        .Sum(tripId => tripExpenses[tripId]);
+
+                    // Calculate customer incident costs
+                    decimal customerIncidentCosts = customerTripIds
+                        .Where(tripId => tripIncidents.ContainsKey(tripId))
+                        .Sum(tripId => tripIncidents[tripId]);
+
+                    // Calculate revenue
+                    decimal totalRevenue = g.Sum(o => o.TotalAmount ?? 0);
+
+                    return new CustomerRevenueDTO
+                    {
+                        CustomerId = g.Key.CustomerId,
+                        CompanyName = g.Key.CompanyName,
+                        TotalRevenue = totalRevenue,
+                        TotalExpenses = customerExpenses,
+                        TotalIncidentCosts = customerIncidentCosts,
+                        NetRevenue = totalRevenue - customerExpenses - customerIncidentCosts,
+                        CompletedOrders = g.Count(),
+                        AverageRevenuePerOrder = g.Count() > 0 ? totalRevenue / g.Count() : 0,
+                        PaidRevenue = g.Where(o => o.IsPay == 1).Sum(o => o.TotalAmount ?? 0),
+                        UnpaidRevenue = g.Where(o => o.Status == "Completed" && o.IsPay != 1).Sum(o => o.TotalAmount ?? 0),
+                        PaidOrders = g.Count(o => o.IsPay == 1),
+                        UnpaidOrders = g.Count(o => o.Status == "Completed" && o.IsPay != 1)
+                    };
+                })
+                .OrderByDescending(r => r.TotalRevenue)
+                .ToList();
+
+            return PagedList<CustomerRevenueDTO>.CreateFromList(
+                customerGroups,
                 paginationParams.PageNumber,
                 paginationParams.PageSize);
         }
@@ -190,6 +424,7 @@ namespace MTCS.Data.Repository
         public async Task<TripFinancialDTO> GetTripFinancialDetailsAsync(string tripId)
         {
             var trip = await _context.Trips
+                .AsNoTracking()
                 .Include(t => t.OrderDetail)
                 .Include(t => t.OrderDetail.Order)
                 .Include(t => t.OrderDetail.Order.Customer)
@@ -234,19 +469,20 @@ namespace MTCS.Data.Repository
             DateTime? endDate = null,
             string customerId = null)
         {
-            var query = _context.Trips
+            var query = _context.Trips.AsNoTracking()
                 .Include(t => t.OrderDetail)
                     .ThenInclude(od => od.Order)
                         .ThenInclude(o => o.Customer)
                 .Include(t => t.ExpenseReports)
                     .ThenInclude(e => e.ReportType)
+                    .Include(t => t.IncidentReports)
                     .Where(t => t.MatchTime != null);
 
             if (startDate.HasValue)
                 query = query.Where(t => t.StartTime >= startDate);
 
             if (endDate.HasValue)
-                query = query.Where(t => t.EndTime <= endDate);
+                query = query.Where(t => t.EndTime == null || t.EndTime <= endDate);
 
             if (!string.IsNullOrEmpty(customerId))
                 query = query.Where(t => t.OrderDetail.Order.CustomerId == customerId);
@@ -257,7 +493,6 @@ namespace MTCS.Data.Repository
             {
                 var revenue = trip.OrderDetail?.Order?.TotalAmount ?? 0;
 
-                // Group expenses by type
                 var expenseBreakdown = trip.ExpenseReports
                     .Where(e => e.ReportType != null)
                     .GroupBy(e => e.ReportType.ReportType)
@@ -266,11 +501,28 @@ namespace MTCS.Data.Repository
                         g => Math.Round(g.Sum(e => e.Cost ?? 0), 2)
                     );
 
-                // Calculate total expenses
                 var totalExpenses = Math.Round(trip.ExpenseReports.Sum(e => e.Cost ?? 0), 2);
 
-                // Calculate profit based on total expenses
-                var profit = Math.Round(revenue - totalExpenses, 2);
+                decimal incidentCost = 0;
+                if (trip.IncidentReports != null && trip.IncidentReports.Any())
+                {
+                    foreach (var incident in trip.IncidentReports)
+                    {
+                        decimal incidentPrice = incident.Price ?? 0;
+                        incidentCost += incidentPrice;
+
+                        string incidentTypeKey = $"Incident-Type-{incident.Type ?? 0}";
+
+                        if (!expenseBreakdown.ContainsKey(incidentTypeKey))
+                        {
+                            expenseBreakdown[incidentTypeKey] = 0;
+                        }
+
+                        expenseBreakdown[incidentTypeKey] += incidentPrice;
+                    }
+                }
+
+                var profit = revenue - (totalExpenses + incidentCost);
                 var profitMarginPercentage = revenue > 0 ? Math.Round((profit / revenue) * 100, 2) : 0;
 
                 return new TripFinancialDTO
@@ -281,6 +533,7 @@ namespace MTCS.Data.Repository
                     CustomerName = trip.OrderDetail?.Order?.Customer?.CompanyName,
                     Status = trip.Status,
                     Revenue = revenue,
+                    IncidentCost = Math.Round(incidentCost, 2),
                     TotalExpenses = totalExpenses,
                     ExpenseBreakdown = expenseBreakdown,
                     ProfitMargin = profit,
@@ -292,6 +545,7 @@ namespace MTCS.Data.Repository
         public async Task<TripPerformanceDTO> GetTripPerformanceAsync(DateTime startDate, DateTime endDate)
         {
             var trips = await _context.Trips
+                .AsNoTracking()
                 .Include(t => t.OrderDetail)
                 .Include(t => t.OrderDetail.Order)
                 .Include(t => t.Driver)
@@ -347,7 +601,7 @@ namespace MTCS.Data.Repository
 
             // For backward compatibility, try to get fuel cost if it exists
             decimal totalFuelCost = 0;
-            expensesByType.TryGetValue("fuel_report", out totalFuelCost);
+            expensesByType.TryGetValue("Phí đổ nhiên liệu", out totalFuelCost);
 
             decimal averageDistance = totalTrips > 0 ? Math.Round(totalDistance / totalTrips, 2) : 0;
             decimal averageFuelCost = totalTrips > 0 ? Math.Round(totalFuelCost / totalTrips, 2) : 0;
@@ -449,7 +703,7 @@ namespace MTCS.Data.Repository
         {
             // First, find fuel report type from database
             var fuelReportType = await _context.ExpenseReportTypes
-                .Where(t => t.ReportType.Contains("fuel") && t.IsActive == 1)
+                .Where(t => t.ReportType.Contains("fuel_report") && t.IsActive == 1)
                 .FirstOrDefaultAsync();
 
             if (fuelReportType == null)

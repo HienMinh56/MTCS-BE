@@ -11,6 +11,7 @@ namespace MTCS.Data.Response
         public string TripId { get; set; }
 
         public string TrackingCode { get; set; }
+        public string OrderDetailId { get; set; }
         public string ContainerNumber { get; set; }
 
         public DateOnly? PickUpDate { get; set; }

@@ -4,6 +4,7 @@ using MTCS.Data.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -74,6 +75,16 @@ namespace MTCS.Data.Repository
             return await _context.OrderDetails
                 .Where(od => od.OrderId == orderId)
                 .AllAsync(od => od.Status == "completed");
+        }
+
+        public async Task<int> CountAsync(Expression<Func<OrderDetail, bool>> predicate)
+        {
+            return await _context.OrderDetails.CountAsync(predicate);
+        }
+
+        public IQueryable<OrderDetail> GetQueryable()
+        {
+            return _context.OrderDetails.AsQueryable();
         }
     }
 }

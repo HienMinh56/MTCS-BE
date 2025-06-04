@@ -51,10 +51,7 @@ namespace MTCS.APIService.Controllers
                     return BadRequest("Định dạng ngày 'toDate' không hợp lệ. Vui lòng sử dụng định dạng DD/MM/YYYY.");
                 }
 
-                var fileContent = await _orderService.ExportOrdersToExcelAsync(
-                    fromDate.ToDateTime(TimeOnly.MinValue),
-                    toDate.ToDateTime(TimeOnly.MinValue)
-                );
+                var fileContent = await _orderService.ExportOrdersToExcelAsync(fromDate, toDate);
 
                 var fileName = $"Danh_sach_don_hang_{fromDate:yyyyMMdd}_{toDate:yyyyMMdd}.xlsx";
 

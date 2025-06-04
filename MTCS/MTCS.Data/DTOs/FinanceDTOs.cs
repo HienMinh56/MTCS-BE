@@ -3,13 +3,39 @@
     public class RevenueAnalyticsDTO
     {
         public decimal TotalRevenue { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal TotalIncidentCosts { get; set; }
+        public decimal NetRevenue { get; set; }
         public int CompletedOrders { get; set; }
         public decimal AverageRevenuePerOrder { get; set; }
+        public decimal AverageNetRevenuePerOrder { get; set; }
         public string Period { get; set; }
+
+        // Paid orders data
         public decimal PaidRevenue { get; set; }
+        public decimal PaidExpenses { get; set; }
+        public decimal PaidIncidentCosts { get; set; }
+        public decimal PaidNetRevenue { get; set; }
+
+        // Unpaid orders data
         public decimal UnpaidRevenue { get; set; }
+        public decimal UnpaidExpenses { get; set; }
+        public decimal UnpaidIncidentCosts { get; set; }
+        public decimal UnpaidNetRevenue { get; set; }
+
         public int PaidOrders { get; set; }
         public int UnpaidOrders { get; set; }
+
+        // Detailed breakdowns
+        public Dictionary<string, decimal> ExpenseBreakdown { get; set; } = new Dictionary<string, decimal>();
+        public Dictionary<int, decimal> IncidentCostBreakdown { get; set; } = new Dictionary<int, decimal>();
+
+        // Paid/Unpaid breakdowns
+        public Dictionary<string, decimal> PaidExpenseBreakdown { get; set; } = new Dictionary<string, decimal>();
+        public Dictionary<int, decimal> PaidIncidentCostBreakdown { get; set; } = new Dictionary<int, decimal>();
+        public Dictionary<string, decimal> UnpaidExpenseBreakdown { get; set; } = new Dictionary<string, decimal>();
+        public Dictionary<int, decimal> UnpaidIncidentCostBreakdown { get; set; } = new Dictionary<int, decimal>();
+
         public List<OrderSummaryDTO> PaidOrdersList { get; set; } = new List<OrderSummaryDTO>();
         public List<OrderSummaryDTO> UnpaidOrdersList { get; set; } = new List<OrderSummaryDTO>();
         public List<PeriodicRevenueItemDTO> PeriodicData { get; set; } = new List<PeriodicRevenueItemDTO>();
@@ -32,6 +58,9 @@
         public string CustomerId { get; set; }
         public string CompanyName { get; set; }
         public decimal TotalRevenue { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal TotalIncidentCosts { get; set; }
+        public decimal NetRevenue { get; set; }
         public int CompletedOrders { get; set; }
         public decimal AverageRevenuePerOrder { get; set; }
         public decimal PaidRevenue { get; set; }
@@ -39,7 +68,6 @@
         public int PaidOrders { get; set; }
         public int UnpaidOrders { get; set; }
     }
-
     public class TripFinancialDTO
     {
         public string TripId { get; set; }
@@ -47,11 +75,8 @@
         public string TrackingCode { get; set; }
         public string CustomerName { get; set; }
         public decimal Revenue { get; set; }
-        public decimal FuelCost { get; set; }
-        public decimal CarWashCost { get; set; }
-        public decimal TollCost { get; set; }
-        public decimal OtherCost { get; set; }
         public decimal TotalExpenses { get; set; }
+        public decimal IncidentCost { get; set; }
         public string Status { get; set; }
         public Dictionary<string, decimal> ExpenseBreakdown { get; set; }
         public decimal ProfitMargin { get; set; }
@@ -108,12 +133,18 @@
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public decimal TotalRevenue { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal TotalIncidentCosts { get; set; }
+        public decimal NetRevenue { get; set; }
         public int CompletedOrders { get; set; }
         public decimal AverageRevenuePerOrder { get; set; }
+        public decimal AverageNetRevenuePerOrder { get; set; }
         public decimal PaidRevenue { get; set; }
         public decimal UnpaidRevenue { get; set; }
         public int PaidOrders { get; set; }
         public int UnpaidOrders { get; set; }
+        public Dictionary<string, decimal> ExpenseBreakdown { get; set; } = new Dictionary<string, decimal>();
+        public Dictionary<int, decimal> IncidentCostBreakdown { get; set; } = new Dictionary<int, decimal>();
     }
 
     public class ExpenseBreakdownDTO

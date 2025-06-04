@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using Microsoft.IdentityModel.Tokens;
+using MTCS.Common;
 using MTCS.Data;
 using MTCS.Data.Models;
 using MTCS.Data.Request;
@@ -21,6 +16,9 @@ namespace MTCS.Service.Services
         Task<BusinessResult> CreateExpenseReport(CreateExpenseReportRequest expenseReport, IFormFileCollection files, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateExpenseReport(UpdateExpenseReportRequest expenseReport, ClaimsPrincipal claims);
         //Task<BusinessResult> DeleteExpenseReport(string id);
+        Task<BusinessResult> ToggleIsPayAsync(string expenId, ClaimsPrincipal claims);
+        Task<BusinessResult> GetAllExpenseReportsList(string driverId = null, string orderid = null, string tripId = null, string reportId = null, int? isPay = null);
+        Task<BusinessResult> GetExpenseReportDetails(string driverId = null, string orderid = null, string tripId = null, string reportId = null, int? isPay = null);
     }
     public class ExpenseReportService : IExpenseReportService
     {
@@ -38,7 +36,7 @@ namespace MTCS.Service.Services
             var expenseReport = _unitOfWork.ExpenseReportRepository.GetById(id);
             if (expenseReport == null)
             {
-                return  new BusinessResult(404, "Expense report not found");
+                return new BusinessResult(404, "Expense report not found");
             }
             return new BusinessResult(200, "Success", expenseReport);
         }
@@ -229,5 +227,70 @@ namespace MTCS.Service.Services
         //        return Task.FromResult(new BusinessResult(500, "Delete Failed", ex.Message));
         //    }
         //}
+
+        public async Task<BusinessResult> ToggleIsPayAsync(string expenId, ClaimsPrincipal claims)
+        {
+            try
+            {
+                var userName = claims.FindFirst(ClaimTypes.Name)?.Value ?? "Staff";
+
+                await _unitOfWork.BeginTransactionAsync();
+
+                var expen = await _unitOfWork.ExpenseReportRepository.GetByIdAsync(expenId);
+
+                if (expen == null)
+                    return new BusinessResult(Const.FAIL_READ_CODE, Const.FAIL_READ_MSG);
+
+                expen.IsPay = expen.IsPay == 0 ? 1 : expen.IsPay;
+                await _unitOfWork.ExpenseReportRepository.UpdateAsync(expen);
+
+                await _unitOfWork.CommitTransactionAsync();
+
+                return new BusinessResult(Const.SUCCESS_UPDATE_CODE, Const.SUCCESS_UPDATE_MSG);
+            }
+            catch
+            {
+                await _unitOfWork.RollbackTransactionAsync(); // Quay lại nếu có lỗi
+                return new BusinessResult(Const.FAIL_UPDATE_CODE, Const.FAIL_UPDATE_MSG);
+            }
+        }
+
+        public async Task<BusinessResult> GetAllExpenseReportsList(string driverId = null, string orderid = null, string tripId = null, string reportId = null, int? isPay = null)
+        {
+            try
+            {
+                var expenseReportsList = await _unitOfWork.ExpenseReportRepository.GetExpenseReportsList(driverId, orderid, tripId, reportId, isPay);
+
+                if (expenseReportsList == null || !expenseReportsList.Any())
+                {
+                    return new BusinessResult(404, "No expense reports found");
+                }
+
+                return new BusinessResult(200, "Success", expenseReportsList);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(500, $"Error retrieving expense reports: {ex.Message}");
+            }
+        }
+
+        public async Task<BusinessResult> GetExpenseReportDetails(string driverId = null, string orderid = null, string tripId = null, string reportId = null, int? isPay = null)
+        {
+            try
+            {
+                var expenseReportDetails = await _unitOfWork.ExpenseReportRepository.GetExpenseReportsDetails(driverId, orderid, tripId, reportId, isPay);
+
+                if (expenseReportDetails == null || !expenseReportDetails.Any())
+                {
+                    return new BusinessResult(404, "No expense report details found");
+                }
+
+                return new BusinessResult(200, "Success", expenseReportDetails);
+            }
+            catch (Exception ex)
+            {
+                return new BusinessResult(500, $"Error retrieving expense report details: {ex.Message}");
+            }
+        }
     }
 }

@@ -36,11 +36,11 @@ namespace MTCS.Service.Services
                                             );
         Task<BusinessResult> CreateOrder(OrderRequest orderRequest, ClaimsPrincipal claims);
         Task<BusinessResult> UpdateOrderAsync(string orderId, UpdateOrderRequest model, ClaimsPrincipal claims);
-        Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<Order> orders);
-        Task<byte[]> ExportOrdersToExcelAsync(DateTime fromDate, DateTime toDate);
+        Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<OrderDetail> orderDetails);
+        Task<byte[]> ExportOrdersToExcelAsync(DateOnly fromDate, DateOnly toDate);
 
 
-        Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode);
+        Task<OrderDto> GetOrderByTrackingCodeAsync(string orderDetailId);
 
         Task<BusinessResult> ToggleIsPayAsync(string orderId, ClaimsPrincipal claims);
 
@@ -166,7 +166,7 @@ namespace MTCS.Service.Services
                 order.TotalAmount = model.TotalAmount ?? order.TotalAmount;
                 order.ModifiedDate = DateTime.Now;
                 order.ModifiedBy = userName;
-                order.ContactPerson = model.ContactPerson ?? order.ContactPerson;              
+                order.ContactPerson = model.ContactPerson ?? order.ContactPerson;
                 order.ContactPhone = model.ContactPhone ?? order.ContactPhone;
                 order.OrderPlacer = model.OrderPlacer ?? order.OrderPlacer;
                 order.IsPay = model.IsPay ?? order.IsPay;
@@ -185,7 +185,7 @@ namespace MTCS.Service.Services
         }
         #endregion
 
-        public async Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<Order> orders)
+        public async Task<byte[]> ExportOrdersToExcelInternal(IEnumerable<OrderDetail> orderDetails)
         {
             try
             {
@@ -195,32 +195,31 @@ namespace MTCS.Service.Services
                     var worksheet = package.Workbook.Worksheets.Add("Orders");
 
                     // Các header cột Excel
-                    worksheet.Cells[1, 1].Value = "Ngày";
-                    worksheet.Cells[1, 2].Value = "Mã đơn hàng";
-                    worksheet.Cells[1, 3].Value = "Khách Hàng";
-                    worksheet.Cells[1, 4].Value = "Ghi Chú";
-                    worksheet.Cells[1, 5].Value = "Số lượng";
-                    worksheet.Cells[1, 6].Value = "Cước vận chuyển";
-                    worksheet.Cells[1, 7].Value = "Tình trạng thanh toán";
-                    worksheet.Cells[1, 8].Value = "Tài xế";
-                    worksheet.Cells[1, 9].Value = "Biển số đầu kéo";
-                    worksheet.Cells[1, 10].Value = "Biển số Rơ-mooc";
-                    worksheet.Cells[1, 11].Value = "Nhân viên bán hàng";
+                    worksheet.Cells[1, 1].Value = "Ngày lấy";
+                    worksheet.Cells[1, 2].Value = "Ngày giao";
+                    worksheet.Cells[1, 3].Value = "Mã đơn hàng";
+                    worksheet.Cells[1, 4].Value = "Mã theo dõi";
+                    worksheet.Cells[1, 5].Value = "Mã container";
+                    worksheet.Cells[1, 6].Value = "Loại container 20f/40f";
+                    worksheet.Cells[1, 7].Value = "Khách Hàng";
+                    worksheet.Cells[1, 8].Value = "Ghi Chú";
+                    worksheet.Cells[1, 9].Value = "Địa điểm lấy";
+                    worksheet.Cells[1, 10].Value = "Địa điểm giao";
+                    worksheet.Cells[1, 11].Value = "Địa điểm trả container";
+                    worksheet.Cells[1, 12].Value = "Tình trạng thanh toán";
+                    worksheet.Cells[1, 13].Value = "Tài xế";
+                    worksheet.Cells[1, 14].Value = "Biển số đầu kéo";
+                    worksheet.Cells[1, 15].Value = "Biển số Rơ-mooc";
+                    worksheet.Cells[1, 16].Value = "Nhân viên bán hàng";
 
                     int row = 2;
-                    foreach (var order in orders)
+                    foreach (var orderDetail in orderDetails)
                     {
-                        // Kiểm tra nếu order có status "complete"
-                        if (order.Status != "Completed")
+                        if (orderDetail.Status != "Completed")
                             continue;
 
-                        var customer = order.Customer;
-                        var trips = order.OrderDetails?
-                          .SelectMany(od => od.Trips ?? Enumerable.Empty<Trip>())
-                          .Where(t => t.Status == "completed") ?? Enumerable.Empty<Trip>();
-                        if (!trips.Any())
-                            continue;
-
+                        var order = orderDetail.Order;
+                        var customer = order?.Customer;
                         var staff = await _unitOfWork.InternalUserRepository.GetUserByIdAsync(order.CreatedBy);
 
                         if (staff == null)
@@ -228,24 +227,34 @@ namespace MTCS.Service.Services
                             throw new Exception("Không tìm thấy người tạo đơn hàng!");
                         }
 
+                        var trips = orderDetail.Trips?.Where(t => t.Status == "completed") ?? Enumerable.Empty<Trip>();
+                        if (!trips.Any())
+                            continue;
+
                         foreach (var trip in trips)
                         {
                             var driver = trip.Driver;
                             var tractor = trip.Tractor;
                             var trailer = trip.Trailer;
 
-
                             worksheet.Cells[row, 1, row, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Left;
-                            worksheet.Cells[row, 2].Value = order.TrackingCode;
-                            worksheet.Cells[row, 3].Value = customer.CompanyName;
-                            worksheet.Cells[row, 4].Value = order.Note;
-                            worksheet.Cells[row, 5].Value = order.Quantity;
-                            worksheet.Cells[row, 6].Style.Numberformat.Format = "#,##0";
-                            worksheet.Cells[row, 7].Value = order.IsPay == 0 ? "Chưa thanh toán" : order.IsPay == 1 ? "Đã thanh toán" : "";
-                            worksheet.Cells[row, 8].Value = driver?.FullName ?? ""; 
-                            worksheet.Cells[row, 9].Value = tractor?.LicensePlate ?? "";
-                            worksheet.Cells[row, 10].Value = trailer?.LicensePlate ?? "";
-                            worksheet.Cells[row, 11].Value = staff.FullName;
+
+                            worksheet.Cells[row, 1].Value = orderDetail?.PickUpDate?.ToString("dd/MM/yyyy") ?? "";
+                            worksheet.Cells[row, 2].Value = orderDetail?.DeliveryDate?.ToString("dd/MM/yyyy") ?? "";
+                            worksheet.Cells[row, 3].Value = order?.TrackingCode ?? "";
+                            worksheet.Cells[row, 4].Value = orderDetail?.OrderDetailId ?? "";
+                            worksheet.Cells[row, 5].Value = orderDetail?.ContainerNumber ?? "";
+                            worksheet.Cells[row, 6].Value = orderDetail?.ContainerSize != null ? $"{orderDetail.ContainerSize}f" : "";
+                            worksheet.Cells[row, 7].Value = customer?.CompanyName ?? "";
+                            worksheet.Cells[row, 8].Value = orderDetail?.Order.Note ?? "";
+                            worksheet.Cells[row, 9].Value = orderDetail?.PickUpLocation ?? "";
+                            worksheet.Cells[row, 10].Value = orderDetail?.DeliveryLocation ?? "";
+                            worksheet.Cells[row, 11].Value = orderDetail?.ConReturnLocation ?? "";
+                            worksheet.Cells[row, 12].Value = order?.IsPay == 0 ? "Chưa thanh toán" : order?.IsPay == 1 ? "Đã thanh toán" : "";
+                            worksheet.Cells[row, 13].Value = driver?.FullName ?? "";
+                            worksheet.Cells[row, 14].Value = tractor?.LicensePlate ?? "";
+                            worksheet.Cells[row, 15].Value = trailer?.LicensePlate ?? "";
+                            worksheet.Cells[row, 16].Value = staff.FullName;
 
                             row++;
                         }
@@ -261,29 +270,33 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                throw new Exception("An error occurred while exporting orders to Excel", ex);
+                throw new Exception("An error occurred while exporting order details to Excel", ex);
             }
         }
 
-        public async Task<byte[]> ExportOrdersToExcelAsync(DateTime fromDate, DateTime toDate)
+        public async Task<byte[]> ExportOrdersToExcelAsync(DateOnly fromDate, DateOnly toDate)
         {
-            fromDate = fromDate.Date;
-            toDate = toDate.Date.AddDays(1).AddTicks(-1);
+            var orderDetails = await _unitOfWork.OrderDetailRepository.GetQueryable()
+                .Where(od => od.PickUpDate.HasValue &&
+                             od.PickUpDate.Value >= fromDate &&
+                             od.PickUpDate.Value <= toDate)
+                    .Include(od => od.Order)
+                        .ThenInclude(o => o.Customer)
+                    .Include(od => od.Trips)
+                        .ThenInclude(t => t.Driver)
+                    .Include(od => od.Trips)
+                        .ThenInclude(t => t.Tractor)
+                    .Include(od => od.Trips)
+                        .ThenInclude(t => t.Trailer)
+                .ToListAsync();
 
-            var orders = await _unitOfWork.OrderRepository.GetQueryable()
-                 .Where(o => o.CreatedDate.HasValue &&
-                 o.CreatedDate.Value >= fromDate &&
-                 o.CreatedDate.Value <= toDate)
-                 .Include(o => o.Customer)
-                 .ToListAsync();
-
-            return await ExportOrdersToExcelInternal(orders);
+            return await ExportOrdersToExcelInternal(orderDetails);
         }
 
         #region Get order by tracking code for customer
-        public async Task<OrderDto> GetOrderByTrackingCodeAsync(string trackingCode)
+        public async Task<OrderDto> GetOrderByTrackingCodeAsync(string orderDetailId)
         {
-            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsTripsByTrackingCodeAsync(trackingCode);
+            var order = await _unitOfWork.OrderRepository.GetOrderWithDetailsTripsByTrackingCodeAsync(orderDetailId);
             if (order == null) return null;
 
             return new OrderDto
@@ -292,53 +305,56 @@ namespace MTCS.Service.Services
                 TrackingCode = order.TrackingCode,
                 CustomerName = order.Customer?.CompanyName,
                 Status = order.Status,
-                OrderDetails = order.OrderDetails.Select(od => new OrderDetailDto
-                {
-                    OrderDetailId = od.OrderDetailId,
-                    OrderId = od.OrderId,
-                    PickUpDate = od.PickUpDate,
-                    DeliveryDate = od.DeliveryDate,
-                    PickUpLocation = od.PickUpLocation,
-                    DeliveryLocation = od.DeliveryLocation,
-                    Trips = od.Trips
-                        .Where(t => t.Status != "canceled")
-                        .Select(t => new TripDto
-                        {
-                            TripId = t.TripId,
-                            OrderDetailId = t.OrderDetailId,
-                            DriverId = t.DriverId,
-                            TractorId = t.TractorId,
-                            TrailerId = t.TrailerId,
-                            StartTime = t.StartTime,
-                            EndTime = t.EndTime,
-                            Status = t.Status,
-                            MatchTime = t.MatchTime,
-                            Driver = t.Driver == null ? null : new DriverDto
-                            {
-                                DriverId = t.Driver.DriverId,
-                                FullName = t.Driver.FullName,
-                                PhoneNumber = t.Driver.PhoneNumber
-                            },
-                            Tractor = t.Tractor == null ? null : new TractorDto
-                            {
-                                TractorId = t.Tractor.TractorId,
-                                LicensePlate = t.Tractor.LicensePlate
-                            },
-                            Trailer = t.Trailer == null ? null : new TrailerDto
-                            {
-                                TrailerId = t.Trailer.TrailerId,
-                                LicensePlate = t.Trailer.LicensePlate
-                            },
-                            TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
-                            {
-                                HistoryId = h.HistoryId,
-                                TripId = h.TripId,
-                                StatusId = h.StatusId,
-                                StatusName = h.Status?.StatusName,
-                                StartTime = h.StartTime
-                            }).ToList()
-                        }).ToList()
-                }).ToList()
+                OrderDetails = order.OrderDetails
+             .Where(od => od.OrderDetailId == orderDetailId)
+             .Select(od => new OrderDetailDto
+             {
+                 OrderDetailId = od.OrderDetailId,
+                 OrderId = od.OrderId,
+                 PickUpDate = od.PickUpDate,
+                 DeliveryDate = od.DeliveryDate,
+                 Status = od.Status,
+                 PickUpLocation = od.PickUpLocation,
+                 DeliveryLocation = od.DeliveryLocation,
+                 Trips = od.Trips
+                     .Where(t => t.Status != "canceled")
+                     .Select(t => new TripDto
+                     {
+                         TripId = t.TripId,
+                         OrderDetailId = t.OrderDetailId,
+                         DriverId = t.DriverId,
+                         TractorId = t.TractorId,
+                         TrailerId = t.TrailerId,
+                         StartTime = t.StartTime,
+                         EndTime = t.EndTime,
+                         Status = t.Status,
+                         MatchTime = t.MatchTime,
+                         Driver = t.Driver == null ? null : new DriverDto
+                         {
+                             DriverId = t.Driver.DriverId,
+                             FullName = t.Driver.FullName,
+                             PhoneNumber = t.Driver.PhoneNumber
+                         },
+                         Tractor = t.Tractor == null ? null : new TractorDto
+                         {
+                             TractorId = t.Tractor.TractorId,
+                             LicensePlate = t.Tractor.LicensePlate
+                         },
+                         Trailer = t.Trailer == null ? null : new TrailerDto
+                         {
+                             TrailerId = t.Trailer.TrailerId,
+                             LicensePlate = t.Trailer.LicensePlate
+                         },
+                         TripStatusHistories = t.TripStatusHistories.Select(h => new TripStatusHistoryDto
+                         {
+                             HistoryId = h.HistoryId,
+                             TripId = h.TripId,
+                             StatusId = h.StatusId,
+                             StatusName = h.Status?.StatusName,
+                             StartTime = h.StartTime
+                         }).ToList()
+                     }).ToList()
+             }).ToList()
             };
         }
         #endregion

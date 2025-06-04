@@ -6,7 +6,8 @@
         Active = 1,
         Inactive = 2,
         Onduty = 3,
-        Onfixing = 4
+        Onfixing = 4,
+        Detained = 5
     }
 
     public enum TrailerStatus
@@ -14,7 +15,8 @@
         Active = 1,
         Inactive = 2,
         Onduty = 3,
-        Onfixing = 4
+        Onfixing = 4,
+        Detained = 5
     }
 
     public enum ContainerType

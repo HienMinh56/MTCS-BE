@@ -284,5 +284,288 @@ namespace MTCS.Data.Repository
                 paginationParams.PageSize);
         }
 
+        public async Task<DriverTimeTableResponse> GetDriverTimeTable(string driverId, DateTime startOfWeek, DateTime endOfWeek)
+        {
+            endOfWeek = endOfWeek.Date.AddDays(1).AddSeconds(-1);
+            var today = DateOnly.FromDateTime(DateTime.Now);
+
+            // Get driver details including weekly working time
+            var driver = await _context.Drivers
+                .AsNoTracking()
+                .Include(d => d.DriverDailyWorkingTimes)
+                .Include(d => d.DriverWeeklySummaries)
+                .FirstOrDefaultAsync(d => d.DriverId == driverId);
+
+            if (driver == null)
+                return new DriverTimeTableResponse();
+
+            // Get weekly working time
+            var weeklyRecord = driver.DriverWeeklySummaries
+                .FirstOrDefault(ws => ws.WeekStart <= DateOnly.FromDateTime(startOfWeek) &&
+                                     ws.WeekEnd >= DateOnly.FromDateTime(endOfWeek));
+
+            string totalWorkingTime = "00:00";
+            if (weeklyRecord?.TotalHours.HasValue == true)
+            {
+                int hours = weeklyRecord.TotalHours.Value / 60;
+                int minutes = weeklyRecord.TotalHours.Value % 60;
+                totalWorkingTime = $"{hours:D2}:{minutes:D2}";
+            }
+
+            // Get today's working time
+            var dailyRecord = driver.DriverDailyWorkingTimes
+                .FirstOrDefault(wt => wt.WorkDate == today);
+
+            string dailyWorkingTime = "00:00";
+            if (dailyRecord?.TotalTime.HasValue == true)
+            {
+                int hours = dailyRecord.TotalTime.Value / 60;
+                int minutes = dailyRecord.TotalTime.Value % 60;
+                dailyWorkingTime = $"{hours:D2}:{minutes:D2}";
+            }
+
+            var query = _context.Trips
+                .AsNoTracking()
+                .Include(t => t.OrderDetail)
+                    .ThenInclude(od => od.Order)
+                .Include(t => t.Tractor)
+                .Include(t => t.Trailer)
+                .Where(t => t.DriverId == driverId)
+                .Where(t =>
+                    // Trips that start within the selected week
+                    (t.StartTime >= startOfWeek && t.StartTime <= endOfWeek) ||
+
+                    // Trips that end within the selected week
+                    (t.EndTime >= startOfWeek && t.EndTime <= endOfWeek) ||
+
+                    // Trips that span the entire week (start before, end after)
+                    (t.StartTime <= startOfWeek && t.EndTime >= endOfWeek) ||
+
+                    // Trips scheduled for this week but not yet started
+                    (t.Status == "not_started" &&
+                     t.OrderDetail.DeliveryDate >= DateOnly.FromDateTime(startOfWeek) &&
+                     t.OrderDetail.DeliveryDate <= DateOnly.FromDateTime(endOfWeek))
+                );
+
+            var trips = await query
+                .Select(t => new DriverTimeTable
+                {
+                    TripId = t.TripId,
+                    TrackingCode = t.OrderDetail.Order.TrackingCode,
+                    OrderDetailId = t.OrderDetailId,
+                    TractorId = t.TractorId,
+                    TractorPlate = t.Tractor.LicensePlate,
+                    TrailerId = t.TrailerId,
+                    TrailerPlate = t.Trailer.LicensePlate,
+                    StartTime = t.StartTime,
+                    EndTime = t.EndTime,
+                    Status = t.Status,
+                    EstimatedCompletionTime = t.OrderDetail.CompletionTime
+                })
+                .OrderBy(t => t.StartTime)
+                .ToListAsync();
+
+            // Calculate counts
+            int completedCount = trips.Count(t => t.Status == "completed");
+            int deliveringCount = trips.Count(t => t.Status != "completed" && t.Status != "not_started" &&
+                                              t.Status != "canceled" && t.Status != "delaying");
+            int delayingCount = trips.Count(t => t.Status == "delaying");
+            int canceledCount = trips.Count(t => t.Status == "canceled");
+            int notStartedCount = trips.Count(t => t.Status == "not_started");
+
+            return new DriverTimeTableResponse
+            {
+                DriverSchedule = trips,
+                TotalCount = trips.Count,
+                CompletedCount = completedCount,
+                DeliveringCount = deliveringCount,
+                DelayingCount = delayingCount,
+                CanceledCount = canceledCount,
+                NotStartedCount = notStartedCount,
+                WeeklyWorkingTime = totalWorkingTime,
+            };
+        }
+        public async Task<List<DriverTimeTableResponse>> GetAllDriversTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        {
+            endOfWeek = endOfWeek.Date.AddDays(1).AddSeconds(-1);
+            var weekStart = DateOnly.FromDateTime(startOfWeek);
+            var weekEnd = DateOnly.FromDateTime(endOfWeek);
+
+            var tripsQuery = _context.Trips
+                .AsNoTracking()
+                .Include(t => t.OrderDetail)
+                    .ThenInclude(od => od.Order)
+                .Include(t => t.Tractor)
+                .Include(t => t.Trailer)
+                .Where(t =>
+                    // Trips that start within the selected week
+                    (t.StartTime >= startOfWeek && t.StartTime <= endOfWeek) ||
+
+                    // Trips that end within the selected week
+                    (t.EndTime >= startOfWeek && t.EndTime <= endOfWeek) ||
+
+                    // Trips that span the entire week (start before, end after)
+                    (t.StartTime <= startOfWeek && t.EndTime >= endOfWeek) ||
+
+                    // Trips scheduled for this week but not yet started
+                    (t.Status == "not_started" &&
+                     t.OrderDetail.DeliveryDate >= weekStart &&
+                     t.OrderDetail.DeliveryDate <= weekEnd)
+                );
+
+            // Get distinct driver IDs from the trips
+            var driverIds = await tripsQuery.Select(t => t.DriverId).Distinct().ToListAsync();
+
+            // For each driver, construct their time table
+            var result = new List<DriverTimeTableResponse>();
+
+            foreach (var driverId in driverIds)
+            {
+                var driver = await _context.Drivers
+                    .AsNoTracking()
+                    .Include(d => d.DriverDailyWorkingTimes)
+                    .Include(d => d.DriverWeeklySummaries)
+                    .FirstOrDefaultAsync(d => d.DriverId == driverId);
+
+                if (driver == null)
+                    continue;
+
+                // Get all trips for this driver in the specified week
+                var allDriverTrips = await tripsQuery
+                    .Where(t => t.DriverId == driverId)
+                    .Select(t => new
+                    {
+                        t.TripId,
+                        t.OrderDetailId,
+                        t.StartTime,
+                        t.EndTime,
+                        t.Status,
+                        TrackingCode = t.OrderDetail.Order.TrackingCode,
+                        CompletionTime = t.OrderDetail.CompletionTime,
+                        DeliveryDate = t.OrderDetail.DeliveryDate,
+                        t.TractorId,
+                        TractorPlate = t.Tractor.LicensePlate,
+                        t.TrailerId,
+                        TrailerPlate = t.Trailer.LicensePlate
+                    })
+                    .ToListAsync();
+
+                // Calculate daily working times
+                var dailyWorkingTimes = new List<DailyWorkingTimeDTO>();
+                int totalPracticalMinutes = 0;
+                int totalExpectedMinutes = 0;
+
+                for (var day = startOfWeek.Date; day <= endOfWeek.Date; day = day.AddDays(1))
+                {
+                    var currentDay = DateOnly.FromDateTime(day);
+
+                    // Get trips for this day
+                    var tripsOnDay = allDriverTrips.Where(t =>
+                        (t.StartTime?.Date == day.Date) ||
+                        (t.EndTime?.Date == day.Date) ||
+                        (t.Status == "not_started" && t.DeliveryDate == currentDay)).ToList();
+
+                    // Calculate expected time (sum of CompletionTime for all trips assigned on this day)
+                    int expectedMinutes = 0;
+                    foreach (var trip in tripsOnDay.Where(t => t.Status != "canceled"))
+                    {
+                        if (trip.CompletionTime.HasValue)
+                        {
+                            expectedMinutes += (trip.CompletionTime.Value.Hour * 60) + trip.CompletionTime.Value.Minute;
+                        }
+                    }
+
+                    // Calculate practical time (actual time spent on completed trips)
+                    int practicalMinutes = 0;
+                    foreach (var trip in tripsOnDay.Where(t => t.Status == "completed" && t.StartTime.HasValue && t.EndTime.HasValue))
+                    {
+                        // Calculate only the portion of time spent on this day
+                        var tripStart = trip.StartTime.Value;
+                        var tripEnd = trip.EndTime.Value;
+
+                        // If trip spans multiple days, calculate only this day's portion
+                        if (tripStart.Date < day.Date)
+                            tripStart = day.Date;
+
+                        if (tripEnd.Date > day.Date)
+                            tripEnd = day.Date.AddDays(1).AddSeconds(-1);
+
+                        var duration = (tripEnd - tripStart).TotalMinutes;
+                        practicalMinutes += (int)duration;
+                    }
+
+                    // Format times as HH:MM
+                    string expectedTimeDisplay = FormatMinutesToHHMM(expectedMinutes);
+                    string practicalTimeDisplay = FormatMinutesToHHMM(practicalMinutes);
+
+                    // Add to totals
+                    totalExpectedMinutes += expectedMinutes;
+                    totalPracticalMinutes += practicalMinutes;
+
+                    dailyWorkingTimes.Add(new DailyWorkingTimeDTO
+                    {
+                        Date = currentDay,
+                        WorkingTime = practicalTimeDisplay,
+                        TotalMinutes = practicalMinutes,
+                        ExpectedWorkingTime = expectedTimeDisplay,
+                        ExpectedMinutes = expectedMinutes
+                    });
+                }
+
+                // Format weekly totals
+                string weeklyWorkingTime = FormatMinutesToHHMM(totalPracticalMinutes);
+                string expectedWeeklyWorkingTime = FormatMinutesToHHMM(totalExpectedMinutes);
+
+                // Convert trips to DTO format
+                var driverTrips = allDriverTrips.Select(t => new DriverTimeTable
+                {
+                    TripId = t.TripId,
+                    TrackingCode = t.TrackingCode,
+                    OrderDetailId = t.OrderDetailId,
+                    TractorId = t.TractorId,
+                    TractorPlate = t.TractorPlate,
+                    TrailerId = t.TrailerId,
+                    TrailerPlate = t.TrailerPlate,
+                    DeliveryDate = t.DeliveryDate,
+                    StartTime = t.StartTime,
+                    EndTime = t.EndTime,
+                    Status = t.Status,
+                    EstimatedCompletionTime = t.CompletionTime
+                }).OrderBy(t => t.StartTime).ToList();
+
+                int completedCount = driverTrips.Count(t => t.Status == "completed");
+                int deliveringCount = driverTrips.Count(t => t.Status != "completed" && t.Status != "not_started" &&
+                                                  t.Status != "canceled" && t.Status != "delaying");
+                int delayingCount = driverTrips.Count(t => t.Status == "delaying");
+                int canceledCount = driverTrips.Count(t => t.Status == "canceled");
+                int notStartedCount = driverTrips.Count(t => t.Status == "not_started");
+
+                result.Add(new DriverTimeTableResponse
+                {
+                    DriverId = driverId,
+                    DriverName = driver.FullName,
+                    DriverSchedule = driverTrips,
+                    TotalCount = driverTrips.Count,
+                    CompletedCount = completedCount,
+                    DeliveringCount = deliveringCount,
+                    DelayingCount = delayingCount,
+                    CanceledCount = canceledCount,
+                    NotStartedCount = notStartedCount,
+                    WeeklyWorkingTime = weeklyWorkingTime,
+                    TotalWeeklyMinutes = totalPracticalMinutes,
+                    ExpectedWeeklyWorkingTime = expectedWeeklyWorkingTime,
+                    ExpectedWeeklyMinutes = totalExpectedMinutes,
+                    DailyWorkingTimes = dailyWorkingTimes
+                });
+            }
+            return result;
+        }
+
+        private string FormatMinutesToHHMM(int totalMinutes)
+        {
+            int hours = totalMinutes / 60;
+            int minutes = totalMinutes % 60;
+            return $"{hours:D2}:{minutes:D2}";
+        }
     }
 }

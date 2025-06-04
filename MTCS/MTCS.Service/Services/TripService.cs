@@ -86,7 +86,6 @@ namespace MTCS.Service.Services
                     return new BusinessResult(400, "Cannot update as over step status");
                 }
 
-                // Xử lý khi bắt đầu giao hàng
                 if (newStatus.StatusIndex == 1)
                 {
                     trip.StartTime = DateTime.Now;
@@ -107,7 +106,6 @@ namespace MTCS.Service.Services
 
                 trip.Status = newStatusId;
 
-                // Xử lý khi hoàn tất chuyến
                 if (newStatus.StatusId == "completed")
                 {
                     trip.EndTime = DateTime.Now;
@@ -123,13 +121,12 @@ namespace MTCS.Service.Services
 
                     await UpdateOrderAndVehiclesAsync(
                         trip,
-                        null, // Order sẽ cập nhật sau nếu cần
+                        null,
                         VehicleStatus.Active,
                         driverStatus,
                         orderDetailStatus: "Completed"
                     );
 
-                    // Nếu tất cả chi tiết đã hoàn thành, cập nhật Order
                     var allCompleted = await _unitOfWork.OrderDetailRepository
                         .AreAllOrderDetailsCompletedAsync(orderDetail.OrderId);
 
@@ -140,7 +137,6 @@ namespace MTCS.Service.Services
                         await _unitOfWork.OrderRepository.UpdateAsync(order);
                     }
 
-                    // Gửi thông báo và email
                     await _notificationService.SendNotificationAsync(
                         orderDetail.Order.CreatedBy,
                         "Chuyến đi đã được cập nhật",
@@ -156,12 +152,48 @@ namespace MTCS.Service.Services
                         orderDetail.Order.TrackingCode,
                         orderDetail.CompletionTime
                     );
+
+                    if (trip.StartTime.HasValue && trip.EndTime.HasValue && orderDetail.CompletionTime.HasValue)
+                    {
+                        var actualMinutes = (int)(trip.EndTime.Value - trip.StartTime.Value).TotalMinutes;
+                        var estimatedMinutes = (int)orderDetail.CompletionTime.Value.ToTimeSpan().TotalMinutes;
+                        var diffMinutes = actualMinutes - estimatedMinutes; // chênh lệch thực tế so với ước lượng
+
+                        var workDate = DateOnly.FromDateTime(trip.EndTime.Value);
+                        //var culture = System.Globalization.CultureInfo.CurrentCulture;
+                        //var firstDayOfWeek = culture.DateTimeFormat.FirstDayOfWeek;
+                        var weekStart = trip.EndTime.Value.Date.AddDays(-(int)trip.EndTime.Value.DayOfWeek);
+                        var weekEnd = weekStart.AddDays(6);
+
+                        var daily = _unitOfWork.DriverDailyWorkingTimeRepository
+                            .Get(d => d.DriverId == driver.DriverId && d.WorkDate == workDate);
+
+                        var weekly = _unitOfWork.DriverWeeklySummaryRepository
+                            .Get(w => w.DriverId == driver.DriverId && w.WeekStart == DateOnly.FromDateTime(weekStart) && w.WeekEnd == DateOnly.FromDateTime(weekEnd));
+
+                        if (daily != null)
+                        {
+                            daily.TotalTime = Math.Max(0, (daily.TotalTime ?? 0) + diffMinutes);
+                            daily.ModifiedDate = DateTime.Now;
+                            daily.ModifiedBy = userId;
+                            await _unitOfWork.DriverDailyWorkingTimeRepository.UpdateAsync(daily);
+                        }
+
+                        if (weekly != null)
+                        {
+                            // Weekly tính theo giờ nên chuyển từ phút sang giờ chính xác hơn bằng double
+                            var currentHours = weekly.TotalHours ?? 0;
+                            weekly.TotalHours = Math.Max(0, currentHours + diffMinutes);
+                            await _unitOfWork.DriverWeeklySummaryRepository.UpdateAsync(weekly);
+                        }
+                    }
+
+
+                    // --- Kết thúc phần cập nhật thời gian làm việc ---
                 }
 
-                // Cập nhật trạng thái trip
                 await _unitOfWork.TripRepository.UpdateAsync(trip);
 
-                // Ghi nhận lịch sử thay đổi trạng thái trip
                 await _unitOfWork.TripStatusHistoryRepository.CreateAsync(new TripStatusHistory
                 {
                     HistoryId = Guid.NewGuid().ToString(),
@@ -180,6 +212,9 @@ namespace MTCS.Service.Services
                 return new BusinessResult(500, "Internal Server Error");
             }
         }
+
+
+
 
 
         private async Task UpdateOrderAndVehiclesAsync(
@@ -1019,26 +1054,34 @@ namespace MTCS.Service.Services
 
             }
         }
-
-        public async Task<ApiResponse<List<TripTimeTable>>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
+        public async Task<ApiResponse<TripTimeTableResponse>> GetTripTimeTable(DateTime startOfWeek, DateTime endOfWeek)
         {
             try
             {
-                var timeTable = await _unitOfWork.TripRepository.GetTripTimeTable(startOfWeek, endOfWeek);
-                if (timeTable is null || !timeTable.Any())
+                var timeTableResponse = await _unitOfWork.TripRepository.GetTripTimeTable(startOfWeek, endOfWeek);
+                if (timeTableResponse?.Trips == null || !timeTableResponse.Trips.Any())
                 {
-                    return new ApiResponse<List<TripTimeTable>>(
+                    return new ApiResponse<TripTimeTableResponse>(
                         success: true,
-                        data: null,
+                        data: new TripTimeTableResponse
+                        {
+                            Trips = new List<TripTimeTable>(),
+                            TotalCount = 0,
+                            CompletedCount = 0,
+                            DeliveringCount = 0,
+                            DelayingCount = 0,
+                            CanceledCount = 0,
+                            NotStartedCount = 0
+                        },
                         message: "Get time table successfully",
                         messageVN: "Không tìm thấy thời gian biểu",
                         errors: null
                     );
                 }
 
-                return new ApiResponse<List<TripTimeTable>>(
+                return new ApiResponse<TripTimeTableResponse>(
                     success: true,
-                    data: timeTable,
+                    data: timeTableResponse,
                     message: "Get time table successfully",
                     messageVN: "Lấy thời gian biểu thành công",
                     errors: null
@@ -1046,7 +1089,7 @@ namespace MTCS.Service.Services
             }
             catch (Exception ex)
             {
-                return new ApiResponse<List<TripTimeTable>>(
+                return new ApiResponse<TripTimeTableResponse>(
                     success: false,
                     data: null,
                     message: $"Failed to get time table: {ex.Message}",

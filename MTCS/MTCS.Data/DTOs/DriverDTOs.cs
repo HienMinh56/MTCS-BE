@@ -94,4 +94,47 @@ namespace MTCS.Data.DTOs
         public PagedList<DriverUseHistory>? DriverUseHistories { get; set; }
     }
 
+    public class DriverTimeTableResponse
+    {
+        public string DriverId { get; set; }
+        public string DriverName { get; set; }
+        public List<DriverTimeTable> DriverSchedule { get; set; } = new List<DriverTimeTable>();
+        public int TotalCount { get; set; }
+        public int CompletedCount { get; set; }
+        public int DeliveringCount { get; set; }
+        public int DelayingCount { get; set; }
+        public int CanceledCount { get; set; }
+        public int NotStartedCount { get; set; }
+        public string WeeklyWorkingTime { get; set; }
+        public int TotalWeeklyMinutes { get; set; } = 0;
+        public string ExpectedWeeklyWorkingTime { get; set; }
+        public int ExpectedWeeklyMinutes { get; set; } = 0;
+        public List<DailyWorkingTimeDTO> DailyWorkingTimes { get; set; } = new List<DailyWorkingTimeDTO>();
+    }
+
+    public class DriverTimeTable
+    {
+        public string TripId { get; set; }
+        public string TrackingCode { get; set; }
+        public string OrderDetailId { get; set; }
+        public string TractorId { get; set; }
+        public string TractorPlate { get; set; }
+        public string TrailerId { get; set; }
+        public string TrailerPlate { get; set; }
+        public DateOnly? DeliveryDate { get; set; }
+        public DateTime? StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public string Status { get; set; }
+        public TimeOnly? EstimatedCompletionTime { get; set; }
+    }
+
+    public class DailyWorkingTimeDTO
+    {
+        public DateOnly Date { get; set; }
+        public string WorkingTime { get; set; } = "00:00";
+        public int TotalMinutes { get; set; } = 0;
+        public string ExpectedWorkingTime { get; set; } = "00:00";
+        public int ExpectedMinutes { get; set; } = 0;
+    }
+
 }

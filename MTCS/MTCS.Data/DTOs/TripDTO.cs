@@ -178,14 +178,25 @@
         public string TrackingCode { get; set; }
         public string PickUpLocation { get; set; }
         public string DeliveryLocation { get; set; }
+        public DateOnly? DeliveryDate { get; set; }
         public string ConReturnLocation { get; set; }
         public string OrderDetailId { get; set; }
         public string DriverId { get; set; }
         public string DriverName { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
-        public DateTime? MatchTime { get; set; }
         public string Status { get; set; }
+    }
+
+    public class TripTimeTableResponse
+    {
+        public List<TripTimeTable> Trips { get; set; }
+        public int TotalCount { get; set; }
+        public int CompletedCount { get; set; }
+        public int DeliveringCount { get; set; }
+        public int DelayingCount { get; set; }
+        public int CanceledCount { get; set; }
+        public int NotStartedCount { get; set; }
     }
 }
 
