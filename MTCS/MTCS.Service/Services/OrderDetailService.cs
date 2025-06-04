@@ -240,6 +240,8 @@ namespace MTCS.Service.Services
                 orderDetail.ContainerSize = model.ContainerSize ?? orderDetail.ContainerSize;
                 orderDetail.Weight = model.Weight ?? orderDetail.Weight;
                 orderDetail.PickUpLocation = model.PickUpLocation ?? orderDetail.PickUpLocation;
+                orderDetail.PickUpDate = model.PickUpDate ?? orderDetail.PickUpDate;
+                orderDetail.DeliveryDate = model.DeliveryDate ?? orderDetail.DeliveryDate;
                 orderDetail.DeliveryLocation = model.DeliveryLocation ?? orderDetail.DeliveryLocation;
                 orderDetail.ConReturnLocation = model.ConReturnLocation ?? orderDetail.ConReturnLocation;
                 orderDetail.CompletionTime = model.CompletionTime ?? orderDetail.CompletionTime;
