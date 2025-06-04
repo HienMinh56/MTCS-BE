@@ -601,7 +601,7 @@ namespace MTCS.Data.Repository
 
             // For backward compatibility, try to get fuel cost if it exists
             decimal totalFuelCost = 0;
-            expensesByType.TryGetValue("fuel_report", out totalFuelCost);
+            expensesByType.TryGetValue("Phí đổ nhiên liệu", out totalFuelCost);
 
             decimal averageDistance = totalTrips > 0 ? Math.Round(totalDistance / totalTrips, 2) : 0;
             decimal averageFuelCost = totalTrips > 0 ? Math.Round(totalFuelCost / totalTrips, 2) : 0;
@@ -703,7 +703,7 @@ namespace MTCS.Data.Repository
         {
             // First, find fuel report type from database
             var fuelReportType = await _context.ExpenseReportTypes
-                .Where(t => t.ReportType.Contains("fuel") && t.IsActive == 1)
+                .Where(t => t.ReportType.Contains("fuel_report") && t.IsActive == 1)
                 .FirstOrDefaultAsync();
 
             if (fuelReportType == null)
