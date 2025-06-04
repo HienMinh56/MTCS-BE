@@ -15,7 +15,7 @@ namespace MTCS.Data.Response
         public int ContainerSize { get; set; }
         public double Weight { get; set; }
 
-        public int Temperature { get; set; }
+        public int? Temperature { get; set; }
 
         public DateOnly PickUpDate { get; set; }
         public DateOnly DeliveryDate { get; set; }

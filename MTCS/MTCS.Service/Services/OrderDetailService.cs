@@ -183,7 +183,7 @@ namespace MTCS.Service.Services
                 ContainerType = (int)od.ContainerType,
                 ContainerSize = (int)od.ContainerSize,
                 Weight = (double)od.Weight,
-                Temperature = (int)od.Temperature,
+                Temperature = od.Temperature.HasValue ? (int)od.Temperature : null,
                 PickUpDate = (DateOnly)od.PickUpDate,
                 PickUpLocation = od.PickUpLocation,
                 DeliveryLocation = od.DeliveryLocation,
