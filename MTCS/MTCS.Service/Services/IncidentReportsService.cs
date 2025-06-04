@@ -175,6 +175,8 @@ namespace MTCS.Service.Services
                 {
                     trip.Status = "canceled";
                     trip.EndTime = DateTime.Now;
+                    orderDetail.Status = "Pending";
+                    await _unitOfWork.OrderDetailRepository.UpdateAsync(orderDetail);
                     if (request.VehicleType == 1)
                     {
                         driver.Status = (int?)DriverStatus.Onfixing;
