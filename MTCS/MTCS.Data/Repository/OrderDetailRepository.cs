@@ -81,5 +81,10 @@ namespace MTCS.Data.Repository
         {
             return await _context.OrderDetails.CountAsync(predicate);
         }
+
+        public IQueryable<OrderDetail> GetQueryable()
+        {
+            return _context.OrderDetails.AsQueryable();
+        }
     }
 }
